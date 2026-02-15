@@ -920,7 +920,7 @@ Table~\ref{tab:ch05_ishtar_obs_stack} summarizes a minimal-but-extensible stack 
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
-\begin{tabularx}{0.95\linewidth}{>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.33\linewidth}>{\raggedright\arraybackslash}X}
+\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.33\linewidth}>{\raggedright\arraybackslash}X@{}}
 \toprule
 \rowcolor{gray!10}
 \textbf{Signal} & \textbf{Tools} & \textbf{Typical questions answered} \\
@@ -1159,7 +1159,7 @@ A useful organizing principle is a \emph{three-tier} layout, as summarized in Ta
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
-\begin{tabularx}{0.95\linewidth}{>{\raggedright\arraybackslash}p{4cm}X}
+\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{4cm}X@{}}
 \toprule
 \rowcolor{gray!10}
 \textbf{Tier} & \textbf{Components \& Purpose} \\
@@ -1606,20 +1606,6 @@ Token amplification & Tokens per turn; tool call count & Verbosity loop; agent o
 % \section{Case Study: Enhanced Ishtar Monitoring Stack}
 % \label{sec:case-study-enhanced-ishtar-monitoring-stack}
 % Ishtar's observability layer integrates both open-source and specialized tools:
-% \begin{itemize}
-%     \item \textbf{Prometheus + Grafana}: system and GPU metrics.
-%     \item \textbf{LangSmith}: chain- and agent-level traces with token usage and latency.
-%     \item \textbf{OpenTelemetry + Jaeger}: distributed tracing across ingestion, retrieval, and generation.
-%     \item \textbf{Phoenix evaluators}: hallucination and toxicity grading attached to traces.
-% \end{itemize}
-% \begin{figure}[htbp]
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{../figures/ishtar-observability.pdf}
-%     \caption{Enhanced observability stack for LLMOps.}
-%     \label{fig:ch05_ishtar_observability}
-% \end{figure}
-
-% Figure~\ref{fig:ishtar-observability} shows the enhanced stack: unified tracing (LangSmith + OTel), semantic logging (LangFuse \cite{langfuse_docs}), automated evaluators, and dashboards. This design provides both real-time monitoring and offline analysis, enabling fast incident response and long-term quality improvement.
 
 \section{Cost Attribution and Unit Economics}\index{cost attribution}\index{unit economics}
 \label{sec:ch05-cost-attribution}

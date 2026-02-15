@@ -130,17 +130,19 @@ NVIDIA GPUs remain the dominant hardware for LLM workloads in 2024–2025. The N
   \setlength{\tabcolsep}{6pt}
   \renewcommand{\arraystretch}{1.3}
   \rowcolors{2}{gray!5}{white}
-  \begin{tabular}{lcccc}
+  \begin{tabularx}{\linewidth}{@{}X S[table-format=2.0] S[table-format=5.0] S[table-format=1.2] >{\raggedright\arraybackslash}p{38mm}@{}}
     \toprule
     \rowcolor{gray!10}
-    \textbf{Processor} & \textbf{Memory} & \textbf{Tokens/s (13B)} & \textbf{Price/hr (cloud)} & \textbf{Best Use Case} \\
+    \textbf{Processor} & {\textbf{Memory (GB)}} & {\textbf{Tokens/s (13B)}} & {\textbf{Price/hr (\$)}} & \textbf{Best Use Case} \\
     \midrule
-    NVIDIA L4     & 24 GB & $\sim$2{,}000 & \$0.35 & Low-power, low-latency inference; embeddings \\
-    NVIDIA A100   & 40 GB & $\sim$6{,}500 & \$2.90 & High-load inference; some training/fine-tuning \\
-    NVIDIA A100   & 80 GB & $\sim$8{,}000 & \$3.80 & Larger models; multi-model serving \\
-    NVIDIA H100   & 80 GB & $\sim$12{,}000 & \$5.00 & Cutting-edge throughput; FP8 acceleration \\
+    NVIDIA L4     & 24 & 2000 & 0.35 & Low-power, low-latency inference; embeddings \\
+    \addlinespace[2pt]
+    NVIDIA A100   & 40 & 6500 & 2.90 & High-load inference; some training/fine-tuning \\
+    NVIDIA A100   & 80 & 8000 & 3.80 & Larger models; multi-model serving \\
+    \addlinespace[2pt]
+    NVIDIA H100   & 80 & 12000 & 5.00 & Cutting-edge throughput; FP8 acceleration \\
     \bottomrule
-  \end{tabular}
+  \end{tabularx}
 \end{table}
 
 The H100 generally outperforms the A100 across both training and inference, thanks to innovations like fourth-generation Tensor Cores with the Transformer Engine (enabling FP8 precision) and much higher HBM3 memory bandwidth (3.35~TB/s vs. 2.0~TB/s on A100)~\cite{nvidia-h100-arch,nvidia-a100-arch}. In practice, for LLMs in the 13B–70B parameter range, an A100-80GB can deliver about 130 tokens/s, while an H100 can reach 250–300 tokens/s under similar conditions. This translates into significantly lower cost-per-token for inference. Independent benchmarks show the H100 achieving nearly 2$\times$ the throughput of an A100 at the same batch size and faster TTFT for a 7B model using optimized inference libraries~\cite{tgi-github,vllm-pagedattention}. 
@@ -508,17 +510,18 @@ The effective cost per million tokens is calculated using Equation~\ref{eq:costp
   \renewcommand{\arraystretch}{1.3}
   \rowcolors{2}{gray!5}{white}
   \begin{threeparttable}
-  \begin{tabular}{lccc}
+  \begin{tabularx}{\linewidth}{@{}X S[table-format=1.2] S[table-format=5.0] S[table-format=1.3]@{}}
     \toprule
     \rowcolor{gray!10}
-    \textbf{Accelerator} & \textbf{Hourly Price (\$)} & \textbf{Sustained Throughput (tok/s)} & \textbf{Cost per 1M tokens (\$)} \\
+    \textbf{Accelerator} & {\textbf{Hourly Price (\$)}} & {\textbf{Throughput (tok/s)}} & {\textbf{Cost/1M tok (\$)}} \\
     \midrule
-    NVIDIA A100-80GB & 3.80 & 8,000 & $\sim$0.13 \\
-    NVIDIA H100-80GB & 5.00 & 12,000 & $\sim$0.09 \\
-    Google TPU v4     & 3.00 & 9,000  & $\sim$0.093 \\
-    Google TPU v5e-8  & 8.00\tnote{a} & 48,000 & $\sim$0.046 \\
+    NVIDIA A100-80GB & 3.80 & 8000 & {$\sim$0.13} \\
+    NVIDIA H100-80GB & 5.00 & 12000 & {$\sim$0.09} \\
+    \addlinespace[2pt]
+    Google TPU v4     & 3.00 & 9000  & {$\sim$0.093} \\
+    Google TPU v5e-8  & {8.00\tnote{a}} & 48000 & {$\sim$0.046} \\
     \bottomrule
-  \end{tabular}
+  \end{tabularx}
   \begin{tablenotes}
   \footnotesize
   \item[a] Eight TPU v5e chips at $\sim$\$1/hr each, deployed as a pod.
@@ -548,28 +551,28 @@ To make the cost analysis fully concrete, we now present an end-to-end deploymen
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{28mm}cccc@{}}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{28mm} S[table-format=4.0] S[table-format=5.0] S[table-format=4.0] S[table-format=1.2]@{}}
 \toprule
 \rowcolor{gray!10}
-\textbf{Configuration} & \textbf{Monthly Cost} & \textbf{Throughput (tok/s)} & \textbf{TTFT P99} & \textbf{Cost/1M tokens} \\
+\textbf{Configuration} & {\textbf{Monthly Cost (\$)}} & {\textbf{Throughput (tok/s)}} & {\textbf{TTFT P99 (ms)}} & {\textbf{Cost/1M tok (\$)}} \\
 \midrule
 3$\times$ A100-80GB (FP16, tensor parallel) &
-\$8{,}208 &
-$\sim$24{,}000 &
-$\sim$420\,ms &
-\$0.13 \\
+8208 &
+{$\sim$24\,000} &
+{$\sim$420} &
+0.13 \\
 \addlinespace[2pt]
 2$\times$ H100-80GB (INT8, tensor parallel) &
-\$7{,}200 &
-$\sim$30{,}000 &
-$\sim$280\,ms &
-\$0.09 \\
+7200 &
+{$\sim$30\,000} &
+{$\sim$280} &
+0.09 \\
 \addlinespace[2pt]
 8$\times$ L4-24GB (INT8, pipeline parallel) &
-\$2{,}016 &
-$\sim$10{,}000 &
-$\sim$1{,}400\,ms &
-\$0.08 \\
+2016 &
+{$\sim$10\,000} &
+{$\sim$1\,400} &
+0.08 \\
 \bottomrule
 \end{tabularx}
 \vspace{3pt}
@@ -1419,7 +1422,7 @@ The landscape of LLM serving is rapidly evolving. By combining robust serving fr
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
-\begin{tabular}{l p{4.2cm} p{4.2cm}}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
 \rowcolor{gray!10}
 \textbf{Framework} & \textbf{Strengths} & \textbf{Limitations} \\
@@ -1427,24 +1430,24 @@ The landscape of LLM serving is rapidly evolving. By combining robust serving fr
 \textbf{TGI (Hugging Face)} &
 Easy deployment (Docker), integrates with HF ecosystem, continuous batching, streaming, safety filters. &
 Tied to Hugging Face release cycle; multi-node scaling less mature. \\
-
+\addlinespace[2pt]
 \textbf{vLLM} &
 High throughput with PagedAttention; efficient KV cache reuse; strong for long contexts and concurrency. &
 API surface less mature; fewer enterprise features compared to Triton/TGI. \\
-
+\addlinespace[2pt]
 \textbf{TensorRT-LLM + Triton (NVIDIA)} &
 Maximum performance on NVIDIA GPUs; FP8/INT8 support; enterprise-grade multi-model management. &
 NVIDIA-only; model conversion required; complex configuration. \\
-
+\addlinespace[2pt]
 \textbf{LMDeploy (TurboMind)} &
 Extreme optimization; persistent KV cache; quantization built-in; multi-GPU scaling. &
 Lower-level toolkit; less polished API; some features (e.g., sliding window) missing. \\
-
+\addlinespace[2pt]
 \textbf{SGLang} &
 Optimized for LLM + multimodal; responsive runtime; efficient concurrent serving. &
 Niche adoption; limited documentation; smaller ecosystem. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 
@@ -1464,6 +1467,7 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 
 \begin{figure}[t]
 \centering
+\begin{llmfigbox}
 \definecolor{cloudblue}{RGB}{66,133,244}
 \definecolor{vpccyan}{RGB}{0,188,212}
 \definecolor{onpremgray}{RGB}{158,158,158}
@@ -1602,6 +1606,7 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 
 \end{tikzpicture}%
 }
+\end{llmfigbox}
 \caption{Deployment pattern selection determines operational complexity and cost structure. \textbf{Cloud-Native} (top left) maximizes elasticity and reduces operational overhead but may increase costs at scale. \textbf{Hybrid} (top right) balances on-premise control with cloud flexibility, optimizing for cost and compliance. \textbf{Multi-Cluster} (bottom center) enables geographic distribution and failover but increases management complexity. Choose based on scale, compliance requirements, and operational capabilities.}
 \label{fig:ch03_deploy_patterns_balanced}
 \end{figure}

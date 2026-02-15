@@ -1187,17 +1187,17 @@ Let us revisit parameter memory with a quick table that aligns with Eq.~\ref{eq:
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
-\begin{tabular}{lrr}
+\begin{tabularx}{\linewidth}{@{}X S[table-format=1.2e2] S[table-format=3.0]@{}}
 \toprule
 \rowcolor{gray!10}
-\textbf{Model} & \textbf{Parameters $P$} & \textbf{$M_{\text{params}}$ (approx.)} \\
+\textbf{Model} & {\textbf{Parameters $P$}} & {\textbf{$M_{\text{params}}$ (GB, approx.)}} \\
 \midrule
-7B   & $7\times 10^9$   & $\approx 14$~GB \\
-13B  & $1.3\times 10^{10}$ & $\approx 26$~GB \\
-70B  & $7.0\times 10^{10}$ & $\approx 140$~GB \\
-175B & $1.75\times 10^{11}$ & $\approx 350$~GB \\
+7B   & 7e9   & {$\approx 14$} \\
+13B  & 1.3e10 & {$\approx 26$} \\
+70B  & 7.0e10 & {$\approx 140$} \\
+175B & 1.75e11 & {$\approx 350$} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 These figures make it immediately clear that once models reach tens of billions of parameters, a single standard GPU (commonly 16 or 24~GB of memory) cannot hold the model, necessitating \emph{sharding} across multiple GPUs or using techniques like 8-bit quantization (which would roughly halve these memory numbers—potentially bringing a 13B model down to $\sim$13~GB, allowing it to fit on a 16~GB GPU).  

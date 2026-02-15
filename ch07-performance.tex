@@ -667,38 +667,42 @@ PagedAttention is especially valuable in use cases like \ishtar{} if they need t
 
 Table~\ref{tab:ch07_engine_bench} compares inference engine performance characteristics, helping teams select the appropriate runtime for their workload patterns.
 
-\begin{table}[tb]
+\begin{table}[t]
 \centering
 \small
 \caption{Inference engine selection significantly impacts throughput and latency. Different engines optimize for different workloads: vLLM excels at high-throughput batching, TensorRT-LLM provides low-latency single-request performance, and TGI balances both. Choose based on traffic patterns, latency requirements, and hardware constraints.}
 \label{tab:ch07_engine_bench}
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.3}
+\begin{threeparttable}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.35}
 \rowcolors{2}{gray!5}{white}
-\begin{tabularx}{0.95\linewidth}{@{}l
-  >{\raggedleft\arraybackslash}p{2.1cm}
-  >{\raggedleft\arraybackslash}p{2.1cm}
-  >{\raggedleft\arraybackslash}p{2.1cm}
-  >{\raggedleft\arraybackslash}p{2.3cm}
-  X
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.6cm}
+  S[table-format=3]
+  S[table-format=3]
+  S[table-format=2]
+  >{\raggedright\arraybackslash}X
 @{}}
 \toprule
 \rowcolor{gray!10}
 \textbf{Engine (precision)} &
-\textbf{Tokens/s} &
-\textbf{TTFT (ms)} &
-\textbf{p95 TBT (ms)} &
-\textbf{Notes} \\
+{\textbf{Tokens/s}} &
+{\textbf{TTFT (ms)}} &
+{\textbf{p95 TBT (ms)}} &
+\textbf{Key characteristics} \\
 \midrule
-PyTorch ref.\ (FP16)     &  80  & 650 & 42  & Baseline eager execution; minimal batching. \\
-TGI (FP16, dyn.\ batch)  & 180  & 520 & 28  & Dynamic batching, ONNX RT integration. \\
-vLLM (FP16, PagedAttn)   & 320  & 540 & 21  & Continuous batching; page-based KV; long contexts. \\
-TensorRT-LLM (INT8/FP8)  & 420  & 410 & 18  & Fused ops; Tensor Cores; engine build required. \\
+PyTorch ref.\ (FP16)     &  80  & 650 & 42  & Baseline eager execution; minimal batching \\
+\addlinespace[2pt]
+TGI (FP16, dyn.\ batch)  & 180  & 520 & 28  & Dynamic batching; ONNX Runtime integration \\
+\addlinespace[2pt]
+vLLM (FP16, PagedAttn)   & 320  & 540 & 21  & Continuous batching; page-based KV cache; strong on long contexts \\
+\addlinespace[2pt]
+TensorRT-LLM (INT8/FP8)  & 420  & 410 & 18  & Fused GPU kernels; Tensor Core utilization; requires engine compilation step \\
 \bottomrule
 \end{tabularx}
-
-\medskip
-\footnotesize\emph{Setup}: 30B model, context 4k, batch window 10\,ms. A100-80GB (left), H100-80GB (right) showed $\sim$1.3--1.8$\times$ speedup for TensorRT-LLM vs.\ FP16; vLLM excelled on long contexts due to PagedAttention \cite{Kwon2023vLLM,NVIDIA2023Hopper}.
+\begin{tablenotes}[flushleft]\footnotesize
+\item \emph{Setup:} 30B-parameter model, context length 4k, batch window 10\,ms. A100-80GB and H100-80GB GPUs showed $\sim$1.3--1.8$\times$ speedup for TensorRT-LLM vs.\ FP16 baseline; vLLM excelled on long contexts due to PagedAttention \cite{Kwon2023vLLM,NVIDIA2023Hopper}.
+\end{tablenotes}
+\end{threeparttable}
 \end{table}
 
 \FloatBarrier
@@ -1357,20 +1361,20 @@ Table~\ref{tab:ch07_profiling_breakdown} illustrates a typical kernel-time break
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
 \begin{tabularx}{0.95\linewidth}{@{}l
-  >{\raggedleft\arraybackslash}p{2.0cm}
-  >{\raggedleft\arraybackslash}p{2.0cm}
+  S[table-format=3.0]
+  S[table-format=3.0]
   X
 @{}}
 \toprule
 \rowcolor{gray!10}
-\textbf{Kernel/Phase} & \textbf{Before (\%)} & \textbf{After (\%)} & \textbf{Notes / Action} \\
+\textbf{Kernel/Phase} & {\textbf{Before (\%)}} & {\textbf{After (\%)}} & \textbf{Notes / Action} \\
 \midrule
 Attention (QKV + softmax + proj.) & 60 & 45 & Fused attention (FlashAttention) and better tensor-core utilization. \\
 Feed-forward (GEMMs)               & 25 & 28 & No change in cost, relative share rises as attention shrinks. \\
 Data copies (H2D/D2H)              &  7 &  4 & Pinned memory; overlapped transfers (dual CUDA streams). \\
 Gaps / launch overhead             &  8 &  3 & Larger dynamic batches; async scheduling between steps. \\
 \midrule
-\textbf{Total}                     & 100 & 100 & End-to-end latency $\downarrow$ by $\sim$18\%; tokens/s $\uparrow$ by $\sim$22\%. \\
+\textbf{Total}                     & {100} & {100} & End-to-end latency $\downarrow$ by $\sim$18\%; tokens/s $\uparrow$ by $\sim$22\%. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1659,19 +1663,19 @@ Table~\ref{tab:ch07_ishtar_phase_metrics} shows the cumulative impact of each op
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.8cm}
-  >{\raggedleft\arraybackslash}p{2.2cm}
-  >{\raggedleft\arraybackslash}p{1.5cm}
-  >{\raggedleft\arraybackslash}p{1.8cm}
-  >{\raggedleft\arraybackslash}p{1.8cm}@{}}
+  >{\raggedright\arraybackslash}p{2.2cm}
+  S[table-format=3.0]
+  S[table-format=1.3]
+  S[table-format=4.0]@{}}
 \toprule
 \rowcolor{gray!10}
-\textbf{Phase} & \textbf{TTFT (P50\,/\,P99)} & \textbf{Tokens/s} & \textbf{Cost/Request} & \textbf{P95 Latency} \\
+\textbf{Phase} & \textbf{TTFT (P50\,/\,P99)} & {\textbf{Tokens/s}} & {\textbf{Cost/Req (\$)}} & {\textbf{P95 Lat.\,(ms)}} \\
 \midrule
-Baseline (no optimization) & 1200\,ms\,/\,3000\,ms & 45 & \$0.032 & 4500\,ms \\
-+ Continuous batching       & 800\,ms\,/\,1800\,ms  & 120 & \$0.018 & 2800\,ms \\
-+ INT8 quantization         & 600\,ms\,/\,1400\,ms  & 180 & \$0.012 & 2100\,ms \\
-+ FlashAttention-2          & 500\,ms\,/\,1100\,ms  & 220 & \$0.010 & 1600\,ms \\
-+ Speculative decoding      & 400\,ms\,/\,900\,ms   & 310 & \$0.008 & 1200\,ms \\
+Baseline (no optimization) & 1200\,ms\,/\,3000\,ms & 45 & 0.032 & 4500 \\
++ Continuous batching       & 800\,ms\,/\,1800\,ms  & 120 & 0.018 & 2800 \\
++ INT8 quantization         & 600\,ms\,/\,1400\,ms  & 180 & 0.012 & 2100 \\
++ FlashAttention-2          & 500\,ms\,/\,1100\,ms  & 220 & 0.010 & 1600 \\
++ Speculative decoding      & 400\,ms\,/\,900\,ms   & 310 & 0.008 & 1200 \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1756,9 +1760,7 @@ Performance optimization is not a one-time task—it is an ongoing process that 
 \begin{tabularx}{0.95\linewidth}{@{}l
   >{\raggedleft\arraybackslash}p{2.6cm}
   >{\raggedleft\arraybackslash}p{2.6cm}
-  >{\raggedleft\arraybackslash}p{2.6cm}
-  X
-@{}}
+  >{\raggedright\arraybackslash}X@{}}
 \toprule
 \rowcolor{gray!10}
 \textbf{Metric} & \textbf{Before (baseline)} & \textbf{After (optimized)} & \textbf{Notes} \\
@@ -1928,7 +1930,7 @@ These formulas link low-level engineering decisions (e.g., quantization, batchin
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
-\begin{tabularx}{\linewidth}{p{3.2cm}X X X}
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}XXX@{}}
 \toprule
 \rowcolor{gray!10}
 \textbf{Dimension} & \textbf{Encoder-Only (BERT)} & \textbf{Decoder-Only (GPT)} & \textbf{Mixture-of-Experts (MoE)} \\

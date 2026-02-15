@@ -71,7 +71,9 @@ These trade-offs across latency, throughput, and cost are illustrated in Figure~
 
 \begin{figure}[t]
   \centering
+  \begin{llmfigbox}
   \includegraphics[width=0.95\linewidth]{images/ch01-cost-latency-throughput}
+  \end{llmfigbox}
   \caption{Latency decomposition enables targeted optimization and capacity planning. End-to-end latency is the sum of stage latencies (tokenization/policy checks, retrieval, LLM prefill+decode, post-processing), and identifying bottlenecks requires measuring each stage independently. Sustaining throughput and cost efficiency demands coordinated controls: batching and scheduling optimize throughput, caching/quantization/routing improve unit economics, and explicit capacity planning (peak demand, tail latency, autoscaling) ensures SLO compliance.}
   \label{fig:ch01_cost_latency_throughput}
 \end{figure}
@@ -1757,6 +1759,7 @@ The key lesson is that operational excellence can substitute for sheer model siz
 \rowcolors{2}{gray!5}{white}
 
 \begin{tabularx}{0.95\linewidth}{@{}p{31mm}XXX@{}}
+\toprule
 \rowcolor{gray!10}
 \textbf{Case} & \textbf{Failure mode (or pressure point)} & \textbf{LLMOps mitigation (what should/was done)} & \textbf{Outcome / lesson} \\
 \midrule

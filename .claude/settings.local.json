@@ -8,7 +8,8 @@
       "Bash(/tmp/find_typos.py:*)",
       "Bash(/tmp/citation_audit.md:*)",
       "Bash(/tmp/find_broken_refs.py:*)",
-      "Bash(biber:*)"
+      "Bash(biber:*)",
+      "Bash(pdflatex:*)"
     ]
   }
 }

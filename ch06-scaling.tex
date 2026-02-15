@@ -619,26 +619,31 @@ The final production architecture of \ishtar{} adopted a hybrid model. We mainta
 \rowcolor{gray!10}
 \textbf{Criteria} & \textbf{Vertical Scaling} & \textbf{Horizontal Scaling} & \textbf{Hybrid Scaling} \\
 \midrule
-\textbf{Latency} 
-& Lowest per-instance latency; well-suited for long contexts and large batches 
-& Higher latency due to inter-node communication overhead 
+\textbf{Latency}
+& Lowest per-instance latency; well-suited for long contexts and large batches
+& Higher latency due to inter-node communication overhead
 & Maintains low latency for critical workloads, with flexibility to absorb bursts \\
-\textbf{Throughput} 
-& High per-node throughput; bounded by GPU count per server 
-& Scales nearly linearly with added nodes (until coordination overheads) 
+\addlinespace[2pt]
+\textbf{Throughput}
+& High per-node throughput; bounded by GPU count per server
+& Scales nearly linearly with added nodes (until coordination overheads)
 & Balanced throughput via high-end nodes plus elastic horizontal pools \\
-\textbf{Cost Efficiency} 
-& High fixed cost; inefficient under low utilization 
-& Elastic cost model; scales down during low demand 
+\addlinespace[2pt]
+\textbf{Cost Efficiency}
+& High fixed cost; inefficient under low utilization
+& Elastic cost model; scales down during low demand
 & Optimized by routing workloads to appropriate hardware tiers \\
-\textbf{Operational Complexity} 
-& Simple (single-node); fewer components to manage 
-& Higher complexity due to distributed inference and state synchronization 
+\addlinespace[2pt]
+\textbf{Operational Complexity}
+& Simple (single-node); fewer components to manage
+& Higher complexity due to distributed inference and state synchronization
 & Highest complexity: heterogeneous hardware, routing logic, multi-level orchestration \\
-\textbf{Scalability Ceiling} 
-& Limited by hardware specs and single-node limits (memory, etc.) 
-& Limited by orchestration constraints and network latency at large scale 
+\addlinespace[2pt]
+\textbf{Scalability Ceiling}
+& Limited by hardware specs and single-node limits (memory, etc.)
+& Limited by orchestration constraints and network latency at large scale
 & Flexible, but bottlenecked by orchestration sophistication and coordination overhead \\
+\addlinespace[2pt]
 \textbf{Best Use Cases} 
 & Latency-critical, large-model inference where simplicity matters 
 & Bursty workloads; geo-distributed services; cost-sensitive scaling 
@@ -976,21 +981,27 @@ Table~\ref{tab:ch06_distributed_inference} compares common distributed inference
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
 \rowcolors{2}{gray!5}{white}
-\begin{tabularx}{\linewidth}{
+\begin{tabularx}{\linewidth}{@{}
   >{\raggedright\arraybackslash}p{2.8cm}
   >{\raggedright\arraybackslash}X
   >{\raggedright\arraybackslash}X
-  >{\raggedright\arraybackslash}X}
+  >{\raggedright\arraybackslash}X@{}}
 \toprule
 \rowcolor{gray!10}
 \textbf{Criteria} & \textbf{Model Parallelism} & \textbf{Tensor Parallelism} & \textbf{Pipeline Parallelism} \\
 \midrule
-Definition & Splits layers across GPUs (each device holds different blocks). & Splits a layer’s ops across GPUs; results merged via collectives. & Partitions model into sequential stages executed as a pipeline. \\
-Memory efficiency & High (parameters distributed). & Moderate (weights sliced, activations still local). & High (only stage’s weights reside per GPU). \\
+Definition & Splits layers across GPUs (each device holds different blocks). & Splits a layer's ops across GPUs; results merged via collectives. & Partitions model into sequential stages executed as a pipeline. \\
+\addlinespace[2pt]
+Memory efficiency & High (parameters distributed). & Moderate (weights sliced, activations still local). & High (only stage's weights reside per GPU). \\
+\addlinespace[2pt]
 Communication cost & Low--moderate (layer boundaries). & High (per-op sync). & Low--moderate (stage transfers). \\
+\addlinespace[2pt]
 Latency impact & Small if balanced. & Accumulates with synchronization. & Grows with depth; bubbles possible. \\
+\addlinespace[2pt]
 Throughput scaling & Good until comms dominate. & Excellent for wide layers. & Good with tuned microbatch count. \\
+\addlinespace[2pt]
 Hardware needs & NVLink/NVSwitch preferred. & NVLink/InfiniBand essential. & Balanced GPU stages; fast interconnects help. \\
+\addlinespace[2pt]
 Best use cases & Huge models that cannot fit a single GPU. & Wide layers (large FFNs, attention). & Long contexts, memory-bound workloads. \\
 \bottomrule
 \end{tabularx}
@@ -1778,77 +1789,6 @@ By hashing retrieved document chunks and caching embeddings in a pgvector-enable
 \medskip
 \noindent\textbf{Summary.} Caching at both the response level and the embedding level contributed to the overall scalability of \ishtar{}. By avoiding recomputation, we effectively obtained more throughput from each GPU and served more users with the same hardware. The trade-off is additional complexity (key design, invalidation, persistence), but with careful engineering the benefits far outweigh the overhead.
 
-Fig.~\ref{fig:ch06_caching_flow} summarizes where common caching layers sit in the LLM request path and how they reduce repeated work.
-
-\begin{figure}[t]
-\centering
-% ------------------------ (a) RESPONSE CACHE ------------------------
-% \begin{subfigure}[b]{0.48\linewidth}
-% \centering
-% \begin{tikzpicture}[
-%   node distance=6mm and 6mm,
-%   box/.style={draw, rounded corners, thick, align=center, minimum width=2.8cm, minimum height=0.8cm, fill=gray!5},
-%   store/.style={draw, rounded corners, thick, align=center, minimum width=2.8cm, minimum height=0.8cm, fill=blue!5},
-%   io/.style={draw, rounded corners, thick, align=center, minimum width=2.2cm, minimum height=0.8cm, fill=green!5},
-%   arr/.style={-{Stealth[length=2.5mm]}, thick}
-% ]
-% \node[io]   (client) {Client\\Request};
-% \node[store, right=of client] (lookup) {Cache Lookup\\(Redis/Memcached)};
-% \node[box, below=of lookup] (miss) {Miss};
-% \node[box, right=of lookup, xshift=10mm] (hit) {Hit};
-% \node[box, below=of miss] (infer) {LLM Inference\\(model + decode params)};
-% \node[store, below=of infer] (store) {Store\\keyed by (query,\\model, params)};
-% \node[io, right=of hit, xshift=10mm] (return1) {Return\\Cached Response};
-% \node[io, below=of store] (return2) {Return\\New Response};
-
-% % arrows
-% \draw[arr] (client) -- (lookup);
-% \draw[arr] (lookup) -- node[pos=0.5,left]{no} (miss);
-% \draw[arr] (lookup) -- node[pos=0.5,above]{yes} (hit);
-% \draw[arr] (miss) -- (infer);
-% \draw[arr] (infer) -- (store);
-% \draw[arr] (store) -- (return2);
-% \draw[arr] (hit) -- (return1);
-% \end{tikzpicture}
-% \caption{Response cache: miss $\rightarrow$ infer $\rightarrow$ store $\rightarrow$ hit.}
-% \end{subfigure}
-% \hfill
-% ------------------------ (b) EMBEDDING CACHE ------------------------
-% \begin{subfigure}[b]{0.48\linewidth}
-% \centering
-% \begin{tikzpicture}[
-%   node distance=6mm and 6mm,
-%   box/.style={draw, rounded corners, thick, align=center, minimum width=2.8cm, minimum height=0.8cm, fill=gray!5},
-%   store/.style={draw, rounded corners, thick, align=center, minimum width=2.8cm, minimum height=0.8cm, fill=orange!10},
-%   io/.style={draw, rounded corners, thick, align=center, minimum width=2.4cm, minimum height=0.8cm, fill=green!5},
-%   arr/.style={-{Stealth[length=2.5mm]}, thick}
-% ]
-% \node[io]   (text) {Text / Chunk};
-% \node[box, right=of text] (hash) {Deterministic\\Hash\\(content + model)};
-% \node[store, right=of hash] (elook) {Embedding Cache\\(pgvector/FAISS)};
-% \node[box, below=of elook] (emiss) {Miss};
-% \node[box, right=of elook, xshift=10mm] (ehit) {Hit};
-% \node[box, below=of emiss] (encode) {Encoder\\(embed model)};
-% \node[store, below=of encode] (estore) {Store\\(key $\to$ vector)};
-% \node[io, right=of ehit, xshift=10mm] (usehit) {Use Vector\\(retriever/RAG)};
-% \node[io, below=of estore] (usenew) {Use Vector\\(retriever/RAG)};
-
-% % arrows
-% \draw[arr] (text) -- (hash);
-% \draw[arr] (hash) -- (elook);
-% \draw[arr] (elook) -- node[pos=0.5,left]{no} (emiss);
-% \draw[arr] (elook) -- node[pos=0.5,above]{yes} (ehit);
-% \draw[arr] (emiss) -- (encode);
-% \draw[arr] (encode) -- (estore);
-% \draw[arr] (estore) -- (usenew);
-% \draw[arr] (ehit) -- (usehit);
-% \end{tikzpicture}
-% \caption{Embedding cache: miss $\rightarrow$ encode $\rightarrow$ store $\rightarrow$ hit.}
-% \end{subfigure}
-
-\caption{Caching strategies reduce latency and cost for repeated content. \textbf{(a)} Response caching short-circuits identical requests, eliminating inference cost; keys include query, model version, and decoding parameters. \textbf{(b)} Embedding caching avoids redundant encoder passes for repeated chunks, reducing RAG latency; keys hash content + embedding model identity. Both strategies are essential for cost-effective RAG systems with recurring queries or document reuse.}
-\label{fig:ch06_caching_flow}
-\end{figure}
 
 \section{Cost-Aware Scaling}
 \label{sec:cost-aware-scaling}

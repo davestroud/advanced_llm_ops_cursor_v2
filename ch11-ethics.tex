@@ -473,7 +473,7 @@ where $p_o$ is the observed agreement between raters and $p_e$ is the expected a
 A structured bias audit\index{bias audit} should be conducted at every major model release and on a quarterly schedule. Algorithm~\ref{alg:ch11_bias_audit} formalizes the audit pipeline, and Listing~\ref{lst:ch11_bias_detection} provides a practical Python implementation.
 
 \begin{algorithm}[t]
-\caption{Bias Audit Pipeline for LLM Systems}\label{alg:ch11_bias_audit}
+\caption{Bias audit pipeline systematically measures fairness across demographic dimensions. For each dimension (gender, race, age), the algorithm generates test prompts, runs inference for all groups, computes sentiment or outcome scores, and flags disparities exceeding a threshold. This structured approach enables continuous bias monitoring and supports fairness validation before deployment.}\label{alg:ch11_bias_audit}
 \begin{algorithmic}[1]
 \Require Model $M$, evaluation dimensions $D = \{d_1, d_2, \ldots, d_k\}$ (e.g., gender, race, age), threshold $\tau$
 \Ensure Audit report $R$ with per-dimension bias scores and pass/fail status
