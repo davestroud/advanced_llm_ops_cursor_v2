@@ -278,9 +278,12 @@ Evaluation pipelines benefit from staging. Pre-merge checks should be fast (50--
 
 Listing~\ref{lst:ch04_eval_harness} shows a complete evaluation harness configuration that implements staged evaluation with deterministic inputs and statistical gates.
 
-\begin{llmlistingbox}{Evaluation harness configuration for staged CI/CD}
-\label{lst:ch04_eval_harness}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Complete evaluation harness configuration implementing staged CI/CD validation with deterministic inputs, statistical significance gates, and automated rollback triggers. This configuration ensures that model updates pass rigorous quality checks across pre-merge, post-merge, and nightly stages before reaching production.},
+  label={lst:ch04_eval_harness}
+]
 # Evaluation Harness Configuration
 eval_version: "2.1.0"
 harness_id: "ishtar_comprehensive_eval"
@@ -407,7 +410,6 @@ reporting:
   publish_to: "s3://ishtar-evals/reports/"
   artifact_name: "eval_report_{timestamp}.json"
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Cloud-Native Evaluation Services}
 Recognizing the operational burden, major cloud providers now offer integrated evaluation services. AWS Bedrock includes automatic RAG and model evaluations with human-in-the-loop options; Azure AI Studio provides Prompt Flow Evaluation integrated with monitoring; and Google Cloud offers Vertex AI GenAI Evaluation Service, supporting RAG and agent tool-use evaluation \cite{aws_bedrock_eval,azure_promptflow_eval,vertex_eval}. These services can be incorporated as CI steps or scheduled batch jobs, lowering integration costs for enterprise teams.
@@ -420,9 +422,13 @@ A concrete example illustrates how statistical gates work in practice. Suppose a
 
 Listing~\ref{lst:ch04_ci_gate} implements the statistical gate logic described above, combining bootstrap confidence intervals and McNemar's test for comprehensive validation.
 
-\begin{llmlistingbox}{CI gate with statistical control}
-\label{lst:ch04_ci_gate}
-\begin{lstlisting}[language=Python, style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  language=Python,
+  caption={CI gate implementation combining paired bootstrap confidence intervals for continuous metrics (e.g., groundedness scores) with McNemar's test for binary safety metrics (e.g., toxicity flags). This statistical gating logic ensures that model promotions are backed by rigorous evidence rather than point estimates, preventing regressions from reaching production.},
+  label={lst:ch04_ci_gate}
+]
 #!/usr/bin/env python3
 """
 CI gate implementation with statistical control for LLM evaluation.
@@ -741,7 +747,6 @@ if __name__ == "__main__":
     print(summary)
     print(f"\nOverall CI gate: {'PASSED' if overall else 'FAILED'}")
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Cost Management}
 Evaluation is resource-intensive, and costs must be managed carefully. Retrievals and judge calls should be cached, and pairwise comparisons preferred over absolute scoring. Importance sampling can be used to focus on high-value slices while maintaining statistical power with smaller samples. Heavy evaluation suites are best run nightly or weekly, while pre-merge checks remain small and deterministic.
@@ -814,9 +819,13 @@ Major prompt version bumps should trigger mandatory re-evaluation of all active 
 
 Listing~\ref{lst:ch04_lora_eval_pipeline} shows a CI pipeline stage that evaluates a LoRA adapter against all four gates before permitting promotion.
 
-\begin{llmlistingbox}{CI pipeline stage for LoRA adapter evaluation}
-\label{lst:ch04_lora_eval_pipeline}
-\begin{lstlisting}[language=Python, style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  language=Python,
+  caption={CI pipeline stage that evaluates a LoRA adapter against four promotion gates: baseline regression testing for catastrophic forgetting, domain-specific evaluation with bootstrap confidence intervals, safety regression checks using McNemar's test, and side-by-side comparison against the previously deployed adapter. All gates must pass before adapter promotion is permitted.},
+  label={lst:ch04_lora_eval_pipeline}
+]
 #!/usr/bin/env python3
 """
 CI pipeline stage: LoRA adapter evaluation gates.
@@ -911,7 +920,6 @@ def promotion_decision(results: List[AdapterEvalResult]) -> bool:
         print(f"  [{status}] {r.gate_name}: {r.details}")
     return all_passed
 \end{lstlisting}
-\end{llmlistingbox}
 
 \BestPracticeBox{
 \textbf{Key principles for fine-tuning CI/CD:}
@@ -957,9 +965,12 @@ This ensures that high-risk LLM behavior can be contained and reversed rapidly \
 
 Listing~\ref{lst:ch04_deployment_strategy} shows an Argo Rollouts configuration implementing canary deployment with LLM-specific analysis gates.
 
-\begin{llmlistingbox}{Canary deployment configuration with LLM analysis gates}
-\label{lst:ch04_deployment_strategy}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Argo Rollouts canary deployment configuration with LLM-specific analysis gates for groundedness, toxicity, and latency. Traffic is gradually shifted from 1\% to 100\% with Prometheus-backed quality checks at each step, enabling automated rollback if behavioral regressions are detected during progressive delivery.},
+  label={lst:ch04_deployment_strategy}
+]
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
@@ -1138,7 +1149,6 @@ spec:
             }[5m])) by (le)
           ) * 1000
 \end{lstlisting}
-\end{llmlistingbox}
 
 \noindent\textbf{From patterns to practice.}
 Shadow testing (\emph{a.k.a.} traffic mirroring or dark launching) provides the lowest-risk starting point: production queries are duplicated to a candidate model, whose outputs are logged but never surfaced to users. For LLMs, shadowing must be \emph{side-effect safe}: tool invocations, database writes, or external API calls should be simulated or routed to sandboxes to avoid unintended actions. Shadow traffic is invaluable for catching domain-specific regressions, style drift, or retrieval mismatches before any user is affected, and it allows calibration of online evaluators (helpfulness, groundedness, safety) against real distributions \cite{mlflow_llm_eval,langsmith_eval,phoenix_rag,trulens}.
@@ -1274,9 +1284,12 @@ As LLM applications mature, free-form prompt crafting gives way to disciplined s
 
 Listing~\ref{lst:ch04_prompt_versioning} demonstrates a versioned prompt template structure with changelog, test suite references, and regression baseline tracking.
 
-\begin{llmlistingbox}{Versioned prompt template with changelog and test references}
-\label{lst:ch04_prompt_versioning}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Versioned prompt template with semantic versioning, changelog, test suite references, and regression baseline tracking. This structure enables reproducible CI/CD by coupling prompt versions to evaluation results, safety guardrails, and deployment criteria, ensuring that prompt changes are validated before production release.},
+  label={lst:ch04_prompt_versioning}
+]
 {
   "prompt_id": "ishtar_event_synthesis",
   "version": "1.4.0",
@@ -1425,7 +1438,6 @@ Listing~\ref{lst:ch04_prompt_versioning} demonstrates a versioned prompt templat
   }
 }
 \end{lstlisting}
-\end{llmlistingbox}
 
 \noindent\textbf{Unit tests for structure and contracts.}
 Before quality metrics, prompts must satisfy structural guarantees. Unit tests check that required placeholders are bound, that role messages are present in the intended order, and that outputs conform to declared schemas (e.g., valid JSON, enumerations, and field types). These tests often combine two layers: (i) \emph{syntactic} checks (template rendering, presence of safety disclaimers, tool-authorization clauses) and (ii) \emph{contract} checks (output validates against a JSON Schema or similar). Contract tests reduce surface for prompt injection and insecure output handling by forcing the model to emit constrained structures that downstream components can safely parse \cite{owasp_llm}. When schemas evolve, backward-compatibility tests protect consuming services and prevent ``silent breaks'' in multi-team environments.

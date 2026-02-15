@@ -191,6 +191,32 @@
 }
 \lstset{style=springer}
 
+% --- Professional float style for Springer listings ---
+\lstdefinestyle{springerfloat}{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  breaklines=true,
+  breakatwhitespace=true,
+  numbers=left,
+  numberstyle=\tiny\color{gray!60},
+  stepnumber=1,
+  numbersep=8pt,
+  frame=tb,
+  framerule=0.4pt,
+  rulecolor=\color{black!40},
+  backgroundcolor=\color{gray!3},
+  xleftmargin=2em,
+  framexleftmargin=2em,
+  tabsize=2,
+  showstringspaces=false,
+  aboveskip=8pt,
+  belowskip=4pt,
+  captionpos=b,
+}
+
+% --- Listings float numbering: chapter-based (Listing 3.1, etc.) ---
+\AtBeginDocument{\renewcommand{\thelstlisting}{\thechapter.\arabic{lstlisting}}}
+
 % ==========================================================
 % Figure fitting helpers (SNmono-safe)
 % ==========================================================

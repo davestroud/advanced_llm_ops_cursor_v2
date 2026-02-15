@@ -293,9 +293,12 @@ Open-source observability stacks such as Prometheus \cite{prometheus_instrumenta
 
 Listing~\ref{lst:ch05_prometheus_config} shows a Prometheus configuration for scraping LLM-specific metrics with recording rules for common aggregations.
 
-\begin{llmlistingbox}{Prometheus metrics configuration for LLM observability}
-\label{lst:ch05_prometheus_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Prometheus scrape and recording rules configuration for LLM-specific observability, covering inference latency percentiles (TTFT), token throughput, groundedness and citation quality aggregations, cost-per-request tracking, and retrieval quality metrics. These recording rules pre-compute common aggregations to enable fast dashboard queries and alerting on LLM-aware SLOs.},
+  label={lst:ch05_prometheus_config}
+]
 # prometheus.yml - Prometheus configuration for LLM metrics
 
 global:
@@ -418,7 +421,6 @@ groups:
       - record: ishtar:mrr:mean
         expr: avg(ishtar_mrr_score) by (index_version)
 \end{lstlisting}
-\end{llmlistingbox}
 
 \medskip
 \noindent\textbf{Structured, schema-first telemetry.}
@@ -464,9 +466,12 @@ In production, \emph{structured} logs (e.g., JSON) with a stable schema are esse
 
 Listing~\ref{lst:ch05_telemetry_schema} shows a complete JSON Schema definition for the standardized telemetry structure, enabling schema validation and preventing telemetry drift.
 
-\begin{llmlistingbox}{JSON Schema for standardized telemetry}
-\label{lst:ch05_telemetry_schema}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={JSON Schema definition for standardized LLM telemetry, specifying required fields (trace ID, span ID, prompt template version, token counts, latency breakdown) and optional enrichment (retrieval metadata, cost estimates, safety signals). Schema validation at the collector prevents telemetry drift and ensures consistent observability across pipeline components.},
+  label={lst:ch05_telemetry_schema}
+]
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LLM Telemetry Schema",
@@ -676,7 +681,6 @@ Listing~\ref{lst:ch05_telemetry_schema} shows a complete JSON Schema definition 
   }
 }
 \end{lstlisting}
-\end{llmlistingbox}
 
 \medskip
 \noindent\textbf{Privacy by design.}
@@ -684,9 +688,13 @@ Privacy-by-design is non-negotiable. Apply layered redaction before persistence:
 
 Listing~\ref{lst:ch05_opentelemetry} demonstrates OpenTelemetry instrumentation for LLM inference calls with proper span creation, attributes, and context propagation.
 
-\begin{llmlistingbox}{OpenTelemetry instrumentation for LLM calls}
-\label{lst:ch05_opentelemetry}
-\begin{lstlisting}[language=Python, style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  language=Python,
+  caption={OpenTelemetry instrumentation for LLM inference, retrieval, and tool calls with proper span creation, attribute recording, and context propagation. Each function creates structured spans with LLM-specific attributes (token counts, latency breakdown, cost estimates, safety signals), enabling end-to-end tracing across multi-hop pipelines and precise attribution of latency and cost to individual pipeline stages.},
+  label={lst:ch05_opentelemetry}
+]
 #!/usr/bin/env python3
 """
 OpenTelemetry instrumentation for LLM inference calls.
@@ -883,7 +891,6 @@ if __name__ == "__main__":
     
     print(f"Response: {response}")
 \end{lstlisting}
-\end{llmlistingbox}
 
 \medskip
 \noindent\textbf{Trace the full evidence path.}
@@ -1318,9 +1325,12 @@ To reduce fatigue, implement \emph{alert correlation and deduplication}. Group p
 
 Listing~\ref{lst:ch05_alerting_rules} shows Prometheus alerting rules that tie alerts to SLOs and enable automated incident response.
 
-\begin{llmlistingbox}{Prometheus alerting rules for LLM SLOs}
-\label{lst:ch05_alerting_rules}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Prometheus alerting rules for LLM SLOs covering latency spikes (P99 TTFT), throughput degradation, groundedness and hallucination quality regressions, cost anomaly detection, retrieval quality degradation, and safety violations (toxicity and refusal rate anomalies). Each alert includes severity labels, descriptive annotations, and concrete mitigation steps tied to operational runbooks.},
+  label={lst:ch05_alerting_rules}
+]
 # alerting_rules.yml - Prometheus alerting rules for LLM SLOs
 
 groups:
@@ -1497,7 +1507,6 @@ groups:
             Refusal rate is {{ $value | humanizePercentage }} for service
             {{ $labels.service }}, indicating potential prompt or policy issues.
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsubsection{Operational playbooks (minimal, pre-approved actions).}
 Playbooks should be short, executable checklists with \emph{pre-authorized} mitigations:

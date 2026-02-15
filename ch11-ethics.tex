@@ -535,7 +535,13 @@ The audit pipeline in Algorithm~\ref{alg:ch11_bias_audit} is designed to be inte
 
 Figure~\ref{fig:ch11_bias_audit_cycle} illustrates how bias auditing operates as a continuous cycle, ensuring that bias mitigation is not a one-time activity but an ongoing operational responsibility. Listing~\ref{lst:ch11_bias_detection} provides a concrete implementation of this workflow.
 
-\begin{lstlisting}[language=Python, style=springer, caption={Practical bias detection pipeline that computes sentiment scores across demographic groups and flags disparities exceeding a configurable threshold.}, label={lst:ch11_bias_detection}]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  language=Python,
+  caption={Practical bias detection pipeline that computes sentiment scores across demographic groups and flags disparities exceeding a configurable threshold.},
+  label={lst:ch11_bias_detection}
+]
 """Bias detection pipeline for LLM outputs."""
 from dataclasses import dataclass
 from transformers import pipeline
@@ -881,7 +887,12 @@ Accountability requires more than good intentions---it demands durable, queryabl
 
 Every LLM inference event should produce a structured audit record\index{audit trail!schema}. Listing~\ref{lst:ch11_audit_schema} shows a minimal but comprehensive JSON schema for an audit log entry.
 
-\begin{lstlisting}[style=springer, caption={JSON schema for LLM audit trail events. Each field supports a specific accountability or compliance requirement.}, label={lst:ch11_audit_schema}]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={JSON schema for LLM audit trail events. Each field supports a specific accountability or compliance requirement.},
+  label={lst:ch11_audit_schema}
+]
 {
   "request_id": "req_a1b2c3d4e5f6",
   "timestamp": "2025-11-15T14:32:07.123Z",

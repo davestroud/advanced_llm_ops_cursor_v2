@@ -197,9 +197,12 @@ In practice, ToT-style deliberation can be bounded and applied to high-impact st
 \noindent In practice, step (5) is implemented with a small set of deterministic rules (timeouts, schema validation, and policy checks) wrapped around LLM calls.
 This wrapper substantially increases system reliability because it prevents invalid outputs from silently propagating and ensures that dynamic orchestration remains bounded.
 
-\begin{llmlistingbox}{LangGraph-style orchestration sketch (pseudo-code)}
-\label{lst:ch09_langgraph_sketch}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={LangGraph-style orchestration sketch showing a directed graph of retrieval, synthesis, verification, and safety agents with a conditional feedback loop. This pseudo-code illustrates how graph-based orchestration frameworks route control flow between agents based on runtime state.},
+  label={lst:ch09_langgraph_sketch}
+]
 state = {
   "query": "...",
   "context_pack": null,
@@ -224,7 +227,6 @@ graph.add_conditional_edge(
   false_node="safety"
 )
 \end{lstlisting}
-\end{llmlistingbox}
 
 \begin{figure}[t]
 \centering
@@ -416,9 +418,12 @@ A practical pattern is to require each agent to return a structured envelope eve
 This envelope (a small JSON object) enables deterministic parsing, validation, and downstream routing.
 Listing~\ref{lst:ch09_context_pack_schema} shows a representative schema for a retrieval context pack.
 
-\begin{llmlistingbox}{Context pack schema (retrieval $\rightarrow$ synthesis)}
-\label{lst:ch09_context_pack_schema}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Context pack schema defining the contract between retrieval and synthesis agents, including query metadata, ranked document chunks with provenance, and retrieval performance metrics. Explicit schemas like this prevent silent contract drift between agents.},
+  label={lst:ch09_context_pack_schema}
+]
 {
   "request_id": "uuid",
   "query": "string",
@@ -437,13 +442,15 @@ Listing~\ref{lst:ch09_context_pack_schema} shows a representative schema for a r
   "retrieval_meta": {"k": 8, "latency_ms": 73, "index_version": "v3.2.1"}
 }
 \end{lstlisting}
-\end{llmlistingbox}
 
 Verification outputs can follow a similar envelope, explicitly marking which claims were confirmed, corrected, or flagged for human review:
 
-\begin{llmlistingbox}{Verification result envelope (synthesis $\rightarrow$ verification)}
-\label{lst:ch09_verification_envelope}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Verification result envelope defining the output contract from synthesis to verification, including claim-level corrections with supporting evidence and prioritized open questions. This structured envelope enables downstream agents to act on verification outcomes programmatically.},
+  label={lst:ch09_verification_envelope}
+]
 {
   "status": "ok | needs_review | failed",
   "verified_answer": "string (with citations S1..Sk)",
@@ -456,7 +463,6 @@ Verification outputs can follow a similar envelope, explicitly marking which cla
   "confidence": 0.0
 }
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Schema Evolution and Versioning}\index{schema evolution}\index{contract!versioning}
 Agent contracts must evolve as the system grows. Two principles govern safe schema evolution:
@@ -900,9 +906,12 @@ Loop detection; step budgets; force termination with best-effort answer or human
 \end{tabularx}
 \end{table}
 
-\begin{llmlistingbox}{Standardized error envelope for agent outputs}
-\label{lst:ch09_error_envelope}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Standardized error envelope for agent outputs with typed error categories, retry guidance, and token-level metrics. A uniform error schema across all agents enables centralized monitoring, automated retry logic, and consistent failure handling throughout the orchestration pipeline.},
+  label={lst:ch09_error_envelope}
+]
 {
   "status": "ok | retryable_error | fatal_error | needs_review",
   "error": {
@@ -914,7 +923,6 @@ Loop detection; step budgets; force termination with best-effort answer or human
   "metrics": {"tokens_in": 0, "tokens_out": 0, "latency_ms": 0}
 }
 \end{lstlisting}
-\end{llmlistingbox}
 
 \begin{llmalgobox}{SafeInvoke: contract-checked agent execution}
 \label{alg:ch09_safeinvoke}
@@ -960,9 +968,12 @@ While not a direct handling mechanism, having comprehensive logs and monitors me
 
 Concretely, Chapter 5 of Advanced LLMOps describes resilience patterns: fallback templates for unsafe content, adaptive load shedding, etc., which complement error handling. In Ishtar, one specific pattern mentioned is fallback templates: if the system detects potentially unsafe content (e.g., violent or sensitive information) that even the verification agent can't sanitize, it falls back to a safe completion – essentially refusing or giving a high-level summary. Another pattern is canary queries (not exactly error handling at query time, but a way to catch regressions): the system regularly tests itself with known queries and if those "canary" tests fail, it triggers alerts. To illustrate a simple error-handling flow in pseudocode:
 
-\begin{llmlistingbox}{Error-handling flow pseudocode}
-\label{lst:ch09_error_handling_flow}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Error-handling flow pseudocode demonstrating graceful degradation with tiered retries, simplified fallback prompts, and user-facing apology responses. This pattern ensures the system returns a useful partial result or a clear failure message rather than silently dropping requests.},
+  label={lst:ch09_error_handling_flow}
+]
 result_analysis = call(AnalysisAgent, query, timeout=10s)
 if not result_analysis:
     # Analysis failed or timed out
@@ -979,7 +990,6 @@ else:
 final_answer = format_answer(result_verif or result_analysis) + warning
 return ConversationAgent(final_answer)
 \end{lstlisting}
-\end{llmlistingbox}
 
 In that sketch, we try analysis, retry with a simpler prompt if needed, and if verification fails, we still give the answer but with a warning. Human-in-loop could be inserted by, say, queuing the query in a dashboard if both attempts fail, but still returning an apology to the user immediately. The overall goal is graceful degradation: even when parts of the system break, the user either gets a useful partial result or at least a clear failure message (instead of silence or a crash). Multi-agent setups provide multiple opportunities to catch and fix issues – e.g., one agent’s role can be partly to check the previous agent’s work. Designing those checks and fallbacks is as important as designing the primary capabilities.
 
@@ -1199,9 +1209,12 @@ Strong ACL filtering at retrieval; per-tenant indexes; rigorous authorization ch
 \end{tabularx}
 \end{table}
 
-\begin{llmlistingbox}{Example tool-allowlist policy (YAML sketch)}
-\label{lst:ch09_tool_allowlist}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Example tool-allowlist policy restricting each agent to its minimum required tool set, with a global call budget and human-approval gates for high-risk operations. Least-privilege tool access prevents compromised or hallucinating agents from executing dangerous side effects.},
+  label={lst:ch09_tool_allowlist}
+]
 agents:
   retrieval:
     tools: ["vector_search", "keyword_search"]
@@ -1216,7 +1229,6 @@ global:
   max_tool_calls_per_request: 8
   high_risk_tools_require_human: ["db_write", "email_send"]
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection*{Security and Governance in Multi-Agent Systems}
 Security in multi-agent LLM systems spans authentication, authorization, and auditing of agent interactions, as well as safeguarding data and compliance with policies. With multiple components communicating, the attack surface can increase, so we must design with a defense-in-depth mindset. Beyond the failure taxonomy discussed earlier (see Table~\ref{tab:ch09_agent_failure_taxonomy}), security threats require systematic mitigation. Table~\ref{tab:ch09_agentic_threats} identifies common security threats and countermeasures specific to multi-agent architectures. Key aspects include:

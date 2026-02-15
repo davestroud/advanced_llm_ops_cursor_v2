@@ -250,9 +250,12 @@ Two engineering constraints frequently surprise teams moving from prototypes to 
 
 Listing~\ref{lst:ch08_vector_index_config} shows a production vector index configuration with metadata schema and access control.
 
-\begin{llmlistingbox}{Vector Index Configuration (YAML)}
-\label{lst:ch08_vector_index_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Production vector index configuration defining the embedding dimension, similarity metric, metadata schema for filtering, and role-based access control. This YAML specification ensures that retrieval respects both relevance and security clearance constraints.},
+  label={lst:ch08_vector_index_config}
+]
 # vector_index_config.yaml
 index_name: "ishtar-news-vector-index"
 description: "Configuration for the primary vector index of news articles."
@@ -301,7 +304,6 @@ access_control:
   default_clearance_level: 0 # Only retrieve public documents by default
   user_attribute_mapping: "user.security_clearance" # Map user attribute to metadata
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Retrieval and Candidate Generation}
 Given a query, the retriever produces candidates that may contain answer-bearing evidence. Retrieval can be dense, sparse (BM25), or hybrid, with hybrid systems often improving robustness in heterogeneous enterprise corpora \cite{Thakur2021BEIR,Lin2021SPLADE}. At query time, retrieval frequently includes:
@@ -329,9 +331,12 @@ These behaviors can be encouraged with prompt instructions and enforced via eval
 
 Listing~\ref{lst:ch08_rag_pipeline_config} provides a complete end-to-end RAG pipeline configuration integrating all components.
 
-\begin{llmlistingbox}{End-to-End RAG Pipeline Configuration (YAML)}
-\label{lst:ch08_rag_pipeline_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={End-to-end RAG pipeline configuration integrating document ingestion, chunking, embedding generation, vector storage, hybrid retrieval, LLM generation with citation support, and post-processing safety filters. This unified YAML specification connects all pipeline stages and cross-references component-level configurations.},
+  label={lst:ch08_rag_pipeline_config}
+]
 # full_rag_pipeline.yaml
 pipeline_id: "ishtar_e2e_rag_v1"
 description: "Complete RAG pipeline configuration for Ishtar AI."
@@ -403,7 +408,6 @@ monitoring_config:
   evaluation_suite_ref: "lst:ch04_eval_harness_config" # Reference to Listing 4.1
   alerting_config_ref: "lst:ch05_alerting_config" # Reference to Listing 5.4
 \end{lstlisting}
-\end{llmlistingbox}
 
 \section{Architectural Patterns for RAG}
 \label{sec:rag-architectural-patterns-for-rag}
@@ -630,9 +634,12 @@ Table~\ref{tab:ch08_chunking_strategies} compares different chunking strategies 
 
 Listing~\ref{lst:ch08_chunking_config} demonstrates a production chunking configuration that supports multiple document types and strategies.
 
-\begin{llmlistingbox}{Chunking Strategy Configuration (YAML)}
-\label{lst:ch08_chunking_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Chunking strategy configuration supporting multiple document types with type-specific splitting strategies, overlap settings, and post-chunking filters. Proper chunking directly impacts retrieval quality by ensuring semantically coherent units that match the embedding model's effective context window.},
+  label={lst:ch08_chunking_config}
+]
 # chunking_config.yaml
 strategy_name: "IshtarNewsChunking"
 description: "Configuration for chunking news articles for RAG."
@@ -676,7 +683,6 @@ filters:
   - type: "remove_boilerplate"
     patterns: ["^Advertisement", "Copyright \\d{4}"]
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Deduplication and Canonicalization}
 Duplicates waste storage and bias retrieval toward repeated content. Apply:
@@ -940,9 +946,12 @@ Dense retrieval provides semantic coverage, sparse retrieval provides exact-matc
 
 Listing~\ref{lst:ch08_retrieval_config} demonstrates a production hybrid retrieval configuration with query processing and reranking.
 
-\begin{llmlistingbox}{Retrieval Configuration (YAML)}
-\label{lst:ch08_retrieval_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Hybrid retrieval configuration combining dense vector search and sparse keyword search with query expansion, cross-encoder reranking, deduplication, and access control enforcement. This configuration demonstrates how multiple retrieval signals are fused and filtered to maximize both precision and recall.},
+  label={lst:ch08_retrieval_config}
+]
 # retrieval_config.yaml
 retrieval_pipeline_id: "ishtar_hybrid_retrieval_v2"
 description: "Configuration for hybrid retrieval in Ishtar AI RAG pipeline."
@@ -993,7 +1002,6 @@ monitoring:
   metrics_enabled: true
   log_retrieved_documents: true # Log full content of retrieved docs (after redaction)
 \end{lstlisting}
-\end{llmlistingbox}
 
 Table~\ref{tab:ch08_retriever_strategies} compares dense, sparse, and hybrid retrieval approaches.
 

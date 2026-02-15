@@ -433,9 +433,12 @@ An effective LLMOps pipeline consists of interconnected stages, each addressing 
 
 Table~\ref{tab:ch02_pipeline_components} summarizes the key stages of an LLMOps pipeline, their core activities, and the artifacts produced at each step. Listing~\ref{lst:ch02_pipeline_config} shows a complete pipeline configuration that orchestrates all stages from data acquisition to monitoring.
 
-\begin{llmlistingbox}{LLMOps pipeline configuration}
-\label{lst:ch02_pipeline_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Complete LLMOps pipeline configuration orchestrating seven stages from data acquisition through monitoring, including model selection with fallback, LoRA fine-tuning, prompt versioning with A/B testing, evaluation gating, Kubernetes deployment with autoscaling, and feedback-loop alerting. This single declarative artifact codifies the entire operational lifecycle and enables reproducible, auditable deployments.},
+  label={lst:ch02_pipeline_config}
+]
 # LLMOps Pipeline Configuration
 pipeline_version: "1.0.0"
 pipeline_id: "ishtar_production"
@@ -537,7 +540,6 @@ monitoring:
     error_rate_threshold: 0.05
     cost_anomaly_threshold: 1.5
 \end{lstlisting}
-\end{llmlistingbox}
 
 \begin{table}[t]
 \centering
@@ -586,9 +588,12 @@ In LLMOps, prompts are treated as first-class artifacts to be versioned and eval
 
 Listing~\ref{lst:ch02_prompt_cot} demonstrates a chain-of-thought prompt template that guides the model through step-by-step reasoning.
 
-\begin{llmlistingbox}{Chain-of-thought prompt template with few-shot examples}
-\label{lst:ch02_prompt_cot}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Chain-of-thought prompt template with few-shot examples demonstrating structured multi-step reasoning for conflict analysis. By decomposing complex queries into fact extraction, perspective comparison, implication assessment, and conclusion synthesis, this template steers the model toward more transparent and verifiable outputs in high-stakes domains.},
+  label={lst:ch02_prompt_cot}
+]
 # Chain-of-Thought Prompt Template
 version: "2.1.0"
 template_id: "ishtar_analysis_cot"
@@ -601,11 +606,11 @@ system_message: |
 
 user_template: |
   Analyze the following situation step by step:
-  
+
   {context}
-  
+
   Question: {user_query}
-  
+
   Think through this systematically:
   1. What are the key facts?
   2. What are the different perspectives?
@@ -619,23 +624,23 @@ few_shot_examples:
       Question: What is the most reliable assessment?
     assistant: |
       Let me think through this step by step:
-      
+
       1. **Key facts:**
          - Official sources [Source: OFF-001] report 2 incidents
          - NGO sources [Source: NGO-042] report 3 incidents
          - Both agree on location: northern villages
          - Timeline discrepancy: OFF-001 says 14:00-18:00, NGO-042 says 13:30-19:00
-      
+
       2. **Different perspectives:**
          - Official sources may underreport for political reasons
          - NGO sources may have broader monitoring coverage
          - Both sources have verified track records
-      
+
       3. **Implications:**
          - The discrepancy suggests possible underreporting
          - The overlap in location confirms core events
          - Timeline difference is within acceptable margin
-      
+
       4. **Most reliable conclusion:**
          Based on cross-referencing [Source: OFF-001] and [Source: NGO-042],
          at least 2-3 incidents occurred in northern villages between
@@ -648,7 +653,6 @@ parameters:
   max_tokens: 800
   enforce_steps: true
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Retrieval-Augmented Generation (RAG)}
 Retrieval-Augmented Generation combines LLMs with search or database retrieval over external knowledge sources to improve factual accuracy and reduce hallucination rates. In a RAG setup, when the model is given a query, the system first uses a retriever component to fetch relevant documents, passages, or data that might help answer the query. These retrieved pieces of information are then provided to the LLM (typically by inserting them into the prompt context) so that the model can base its output on up-to-date or specific knowledge, rather than relying purely on what was embedded in its parameters during training. For example, imagine building a legal assistant bot using an LLM. Laws and regulations change frequently, and a general model might not have the latest updates. With RAG, when a user asks a question about a particular law, the system could first retrieve the actual text of the law or relevant case precedents from a document database, then supply those to the model to ground its answer. The LLM, seeing the actual reference text in its prompt, can quote it or summarize it, greatly increasing the likelihood that its answer is correct and specific. This approach also mitigates hallucinations (where a model might otherwise make up a plausible-sounding but incorrect answer) because the model is focusing on real reference material. In practice, RAG systems often use a vector database to store embeddings of documents. When a query comes in, it is converted to an embedding and the nearest neighbors (the most semantically similar documents) are retrieved. Those documents (or their most relevant excerpts) are then included in the prompt. The LLM’s job becomes “read this provided context and answer based on it.” This way, even if the model’s training cutoff was a year ago, the system can provide it with information from today. Importantly, RAG allows continuous knowledge updates without having to retrain the base model: if new information comes in, you just add it to the knowledge store and it will be retrieved as needed. For LLMOps, designing a robust RAG pipeline means addressing issues like ensuring the retrieved text is reliable (e.g., preferring trusted sources), managing prompt length (you can’t stuff an unlimited amount of text into the model’s context), and latency (doing the search and model inference quickly enough). But when done right, RAG can significantly enhance an LLM application’s capabilities, blending the model’s linguistic fluency with a knowledge database’s accuracy.
@@ -672,15 +676,18 @@ When tools can act on external systems, sandboxing and least-privilege access be
 
 Listing~\ref{lst:ch02_tool_schema} shows a versioned tool schema with contract validation and security controls.
 
-\begin{llmlistingbox}{Tool calling schema with versioning and validation}
-\label{lst:ch02_tool_schema}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Tool calling schema with semantic versioning, access-control validation, rate limiting, tenant isolation, and built-in monitoring thresholds. This schema-driven approach treats each tool as a governed API contract, enabling safe model-initiated invocations with auditability, backward compatibility guarantees, and operational alerting on error rates and latency.},
+  label={lst:ch02_tool_schema}
+]
 {
   "tool_schema_version": "2.0.0",
   "tool_id": "fetch_conflict_report",
   "tool_name": "fetch_conflict_report",
   "description": "Retrieve a conflict report by ID with access control",
-  
+
   "versioning": {
     "semantic_version": "2.0.0",
     "changelog": {
@@ -691,7 +698,7 @@ Listing~\ref{lst:ch02_tool_schema} shows a versioned tool schema with contract v
     "deprecated": false,
     "backward_compatible": true
   },
-  
+
   "security": {
     "requires_auth": true,
     "sandboxed": true,
@@ -704,7 +711,7 @@ Listing~\ref{lst:ch02_tool_schema} shows a versioned tool schema with contract v
       "enforce_tenant_isolation": true
     }
   },
-  
+
   "parameters": {
     "type": "object",
     "required": ["report_id"],
@@ -721,7 +728,7 @@ Listing~\ref{lst:ch02_tool_schema} shows a versioned tool schema with contract v
       }
     }
   },
-  
+
   "returns": {
     "type": "object",
     "required": ["report", "source", "verified"],
@@ -740,11 +747,11 @@ Listing~\ref{lst:ch02_tool_schema} shows a versioned tool schema with contract v
       }
     }
   },
-  
+
   "contract_tests": [
     "tests/tools/fetch_conflict_report_v2.0.0.yaml"
   ],
-  
+
   "monitoring": {
     "track_call_rate": true,
     "track_error_rate": true,
@@ -756,7 +763,6 @@ Listing~\ref{lst:ch02_tool_schema} shows a versioned tool schema with contract v
   }
 }
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsubsection{Tool Calling Failure Modes}\index{tool calling!failure modes}
 
@@ -848,9 +854,12 @@ Often, evaluating an LLM system means combining automated metrics (like the abov
 
 Listing~\ref{lst:ch02_evaluation_config} shows a comprehensive evaluation metrics configuration that defines thresholds and measurement approaches for each metric category.
 
-\begin{llmlistingbox}{Evaluation metrics configuration}
-\label{lst:ch02_evaluation_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Comprehensive evaluation metrics configuration defining weighted thresholds across factual consistency, coherence, style adherence, safety, latency, and cost dimensions with slice-level analysis and LLM-as-judge scoring. This multi-dimensional evaluation framework enforces critical-metric gates for safety and factuality while aggregating non-critical scores into an overall quality threshold for automated promotion decisions.},
+  label={lst:ch02_evaluation_config}
+]
 # Evaluation Metrics Configuration
 evaluation_version: "1.2.0"
 evaluation_id: "ishtar_comprehensive"
@@ -868,7 +877,7 @@ metrics:
     slice_analysis:
       - "domain:conflict_reports"
       - "domain:ngo_bulletins"
-  
+
   # Coherence & Style Adherence
   coherence:
     enabled: true
@@ -877,7 +886,7 @@ metrics:
     judge_prompt: "prompts/judges/coherence_v1.0.txt"
     threshold: 0.80
     weight: 0.20
-  
+
   style_adherence:
     enabled: true
     measurement_method: "classifier"
@@ -888,7 +897,7 @@ metrics:
       - "citation_format"
     threshold: 0.90
     weight: 0.15
-  
+
   # Safety & Toxicity
   safety:
     enabled: true
@@ -905,7 +914,7 @@ metrics:
         threshold: 0.10
     weight: 0.25
     fail_on_violation: true
-  
+
   # Latency & Cost
   latency:
     enabled: true
@@ -917,7 +926,7 @@ metrics:
       - name: "tokens_per_second"
         min_threshold: 10.0
     weight: 0.10
-  
+
   cost:
     enabled: true
     tracking:
@@ -944,7 +953,6 @@ reporting:
   include_examples: true
   publish_to: "s3://ishtar-evals/reports/"
 \end{lstlisting}
-\end{llmlistingbox}
 
 \begin{table}[t]
 \centering

@@ -264,9 +264,12 @@ These details matter operationally: they determine feasible batch sizes, tail la
 All infrastructure is defined via IaC to ensure reproducibility, reviewability, and fast recovery~\cite{terraform-docs,terraform_recommended_practices}.
 The \emph{operational} objective is that a new region can be bootstrapped from source control with minimal manual steps.
 
-\begin{llmlistingbox}{Terraform module interface example}
-\label{lst:ch12_terraform_module}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Terraform module interface for provisioning the Ishtar Kubernetes cluster. The module abstracts region, node sizing, GPU autoscaling bounds, and OIDC configuration into a declarative interface that enables reproducible multi-region deployments.},
+  label={lst:ch12_terraform_module}
+]
 # Example (conceptual) Terraform module interface
 module "ishtar_cluster" {
   source        = "./modules/k8s_cluster"
@@ -278,15 +281,17 @@ module "ishtar_cluster" {
   enable_oidc   = true             # enables workload identity / OIDC
 }
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsubsection{GPU scheduling and serving pods}
 GPU workloads request \texttt{nvidia.com/gpu} limits and are pinned to the GPU pool via node selectors and tolerations.
 Horizontal scaling is performed at the \emph{pod} level, while vertical scaling is performed by selecting the appropriate GPU type and memory headroom (Chapter~\ref{ch:scaling}).
 
-\begin{llmlistingbox}{Kubernetes Deployment configuration}
-\label{lst:ch12_k8s_deployment}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Kubernetes Deployment manifest for the Ishtar LLM serving pod. The configuration pins GPU workloads to dedicated nodes via node selectors and tolerations, and requests a single GPU resource per replica for inference.},
+  label={lst:ch12_k8s_deployment}
+]
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -311,7 +316,6 @@ spec:
         - name: MODEL_ID
           value: "llama-70b"
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Step 2: Data ingestion pipeline}
 \label{sec:ishtar-step-ingestion}
@@ -414,9 +418,12 @@ In \ishtar{}, the model is required to:
     \item explicitly mark uncertainty when sources conflict or coverage is weak.
 \end{enumerate}
 
-\begin{llmlistingbox}{Ishtar prompt template}
-\label{lst:ch12_prompt_template}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Ishtar production prompt template enforcing source-grounded answering with inline citations. The system instructions mandate citation format, conflict disclosure, and privacy constraints that enable both automated evaluation and human verification.},
+  label={lst:ch12_prompt_template}
+]
 SYSTEM: You are Ishtar AI. Answer using ONLY the provided sources.
 - Cite sources using [S#] after each factual claim.
 - If sources conflict or evidence is weak, say so explicitly.
@@ -429,7 +436,6 @@ SOURCES:
 [S2] {chunk_2_text}
 ...
 \end{lstlisting}
-\end{llmlistingbox}
 
 This contract enables both automated evaluation (citation presence, source usage) and human verification (journalists can open [S\#]).
 
@@ -452,9 +458,12 @@ A production-oriented configuration includes:
 The orchestrator is implemented as a state machine (or graph) that makes the pipeline explicit and observable.
 A simplified controller pseudocode:
 
-\begin{llmlistingbox}{Agent orchestration workflow}
-\label{lst:ch12_agent_orchestration}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={Agent orchestration workflow implementing the Ishtar controller pattern. The state-machine pipeline sequences retrieval, synthesis, verification, safety, and optional translation agents with explicit handoffs at each stage.},
+  label={lst:ch12_agent_orchestration}
+]
 state = {query, user_context}
 
 ctx = RetrievalAgent(state.query)
@@ -468,7 +477,6 @@ if safe.requires_translation:
 
 return safe
 \end{lstlisting}
-\end{llmlistingbox}
 
 Two operational principles are enforced:
 \begin{enumerate}
@@ -518,9 +526,12 @@ In \ishtar{}, the following are version-controlled and promoted through environm
 A representative CI pipeline executes (i) unit tests, (ii) offline evaluation, (iii) staged rollout.
 Progressive delivery is implemented with canaries/blue-green strategies~\cite{argo_rollouts_overview,argo_rollouts_canary}.
 
-\begin{llmlistingbox}{CI/CD workflow configuration}
-\label{lst:ch12_cicd_workflow}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=t,
+  style=springerfloat,
+  caption={CI/CD workflow configuration for the Ishtar release pipeline. The workflow runs unit tests, executes offline evaluation with quality gates, and performs a canary rollout to Kubernetes only when all gates pass.},
+  label={lst:ch12_cicd_workflow}
+]
 name: ishtar-release
 on: [push]
 jobs:
@@ -535,7 +546,6 @@ jobs:
     steps:
       - run: kubectl apply -f k8s/rollout.yaml   # canary rollout
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsubsection{Evaluation metrics}
 Offline evaluation combines:

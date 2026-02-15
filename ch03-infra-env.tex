@@ -213,9 +213,13 @@ This simple math underscores two things: (1) newer hardware can indeed reduce ma
 
 Listing~\ref{lst:ch03_cost_calculation} provides a Python script for calculating cost per token based on hardware utilization and throughput.
 
-\begin{llmlistingbox}{Cost per token calculation script}
-\label{lst:ch03_cost_calculation}
-\begin{lstlisting}[language=Python, style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  language=Python,
+  caption={Python script for calculating cost per token based on GPU hardware configuration and utilization levels, with multi-GPU comparison support. This utility enables infrastructure teams to model the cost implications of different GPU choices and utilization targets before committing to provisioning decisions, making the cost-throughput trade-off explicit and data-driven.},
+  label={lst:ch03_cost_calculation}
+]
 #!/usr/bin/env python3
 """
 Calculate cost per token for LLM inference based on GPU utilization
@@ -248,32 +252,32 @@ def calculate_cost_per_token(
 ) -> CostResult:
     """
     Calculate cost per token based on GPU utilization.
-    
+
     Args:
         gpu: GPU configuration
         utilization_percent: GPU utilization (0-100)
         tokens_per_request: Optional average tokens per request
-    
+
     Returns:
         CostResult with cost metrics
     """
     if not 0 <= utilization_percent <= 100:
         raise ValueError("Utilization must be between 0 and 100")
-    
+
     # Effective throughput scales with utilization
     effective_throughput = (
         gpu.max_throughput_tokens_per_sec * (utilization_percent / 100.0)
     )
-    
+
     # Cost per second
     cost_per_second = gpu.hourly_cost_usd / 3600.0
-    
+
     # Cost per token
     cost_per_token = cost_per_second / effective_throughput
-    
+
     # Cost per 1k tokens
     cost_per_1k_tokens = cost_per_token * 1000.0
-    
+
     return CostResult(
         cost_per_1k_tokens_usd=cost_per_1k_tokens,
         cost_per_second_usd=cost_per_second,
@@ -287,11 +291,11 @@ def compare_gpu_options(
 ) -> dict[str, CostResult]:
     """
     Compare cost across multiple GPU options.
-    
+
     Args:
         gpus: List of GPU configurations
         utilization_percent: Utilization to compare at
-    
+
     Returns:
         Dictionary mapping GPU name to CostResult
     """
@@ -311,26 +315,25 @@ if __name__ == "__main__":
         max_throughput_tokens_per_sec=8000.0,
         memory_gb=80
     )
-    
+
     h100_80gb = GPUConfig(
         name="H100-80GB",
         hourly_cost_usd=5.00,
         max_throughput_tokens_per_sec=12000.0,
         memory_gb=80
     )
-    
+
     # Compare at different utilization levels
     print("Cost comparison at 100% utilization:")
     results_100 = compare_gpu_options([a100_80gb, h100_80gb], 100.0)
     for name, result in results_100.items():
         print(f"{name}: ${result.cost_per_1k_tokens_usd:.4f} per 1k tokens")
-    
+
     print("\nCost comparison at 50% utilization:")
     results_50 = compare_gpu_options([a100_80gb, h100_80gb], 50.0)
     for name, result in results_50.items():
         print(f"{name}: ${result.cost_per_1k_tokens_usd:.4f} per 1k tokens")
 \end{lstlisting}
-\end{llmlistingbox}
 
 \begin{quote}
 \textit{Example.} Google Cloud reports that advanced infrastructure and optimized inference runtimes (e.g., JetStream on TPU v5e) can bring generation costs down to \$0.25–\$0.30 per million tokens, or $\sim$0.00025 per token~\cite{jouppi2023-tpuv4}.
@@ -720,9 +723,12 @@ By updating a single module (e.g., GPU AMI or IAM role), changes propagate consi
 
 Listing~\ref{lst:ch03_terraform_module} shows a reusable Terraform module for provisioning GPU-enabled Kubernetes node groups.
 
-\begin{llmlistingbox}{Terraform module for GPU node group}
-\label{lst:ch03_terraform_module}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Reusable Terraform module for provisioning GPU-enabled EKS node groups with configurable instance types, autoscaling limits, Kubernetes taints and labels for workload isolation, and least-privilege IAM roles. This module encapsulates the GPU infrastructure pattern so that teams can stamp out consistent node groups across environments without duplicating configuration or risking security policy drift.},
+  label={lst:ch03_terraform_module}
+]
 # modules/gpu-node-group/main.tf
 # Reusable module for GPU-enabled Kubernetes node groups
 
@@ -864,7 +870,6 @@ output "node_group_id" {
   value = aws_eks_node_group.gpu_nodes.id
 }
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Compliance, Security, and Auditing}
 \label{sec:iac-compliance}
@@ -887,9 +892,12 @@ IaC should be integrated into CI/CD pipelines:
 
 Listing~\ref{lst:ch03_iac_pipeline} shows a GitHub Actions workflow that implements CI/CD for Infrastructure-as-Code with validation, security scanning, and multi-environment promotion.
 
-\begin{llmlistingbox}{Infrastructure-as-Code CI/CD pipeline}
-\label{lst:ch03_iac_pipeline}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={GitHub Actions workflow implementing a full Infrastructure-as-Code CI/CD pipeline with Terraform format checking, validation, TFLint linting, Checkov security scanning, and multi-environment promotion from dev to production with plan-artifact handoff. This pipeline ensures that every infrastructure change is validated, security-scanned, and promoted through environments with human approval gates, preventing misconfigurations from reaching production GPU clusters.},
+  label={lst:ch03_iac_pipeline}
+]
 # .github/workflows/terraform-infra.yml
 name: Infrastructure CI/CD
 
@@ -913,46 +921,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-      
+
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
-      
+
       - name: Terraform Init
         working-directory: ./infrastructure
         run: terraform init -backend=false
-      
+
       - name: Terraform Validate
         working-directory: ./infrastructure
         run: terraform validate
-      
+
       - name: Run TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
           tflint_version: latest
-      
+
       - name: TFLint Check
         working-directory: ./infrastructure
         run: tflint --init && tflint
-  
+
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: validate
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Run Checkov
         uses: bridgecrewio/checkov-action@master
         with:
           directory: ./infrastructure
           framework: terraform
           soft_fail: false
-  
+
   plan-dev:
     name: Plan Dev Environment
     runs-on: ubuntu-latest
@@ -960,26 +968,26 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-      
+
       - name: Terraform Init
         working-directory: ./infrastructure
         run: |
           terraform init \
             -backend-config="bucket=ishtar-terraform-state" \
             -backend-config="key=dev/terraform.tfstate"
-      
+
       - name: Terraform Plan
         working-directory: ./infrastructure
         run: |
@@ -987,13 +995,13 @@ jobs:
             -var-file="environments/dev.tfvars" \
             -out=tfplan \
             -no-color
-      
+
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-dev
           path: infrastructure/tfplan
-  
+
   apply-dev:
     name: Apply Dev Environment
     runs-on: ubuntu-latest
@@ -1003,35 +1011,35 @@ jobs:
       name: dev
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-      
+
       - name: Download Plan Artifact
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan-dev
-      
+
       - name: Terraform Init
         working-directory: ./infrastructure
         run: |
           terraform init \
             -backend-config="bucket=ishtar-terraform-state" \
             -backend-config="key=dev/terraform.tfstate"
-      
+
       - name: Terraform Apply
         working-directory: ./infrastructure
         run: terraform apply -auto-approve tfplan
-  
+
   plan-prod:
     name: Plan Production Environment
     runs-on: ubuntu-latest
@@ -1041,26 +1049,26 @@ jobs:
       name: production
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-      
+
       - name: Terraform Init
         working-directory: ./infrastructure
         run: |
           terraform init \
             -backend-config="bucket=ishtar-terraform-state-prod" \
             -backend-config="key=prod/terraform.tfstate"
-      
+
       - name: Terraform Plan
         working-directory: ./infrastructure
         run: |
@@ -1068,13 +1076,13 @@ jobs:
             -var-file="environments/prod.tfvars" \
             -out=tfplan \
             -no-color
-      
+
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-prod
           path: infrastructure/tfplan
-  
+
   apply-prod:
     name: Apply Production Environment
     runs-on: ubuntu-latest
@@ -1084,36 +1092,35 @@ jobs:
       name: production
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-      
+
       - name: Download Plan Artifact
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan-prod
-      
+
       - name: Terraform Init
         working-directory: ./infrastructure
         run: |
           terraform init \
             -backend-config="bucket=ishtar-terraform-state-prod" \
             -backend-config="key=prod/terraform.tfstate"
-      
+
       - name: Terraform Apply
         working-directory: ./infrastructure
         run: terraform apply -auto-approve tfplan
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsection{Documentation as Code}
 \label{sec:iac-docs}
@@ -1200,9 +1207,12 @@ When running on partially trusted networks (or exposing inference gateways publi
 
 
 
-\begin{llmlistingbox}{Kubernetes Deployment for LLM inference service}
-\label{lst:ch03_k8s_deployment}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Kubernetes Deployment and Service manifests for an LLM inference service with GPU resource requests, node-selector and taint-based scheduling for GPU isolation, pod anti-affinity for high availability across hosts, extended readiness probes that account for model loading time, and a non-root security context. This production-grade manifest demonstrates the operational patterns needed to reliably serve large language models on shared GPU clusters.},
+  label={lst:ch03_k8s_deployment}
+]
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1234,7 +1244,7 @@ spec:
         operator: "Equal"
         value: "true"
         effect: "NoSchedule"
-      
+
       # Affinity rules for high availability
       affinity:
         podAntiAffinity:
@@ -1248,12 +1258,12 @@ spec:
                   values:
                   - ishtar-llm
               topologyKey: kubernetes.io/hostname
-      
+
       containers:
       - name: inference-server
         image: ishtar/llm-inference:v1.3.0
         imagePullPolicy: Always
-        
+
         # GPU resource requests
         resources:
           requests:
@@ -1264,7 +1274,7 @@ spec:
             nvidia.com/gpu: 1
             memory: "45Gi"
             cpu: "16"
-        
+
         # Environment variables
         env:
         - name: MODEL_NAME
@@ -1275,7 +1285,7 @@ spec:
           value: "8"
         - name: PORT
           value: "8000"
-        
+
         # Health probes
         livenessProbe:
           httpGet:
@@ -1285,7 +1295,7 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         readinessProbe:
           httpGet:
             path: /health/ready
@@ -1294,18 +1304,18 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-        
+
         # Volume mounts for model storage
         volumeMounts:
         - name: model-storage
           mountPath: /models
           readOnly: true
-      
+
       volumes:
       - name: model-storage
         persistentVolumeClaim:
           claimName: ishtar-models-pvc
-      
+
       # Security context
       securityContext:
         runAsNonRoot: true
@@ -1328,7 +1338,6 @@ spec:
     protocol: TCP
   type: ClusterIP
 \end{lstlisting}
-\end{llmlistingbox}
 
 In summary, Kubernetes provides a powerful abstraction for LLMOps but requires careful tuning of scheduling constraints to effectively use GPU resources. Many distributions (OpenShift, GKE) simplify GPU management further---for example, GKE automatically taints GPU nodes with \texttt{cloud.google.com/gke-nodepool=GPU}, requiring matching tolerations. The key is to integrate Kubernetes with your IaC definitions: define the node groups and taints in IaC, then define your Deployments/StatefulSets with matching tolerations and resource requests.
 

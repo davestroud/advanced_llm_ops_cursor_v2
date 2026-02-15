@@ -287,9 +287,12 @@ In modern LLMOps, 8-bit quantization is widely adopted for inference, and resear
 
 Listing~\ref{lst:ch07_quantization_config} shows a quantization configuration that implements mixed-precision quantization with calibration and quality validation.
 
-\begin{llmlistingbox}{Quantization configuration with calibration}
-\label{lst:ch07_quantization_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Mixed-precision quantization configuration with calibration data, quality validation gates, and per-layer fallback policies. This configuration balances memory reduction with accuracy preservation, enabling deployment of large models on production hardware.},
+  label={lst:ch07_quantization_config}
+]
 # Quantization Configuration
 quantization_version: "1.3.0"
 model_name: "llama-3.1-13b"
@@ -377,7 +380,6 @@ deployment:
   enable_quantization_ops: true
   version: "quantized_v1.3.0"
 \end{lstlisting}
-\end{llmlistingbox}
 
 \begin{table}[t]
 \centering
@@ -792,9 +794,12 @@ Despite these complexities, the production impact of caching is often dramatic. 
 
 Listing~\ref{lst:ch07_caching_config} shows a comprehensive caching configuration that implements both response and embedding caching with proper invalidation strategies.
 
-\begin{llmlistingbox}{Caching configuration for response and embedding caching}
-\label{lst:ch07_caching_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Comprehensive caching configuration for response and embedding caching with Redis and pgvector backends, TTL policies, eviction strategies, and cache warming schedules. This multi-layer caching approach reduces both latency and cost by avoiding redundant LLM calls and embedding computations.},
+  label={lst:ch07_caching_config}
+]
 # Caching Configuration
 caching_version: "2.1.0"
 cache_id: "ishtar_production_cache"
@@ -920,7 +925,6 @@ monitoring:
     hit_rate_threshold: 0.10  # Alert if hit rate < 10%
     latency_increase_threshold_ms: 5  # Alert if cache adds >5ms latency
 \end{lstlisting}
-\end{llmlistingbox}
 
 \noindent \textbf{Engineering Sidebar: Cache Invalidation.}
 One of the hardest parts of caching is invalidation---deciding when a cached entry should be discarded or refreshed. In LLMOps, this could mean invalidating when the model is updated (since a new model might produce a different answer), when the knowledge sources have changed (for instance, new articles have come in), or after a certain time to ensure freshness. A practical strategy is to include a version tag in the cache key that incorporates the model ID or data timestamp. For example, key by \verb|model_v3::[prompt hash]|. When you deploy model v4, it automatically does not hit v3’s cache. Another strategy is time-based: e.g., any summary older than 24 hours for a ``latest news'' query is probably stale. Ultimately, imperfect invalidation is tolerated; it might occasionally serve an answer that is a bit outdated, but in exchange for large performance gains. System designers should monitor for cache accuracy and have a mechanism (like a feature flag or admin API) to flush caches if a problem is discovered.
@@ -1070,9 +1074,13 @@ In \ishtar{}'s deployment, we configured our GPU workers to use two CUDA streams
 
 Listing~\ref{lst:ch07_profiling_script} demonstrates GPU profiling using NVIDIA Nsight Systems to identify performance bottlenecks and validate optimizations.
 
-\begin{llmlistingbox}{GPU profiling script with Nsight Systems}
-\label{lst:ch07_profiling_script}
-\begin{lstlisting}[language=Python, style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  language=Python,
+  caption={GPU profiling script using NVIDIA Nsight Systems for identifying inference bottlenecks, measuring kernel execution times, and comparing baseline versus optimized performance. This script automates the profiling workflow and generates structured JSON reports suitable for CI gate integration.},
+  label={lst:ch07_profiling_script}
+]
 #!/usr/bin/env python3
 """
 GPU profiling script using NVIDIA Nsight Systems.
@@ -1348,7 +1356,6 @@ if __name__ == "__main__":
     print(f"\nReport written to {report_path}")
     print(f"CI gate: {'PASS' if report['pass'] else 'FAIL'}")
 \end{lstlisting}
-\end{llmlistingbox}
 
 Table~\ref{tab:ch07_profiling_breakdown} illustrates a typical kernel-time breakdown before and after optimization, showing where improvements deliver the largest gains.
 
@@ -1961,9 +1968,12 @@ A number of specialized inference engines have been developed to serve LLMs effi
 
 Listing~\ref{lst:ch07_inference_engine} shows a vLLM inference engine configuration that optimizes batching, KV-cache management, and throughput.
 
-\begin{llmlistingbox}{vLLM inference engine configuration}
-\label{lst:ch07_inference_engine}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Production vLLM inference engine configuration covering continuous batching, PagedAttention, KV-cache management, tensor parallelism, and Prometheus monitoring. This configuration optimizes throughput and latency for serving large language models at scale.},
+  label={lst:ch07_inference_engine}
+]
 # vLLM Inference Engine Configuration
 engine_version: "0.6.0"
 model_name: "llama-3.1-13b-chat"
@@ -2066,7 +2076,6 @@ logging:
   log_stats: true
   log_level: "INFO"
 \end{lstlisting}
-\end{llmlistingbox}
 
 \begin{table}[tb]
   \centering

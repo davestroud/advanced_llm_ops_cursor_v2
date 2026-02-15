@@ -188,9 +188,13 @@ Whenever a capacity estimate is wrong, the most common failure mode is missing a
 
 Listing~\ref{lst:ch06_capacity_planning} provides a Python script for capacity planning that implements the SLO-driven approach described in Table~\ref{tab:ch06_capacity_planning}.
 
-\begin{llmlistingbox}{Capacity planning script for LLM deployments}
-\label{lst:ch06_capacity_planning}
-\begin{lstlisting}[language=Python, style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  language=Python,
+  caption={SLO-driven capacity planning script for LLM deployments that estimates token demand from workload profiles, calculates required GPU replicas with utilization headroom, decomposes end-to-end latency into prefill, decode, and queueing components, and validates the plan against service level objectives. This structured approach prevents common scaling failures caused by incomplete workload analysis or missing latency components.},
+  label={lst:ch06_capacity_planning}
+]
 #!/usr/bin/env python3
 """
 Capacity planning script for LLM deployments.
@@ -439,7 +443,6 @@ if __name__ == "__main__":
         print(f"    Total: {result.latency_components['total_ms']:.1f}ms")
         print(f"  Validation: {'PASSED' if result.validation_passed else 'FAILED'}")
 \end{lstlisting}
-\end{llmlistingbox}
 
 \section{Scaling Dimensions}
 \label{sec:scaling-dimensions}
@@ -856,9 +859,12 @@ Pipeline parallelism partitions the model into sequential stages (contiguous lay
 
 Listing~\ref{lst:ch06_model_parallelism} shows a configuration for hybrid tensor and pipeline parallelism, matching the \ishtar{} deployment pattern.
 
-\begin{llmlistingbox}{Model parallelism configuration for large models}
-\label{lst:ch06_model_parallelism}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Hybrid tensor and pipeline parallelism configuration for deploying a 70B-parameter model across 32 GPUs, specifying tensor parallelism groups with NVLink communication, pipeline stage assignments with microbatch scheduling, paged attention KV-cache management, and performance tuning options including Flash Attention and dynamic batching. This configuration demonstrates how production systems combine parallelism strategies to serve large models within memory and latency constraints.},
+  label={lst:ch06_model_parallelism}
+]
 # Model Parallelism Configuration
 # For LLaMA-3.1-70B deployment with hybrid tensor + pipeline parallelism
 
@@ -969,7 +975,6 @@ monitoring:
   track_memory_usage: true
   log_latency_breakdown: true
 \end{lstlisting}
-\end{llmlistingbox}
 
 Table~\ref{tab:ch06_distributed_inference} compares common distributed inference techniques and highlights their dominant trade-offs in latency, throughput, and communication cost.
 
@@ -1214,9 +1219,12 @@ Bin-pack requests by expected prompt+decode tokens onto GPU types (e.g., H100 fo
 
 Listing~\ref{lst:ch06_hpa_config} shows a Kubernetes Horizontal Pod Autoscaler configuration that implements LLM-aware autoscaling with custom metrics.
 
-\begin{llmlistingbox}{Kubernetes HPA configuration for LLM autoscaling}
-\label{lst:ch06_hpa_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Kubernetes Horizontal Pod Autoscaler configuration for LLM-aware autoscaling using custom metrics (token demand rate, request queue depth, P95 TTFT, GPU utilization) with asymmetric scaling policies---aggressive scale-up for burst handling and conservative scale-down for stability. Includes Prometheus adapter configuration that bridges Kubernetes custom metrics API to LLM-specific Prometheus queries.},
+  label={lst:ch06_hpa_config}
+]
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -1360,7 +1368,6 @@ data:
         as: "gpu_utilization_percent"
       metricsQuery: 'avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
 \end{lstlisting}
-\end{llmlistingbox}
 
 \begin{tcolorbox}[
   title={\textbf{Metrics-Based Autoscaling: Practical Recipe}},
@@ -1862,9 +1869,12 @@ Often, one can deploy a family of models of different sizes and costs, and route
 
 Listing~\ref{lst:ch06_routing_config} shows a cost-aware routing configuration that implements hierarchical model selection based on query complexity and cost thresholds.
 
-\begin{llmlistingbox}{Cost-aware routing configuration}
-\label{lst:ch06_routing_config}
-\begin{lstlisting}[style=springer]
+\begin{lstlisting}[
+  float=htbp,
+  style=springerfloat,
+  caption={Cost-aware routing configuration implementing hierarchical model selection across three tiers (lightweight, standard, premium) based on query complexity scoring, per-request and per-tenant cost budgets, latency SLO constraints, and explicit routing hints. This configuration enables production systems to balance quality, cost, and latency by routing each request to the most cost-effective model tier that meets its requirements.},
+  label={lst:ch06_routing_config}
+]
 # Cost-Aware Routing Configuration
 routing_version: "1.2.0"
 routing_id: "ishtar_hierarchical_routing"
@@ -1999,7 +2009,6 @@ monitoring:
     - "fallback_rate"
     - "cost_savings_percent"
 \end{lstlisting}
-\end{llmlistingbox}
 
 \subsubsection{Throughput-oriented R\&D}
 Optimize your deployment as if you were optimizing a training job---profile bottlenecks, try quantization, faster kernels, etc. Every 10\% speedup is 10\% cost reduction if you can do the same work with fewer GPU-seconds. Techniques covered in Chapter~\ref{ch:performance} (quantization, pruning, better kernels) directly translate to cost savings when deployed at scale.
