@@ -7,3 +7,34 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+
+# LaTeX build artifacts (should not be synced to Overleaf)
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.pdf
+*.run.xml
+*.synctex.gz
+*.toc
+*.idx
+*.ilg
+*.ind
+
+# Overleaf-specific
+overleaf-upload.zip
+
+# macOS
+.DS_Store
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+

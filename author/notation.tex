@@ -1,0 +1,127 @@
+% Notation Section
+% Comprehensive list of mathematical notation, variables, and symbols used throughout the book
+
+\chapter*{Notation}
+\addcontentsline{toc}{chapter}{Notation}
+
+This section defines the mathematical notation, variables, and symbols used throughout this book. Notation is organized by category for easy reference.
+
+\section*{Greek Letters}
+
+\begin{description}[leftmargin=2.5cm, style=nextline]
+\item[$\lambda$] Arrival rate (requests per second)
+\item[$\Theta$] Throughput (tokens per second per GPU)
+\item[$\Delta$] Batching window or micro-batch timeout (time)
+\item[$\tau$] Time-to-first-token (TTFT) target, or sampling temperature
+\item[$\gamma$] Headroom factor for autoscaling (typically $\gamma \in (0,1)$)
+\item[$\omega$] Headroom factor (alternative notation, typically $\omega \simeq 0.7$)
+\item[$\alpha$] Significance level (e.g., $\alpha = 0.05$), or bytes per element
+\item[$\beta$] Learned scaling vector in layer normalization
+\item[$\eta$] Efficiency factor accounting for utilization, or EMA smoothing parameter
+\item[$\chi$] Activation checkpointing factor ($\chi \in (0,1]$)
+\item[$\epsilon$] Small constant for numerical stability (e.g., in layer normalization)
+\item[$\rho$] Bytes per scalar (e.g., $\rho=2$ for FP16, $\rho=1$ for INT8)
+\item[$\phi$] Activation function (commonly GELU)
+\item[$\mu$] Mean (e.g., $\mu(x)$ in layer normalization)
+\item[$\sigma$] Standard deviation or variance (e.g., $\sigma^2(x)$ in layer normalization)
+\end{description}
+
+\section*{Latin Variables (Uppercase)}
+
+\begin{description}[leftmargin=2.5cm, style=nextline]
+\item[$N$] Number of replicas or nodes
+\item[$D$] Token demand (tokens per second)
+\item[$B$] Batch size or batch set
+\item[$Q$] Queue length
+\item[$U$] GPU utilization
+\item[$W_{q}$] Queueing delay
+\item[$M_{\text{KV}}$] Key-value cache memory (bytes)
+\item[$M_{\text{params}}$] Parameter memory (bytes)
+\item[$M_{\text{act}}$] Activation memory (bytes)
+\item[$M_{\text{weights}}$] Model weights memory (bytes)
+\item[$T$] Sequence length, or time, or temperature
+\item[$L$] Number of transformer layers, or expected accepted run length
+\item[$S$] Sequence length (alternative notation)
+\item[$H$] Number of attention heads, or planning horizon
+\item[$C$] Capacity (tokens/s per replica), or cost
+\item[$P$] Parameter count
+\item[$R$] Requests
+\item[$K$] Number of retrieved documents (top-$K$)
+\end{description}
+
+\section*{Latin Variables (Lowercase)}
+
+\begin{description}[leftmargin=2.5cm, style=nextline]
+\item[$k$] Draft tokens, number of shards, or top-$k$ parameter
+\item[$r$] Top-$r$ acceptance threshold
+\item[$q$] Draft-target match probability
+\item[$v_{d}$, $v_{T}$] Draft and target model speeds
+\item[$p$] Probability, or top-$p$ nucleus sampling parameter
+\item[$p_{d}$, $p_{T}$] Draft and target model probability distributions
+\item[$d$] Hidden dimension size
+\item[$d_{h}$] Per-head dimension in multi-head attention
+\item[$d_{\text{model}}$] Model dimension ($= H \cdot d_{h}$)
+\item[$d_{\text{ff}}$] Feed-forward network inner dimension
+\item[$b$] Bytes per weight or element (e.g., FP16: $b=2$, INT8: $b=1$)
+\item[$t$] Time step or index
+\item[$i$] Request index or element index
+\item[$n$] Number or count
+\item[$\ell$] Length (e.g., $\ell_{\text{prompt}}$, $\ell_{\text{decode}}$)
+\item[$N_{\text{out}}$] Number of output tokens
+\item[$N_{0}$] Initial sequence length (prompt length)
+\end{description}
+
+\section*{Operators and Functions}
+
+\begin{description}[leftmargin=2.5cm, style=nextline]
+\item[$\mathbb{E}\lbrack\cdot\rbrack$] Expected value operator
+\item[$|\cdot|$] Cardinality (set size)
+\item[$\lceil\cdot\rceil$] Ceiling function
+\item[$\lfloor\cdot\rfloor$] Floor function
+\item[$\Theta(\cdot)$] Big theta notation (tight asymptotic bound)
+\item[$\mathcal{O}(\cdot)$] Big O notation (asymptotic upper bound)
+\item[$\min(\cdot)$] Minimum function
+\item[$\max(\cdot)$] Maximum function
+\item[$\text{clip}(\cdot)$] Clipping function (bounding values)
+\item[$\text{EMA}_{\eta}(\cdot)$] Exponential moving average with smoothing parameter $\eta$
+\end{description}
+
+\section*{Performance Metrics and Abbreviations}
+
+\begin{description}[leftmargin=2.5cm, style=nextline]
+\item[TTFT] Time-to-first-token
+\item[TBT] Time-between-tokens
+\item[TPOT] Tokens-per-output-token (alternative notation)
+\item[RTF] Request total finish (total latency)
+\item[KV] Key-value (cache)
+\item[p50, p95, p99] Percentiles (50th, 95th, 99th)
+\end{description}
+
+\section*{Subscripts and Superscripts}
+
+\begin{description}[leftmargin=2.5cm, style=nextline]
+\item[$N^*$, $N^\star$] Optimal or desired number of replicas
+\item[$\hat{\Theta}$] Estimated throughput
+\item[$\hat{C}$] Estimated capacity
+\item[$\hat{t}_{\text{prefill}}$] Estimated prefill time
+\item[$U^*$, $W^*$, $Q^*$] Threshold values for autoscaling
+\item[$N_{\min}$, $N_{\max}$] Minimum and maximum replica counts
+\item[$T_{\downarrow}$] Scale-in cooldown period
+\item[$\Delta_{\max}$] Maximum batching window
+\item[$M_{\max}$] Maximum memory capacity
+\end{description}
+
+\section*{Complex Expressions}
+
+\begin{description}[leftmargin=2.5cm, style=nextline]
+\item[$\mathbb{E}\lbrack\ell_{\text{prompt}}\rbrack$] Expected prompt length
+\item[$\mathbb{E}\lbrack\ell_{\text{decode}}\rbrack$] Expected decode length
+\item[$M_{\text{KV}}/M_{\max}$] KV cache pressure ratio
+\item[$v_{d}/v_{T}$] Draft-to-target speed ratio
+\item[$H \cdot d_{h}$] Total hidden dimension (heads $\times$ per-head dimension)
+\item[$B \times T$] Batch size times sequence length (memory scaling factor)
+\end{description}
+
+\medskip
+\noindent\textit{Note:} Some abbreviations (e.g., RAG, LLM, GPU, API, SLO, SLA) are defined in the List of Acronyms. Mathematical notation follows standard conventions where context-dependent variables may be reused with different meanings in different chapters; the context should make the intended meaning clear.
+

@@ -1,0 +1,1320 @@
+\chapter{LLMOps Fundamentals and Key Concepts}
+\label{ch:llmops-fundamentals}
+\newrefsegment
+
+% ----------------------------
+% Chapter 2 — Abstract (online)
+% ----------------------------
+\abstract*{This chapter establishes the conceptual and quantitative foundations of LLMOps. We define LLMOps and explain why it extends classical MLOps to accommodate prompt and policy management, retrieval integration, tool calling, non-deterministic behavior, and new security and compliance requirements. We then formalize the primary systems constraints that dominate deployment decisions—parameter memory, KV-cache growth, attention complexity, and throughput/latency trade-offs—using lightweight equations that connect model architecture to operational metrics such as time-to-first-token (TTFT), tokens-per-second, and cost per request. Building on these foundations, we present the core stages of a production LLMOps pipeline: data curation, model selection and adaptation, prompt/chain development, evaluation and testing, serving and release engineering, and monitoring with feedback loops. Throughout, we use Ishtar AI as a running example to make the "observability contract" concrete: what must be logged, versioned, and gated so that behavior is reproducible, auditable, and improvable over time.}
+
+\epigraph{\emph{"Strong foundations turn promising models into dependable systems."}}{David Stroud}
+
+% --- Reader-visible abstract (PDF) ---
+\textbf{Abstract} This chapter establishes the conceptual and quantitative foundations of LLMOps. We define LLMOps and explain why it extends classical MLOps to accommodate prompt and policy management, retrieval integration, tool calling, non-deterministic behavior, and new security and compliance requirements. We then formalize the primary systems constraints that dominate deployment decisions—parameter memory, KV-cache growth, attention complexity, and throughput/latency trade-offs—using lightweight equations that connect model architecture to operational metrics such as time-to-first-token (TTFT), tokens-per-second, and cost per request. Building on these foundations, we present the core stages of a production LLMOps pipeline: data curation, model selection and adaptation, prompt/chain development, evaluation and testing, serving and release engineering, and monitoring with feedback loops. Throughout, we use Ishtar AI as a running example to make the "observability contract" concrete: what must be logged, versioned, and gated so that behavior is reproducible, auditable, and improvable over time.
+
+\begin{tcolorbox}[
+  title={\textbf{Chapter Overview}},
+  colback=blue!5,
+  colframe=blue!40!black,
+  colbacktitle=blue!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm
+]
+\noindent\textbf{Chapter roadmap.} This chapter establishes the conceptual and quantitative foundations of LLMOps.
+We begin by defining LLMOps and explaining why it extends classical MLOps. We then
+introduce the main performance and cost drivers (parameter memory, KV cache, and attention
+complexity), before outlining the core LLMOps pipeline spanning prompts, retrieval, serving,
+evaluation, monitoring, and governance. Finally, we preview these ideas through the \ishtar{}
+running example, which will serve as a continuous reference implementation throughout the book.
+
+\medskip
+\noindent\textbf{Learning objectives.} After reading this chapter, you will be able to:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Define LLMOps and distinguish it from traditional MLOps
+    \item Understand core performance and cost drivers (parameter memory, KV cache, attention complexity)
+    \item Identify the key components of an LLMOps pipeline
+    \item Recognize the unique challenges of operationalizing LLM systems
+\end{itemize}
+\end{tcolorbox}
+
+% ------------------------------------------------------------
+% Chapter-local numbered boxes for Listings
+% (Defined here to avoid preamble dependencies.)
+% ------------------------------------------------------------
+\makeatletter
+\@ifundefined{c@llmlisting}{%
+  \newcounter{llmlisting}[chapter]
+  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
+}{}
+\@ifundefined{llmlistingbox}{%
+  \newenvironment{llmlistingbox}[1]{%
+    \refstepcounter{llmlisting}%
+    \begin{tcolorbox}[
+      title={\textbf{Listing \thellmlisting: #1}},
+      colback=black!2,
+      colframe=black!50,
+      colbacktitle=black!12,
+      coltitle=black,
+      fonttitle=\bfseries,
+      boxrule=0.6pt,
+      arc=3pt,
+      left=3mm, right=3mm, top=2mm, bottom=4mm,
+      breakable,
+      after skip=6pt
+    ]
+  }{\end{tcolorbox}}%
+}{}
+\makeatother
+
+\section{Introduction}
+\label{sec:ch2-introduction}
+
+LLMOps\index{LLMOps|)}, or Large Language Model Operations, is the discipline of building, deploying, and maintaining large language model-powered systems in production. It extends the principles of traditional MLOps to accommodate the unique demands of LLMs — such as managing prompts\index{prompt!management}, integrating retrieval systems\index{retrieval!system}, ensuring safety and compliance, and optimizing for cost and performance. In essence, LLMOps bridges the gap between research prototypes and production-ready systems, providing the operational framework necessary to transform powerful language models into reliable, scalable, and maintainable components of real-world applications.
+
+This chapter introduces the foundational principles, workflows, and terminology of LLMOps. It prepares the reader to understand and implement best practices in later, more advanced chapters, using \ishtar{} as a continuous reference. As we delve into these fundamentals, we will clarify not just the ``what'' of LLMOps, but also the ``why'' — why new approaches and tools are needed specifically for large language models, and how they build on (or differ from) established MLOps practices.
+
+\section{What is LLMOps?}
+\label{sec:ch2-what-is-llmops}
+\subsection{Definition}
+LLMOps is the set of practices and tools for operationalizing LLM-based applications. It covers the full lifecycle: from data preparation\index{data preparation}, prompt design\index{prompt!design}, and fine-tuning\index{fine-tuning} to deployment\index{deployment}, monitoring, and iterative improvement. Essentially, if one wants to transform a cutting-edge LLM into a dependable component of a software system, LLMOps provides the roadmap. This includes preparing data pipelines\index{data pipeline} for the model, designing and versioning prompts, handling model updates or fine-tuning, and ensuring the model's outputs remain useful and safe over time.
+
+\subsection{Why LLMOps is Different from MLOps}
+Traditional MLOps focuses on training and deploying models with fixed architectures and predictable input-output formats. LLMOps must address a set of challenges and practices that go beyond this traditional scope, including:
+
+\begin{itemize}
+    \item \textbf{Prompt engineering\index{prompt engineering} and management as a first-class artifact} \parencite{Chowdhery2022palm} (i.e., treating prompts and prompt templates like code that can be versioned, tested, and optimized over time).
+    \item \textbf{Managing non-deterministic outputs\index{non-deterministic output}} \parencite{kamathDeepDive} (designing systems to handle variability and possible unexpected or stochastic responses from the model).
+    \item \textbf{Integrating retrieval-augmented generation (RAG) pipelines\index{RAG!pipeline}} \parencite{Borzunov2023distributed} (to supplement the model with relevant external knowledge retrieved at query time).
+    \item \textbf{Continuous updates to knowledge without retraining from scratch} \parencite{Zheng2024sglang} (so the system can stay up-to-date with new information by injecting knowledge via retrieval or lightweight fine-tuning, rather than expensive full retraining\index{retraining}).
+    \item \textbf{Higher resource demands and context-window constraints} \parencite{Zhang2024Coupled,Liu2023Scissorhands} (LLMs require powerful hardware and have strict limits on how much text they can process at once, necessitating special strategies to work within these limits).
+\end{itemize}
+
+These factors mean the operational context for LLMs differs significantly from that of typical ML models. We highlight a few major differences below:
+
+\subsubsection{Massive scale and structural complexity} Modern large language models often contain hundreds of billions of parameters\index{parameter}; for example, GPT-3\index{GPT-3} has 175 billion parameters distributed across tens of thousands of learned matrices. Each forward pass involves a deep pipeline of self-attention\index{attention!self-attention} layers and feed-forward networks\index{feed-forward network}, requiring high-throughput matrix multiplications and large memory bandwidth. This scale mandates the use of specialized accelerators\index{accelerator} (like high-memory GPUs or TPUs\index{TPU}), distributed GPU clusters\index{GPU!cluster}, and finely tuned memory management strategies\index{memory!management}.
+Even seemingly simple tasks such as loading a model into memory or performing a single inference call require careful planning. In practice, serving such models often involves splitting the model across multiple devices (model parallelism\index{parallelism!model}) and using optimized kernels\index{kernel} for tensor operations. High-performance hardware (e.g., NVIDIA A100\index{A100}/H100\index{H100} GPUs) and distributed computing techniques thus become indispensable parts of LLMOps.
+
+\subsubsection{Probabilistic output behavior} Unlike traditional ML models that return deterministic predictions, LLMs generate sequences by sampling\index{sampling} from probability distributions over tokens\index{token}. This stochasticity\index{stochasticity} is both a strength (enabling creativity and nuanced responses) and a challenge (introducing variability between runs). Operational teams must continuously evaluate, calibrate, and—when necessary—constrain randomness through parameters such as temperature\index{temperature}.
+Finding this balance is important: a higher temperature or more random sampling might produce more diverse and creative outputs, but it can also lead to nonsensical or inconsistent answers, whereas a low temperature yields more stable and repeatable outputs at the cost of possible repetitiveness or conservatism.
+
+\subsubsection{Finite context window constraints} Models have strict token limits—GPT-3, for instance, processes a maximum of 2,048 tokens per request—beyond which earlier context is no longer considered. In effect, an LLM has a short-term memory of fixed size, and anything beyond that memory is "forgotten" by the model during a single pass. In production systems, overcoming this limitation requires advanced prompt management strategies\index{prompt!management}. One approach is to summarize\index{summarization} or compress earlier parts of a conversation or document once the context window is filled, thereby freeing up space for new information while preserving the gist of what came before. Another approach is retrieval-augmented generation (RAG)\index{Retrieval-Augmented Generation}, which dynamically fetches relevant information from an external knowledge source and includes it in the prompt so that even if the model can't internally remember something beyond its token window, the needed facts are brought back into scope. These strategies allow the system to handle inputs or dialogues that exceed the base model's context length, but they add complexity to the operational pipeline (for example, deciding when and how to summarize versus when to retrieve external data).
+
+\subsubsection{Ethical and reliability risks} Since LLMs are trained on vast, imperfect corpora\index{corpus}, they encode patterns that may reflect societal biases\index{bias}, propagate stereotypes, or produce factually incorrect statements (hallucinations\index{hallucination}). Without mitigations, an LLM might, for example, use biased or insensitive language when asked about certain groups, or it might state a falsehood confidently as if it were true. Embedding operational safeguards—such as pre- and post-processing filters\index{filter}, verification agents\index{agent!verification}, and human-in-the-loop\index{human-in-the-loop} review—into the deployment pipeline is essential to catch and correct such issues. In \ishtar{}, for example, a dedicated verification agent automatically cross-checks all high-stakes outputs against trusted sources before delivery, flagging any claims that cannot be verified. Likewise, content filters\index{content filter} may screen the model's responses for disallowed content (such as hate speech or private personal information) and either block or redact such outputs. These ethical and reliability considerations demand more than just ad hoc fixes; they require a systematic layer of governance and monitoring. LLMOps teams often define clear guidelines and use specialized tools to ensure the model's behavior remains within acceptable and safe bounds. This aspect makes LLMOps not merely a technical discipline but also one that intersects with policy, law, and ethics teams.
+In summary, these characteristics—massive scale, probabilistic behavior, constrained memory, and heightened ethical risk—make LLMOps a distinct operational discipline. It's not just an incremental adaptation of MLOps, but rather an expansion that requires specialized tools, infrastructure, and governance. We need new methods for prompt management, new infrastructure for serving and scaling, and new oversight mechanisms to ensure LLM-driven systems are reliable and aligned with human values.
+
+\begin{table}[t]
+\centering
+\small
+\caption{LLMOps extends MLOps with new operational concerns and practices. While MLOps focuses on deterministic model training and deployment, LLMOps must handle prompt management, non-deterministic outputs, RAG integration, continuous knowledge updates, and resource-intensive inference. Understanding these differences enables teams to adopt appropriate tools and processes for LLM systems.}
+\label{tab:ch02_llmops_vs_mlops}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Aspect} & \textbf{MLOps Approach} & \textbf{LLMOps Approach} \\
+\midrule
+\textbf{Prompt Management} & Fixed input schemas; feature engineering pipelines & Prompts as versioned artifacts; prompt templates, A/B testing, and optimization cycles \parencite{Chowdhery2022palm} \\
+\addlinespace[2pt]
+\textbf{Output Behavior} & Deterministic predictions; reproducible results & Non-deterministic generation; stochastic sampling requiring calibration and variance monitoring \parencite{kamathDeepDive} \\
+\addlinespace[2pt]
+\textbf{Knowledge Integration} & Static training data; periodic retraining & Dynamic retrieval-augmented generation (RAG); continuous knowledge injection without full retraining \parencite{Borzunov2023distributed,Zheng2024sglang} \\
+\addlinespace[2pt]
+\textbf{Resource Requirements} & Standard CPU/GPU; moderate memory needs & Specialized accelerators (A100/H100); massive memory for parameters and KV-cache; context-window constraints \parencite{Zhang2024Coupled,Liu2023Scissorhands} \\
+\addlinespace[2pt]
+\textbf{Evaluation Focus} & Accuracy, precision, recall on fixed test sets & Factuality, coherence, safety, citation fidelity; continuous evaluation on evolving distributions \\
+\addlinespace[2pt]
+\textbf{Deployment Complexity} & Model versioning; A/B testing & Prompt versioning, RAG pipeline versioning, tool schema versioning; multi-agent orchestration \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------- Equations Section ----------------
+\subsubsection{Supporting Equations (Capacity, Cost, and Complexity)}
+\label{sec:ch2-supporting-equations}
+
+\subsubsection{Parameter memory (inference)}
+Let $P$ be the number of parameters and $b$ the bytes per weight (e.g., FP16\index{FP16}: $b{=}2$, BF16\index{BF16}: $b{=}2$, INT8\index{INT8}: $b{=}1$). The parameter footprint\index{memory!parameter} (the memory needed just to store the model's weights) is approximately:
+\begin{equation}
+\label{eq:param-mem}
+M_{\text{params}} ;\approx; P \cdot b ;; \text{bytes}.
+\end{equation}
+For multi-shard serving\index{serving!multi-shard} (tensor/model parallelism\index{parallelism!tensor}), $M_{\text{params}}$ is partitioned across devices, but note that other memory components like activations\index{activation} and the KV-cache (discussed below) are not necessarily reduced proportionally by sharding\index{sharding}. To illustrate, if $P = 10^{10}$ (10 billion parameters) and $b = 2$ bytes (half-precision float16), then $M_{\text{params}} \approx 2 \times 10^{10} = 20$ billion bytes, which is roughly 18.6GB. As model sizes grow into the tens or hundreds of billions of parameters, this parameter memory alone becomes a major constraint. It explains why even inference (not just training) often requires multiple GPUs or specialized memory optimizations: a single GPU with 16 or 24GB of VRAM\index{VRAM} cannot even hold a 13B+ parameter model in FP16 without help. This simple equation underpins the need for techniques like model sharding\index{sharding!model} (splitting the parameters across devices) and weight quantization\index{quantization!weight} (using fewer bytes per weight, e.g., INT8 quantization halves memory use per weight).
+
+\subsubsection{KV-cache memory (inference)}
+
+\subsubsection{Serving efficiency and KV-cache management}
+KV-cache memory\index{KV-cache!memory} is often the limiting factor in high-throughput serving. PagedAttention\index{PagedAttention} introduces paging-inspired
+KV-cache management to reduce fragmentation\index{fragmentation} and improve batchability\index{batchability}, and serving engines such as vLLM\index{vLLM} operationalize
+these ideas to increase throughput under realistic workloads \cite{pagedattention_vllm}.
+
+For self-attention with $L$ layers\index{layer}, batch size $B$\index{batch size}, sequence length $T$\index{sequence length}, hidden size $d$, and bytes-per-element $b$, the key/value cache memory is approximately
+\begin{equation}
+\label{eq:kv-cache}
+M_{\text{KV}} ;\approx; 2 \cdot L \cdot B \cdot T \cdot d \cdot b ;; \text{bytes},
+\end{equation}
+(the factor 2 accounts for storing both keys and values). This cached memory of keys and values grows linearly with $B$ and $T$, and in long-context\index{context!long} or high-batch scenarios it can dominate the memory usage of inference. In fact, $M_{\text{KV}}$ often ends up being the largest component of memory for long sequences, even larger than the model weights, which motivates strategies like paging\index{paging} (moving least-recently-used parts of the cache to slower memory) or compression\index{compression} of the cache. To give a sense of scale: if $L=40$ layers, $d=5120$, $B=4$, $T=4096$, and $b=2$ (a configuration resembling a 13B-parameter model with a 4k context and batch of 4), plugging these into Eq.\ref{eq:kv-cache} yields approximately $1.25 \times 10^{10}$ bytes ($\sim$12.5GB) for the KV cache. That means just the attention cache for a single inference could consume over 12~GB of memory, which is huge relative to typical GPU memory budgets. In practice, an LLMOps engineer must keep a close eye on the product $B \times T$ (batch size times sequence length) and use specialized inference servers\index{inference server} or custom attention implementations that can handle or mitigate this memory growth (for example, by streaming\index{streaming} long texts through the model in pieces, or using a technique like "paged attention" to temporarily swap out parts of the cache).
+
+\subsubsection{Activation memory (training/fine-tuning)}
+During training\index{training} (or certain types of fine-tuning), we also have to store activations (the intermediate outputs of each layer) for use in backpropagation\index{backpropagation}. For training with an activation checkpointing\index{checkpointing!activation} factor $\chi \in (0,1]$ (where $\chi=1$ means we keep all activations, and smaller $\chi$ means we selectively drop and recompute some activations to save memory), the activation memory\index{memory!activation} is roughly
+\begin{equation}
+\label{eq:act-mem}
+M_{\text{act}} ;\approx; \chi \cdot L \cdot B \cdot T \cdot d \cdot b ;; \text{bytes}.
+\end{equation}
+If we checkpoint (recompute) half of the layers, for example, we might set $\chi=0.5$, halving the activation memory at the cost of some extra computation. In addition to activations, modern optimizers\index{optimizer} (like Adam\index{Adam}) maintain additional state for each parameter (e.g., momentum and variance estimates). These optimizer states\index{optimizer!state} can add roughly $2$--$4\times M_{\text{params}}$ to the memory footprint. This means that training a model can require several times the memory of just storing the model. For example, a 175B parameter model in FP16 is about 350~GB of weights; if using Adam, the optimizer states might consume another 700GB (if 4x the parameter count), and then activations on top of that. This is why training large LLMs is incredibly memory-intensive and invariably done in distributed fashion\index{distributed computing}. Activation checkpointing is a common LLMOps practice to trade off extra compute for lower memory usage, making otherwise impossible training runs feasible on a given hardware setup.
+
+\subsubsection{Per-layer FLOPs (forward)}
+Ignoring constant factors from embedding layers or output heads, a practical approximation of the compute cost (in floating-point operations, FLOPs) per layer of a Transformer is:
+\begin{equation}
+\label{eq:flops-layer}
+\text{FLOPs}{\text{layer}} ;\approx; 4 B T d^2 ;+; 2 B T^2 d ;+; 8 B T, d, d{ff},
+\end{equation}
+where the three terms correspond to the operations in: (1) the QKV and output projection of the attention mechanism ($4 B T d^2$ comes from multiplying the input by the $W^Q, W^K, W^V, W^O$ matrices, each roughly $d \times d$ in size, for $B \times T$ tokens), (2) the attention score computation and application ($2 B T^2 d$ comes from scaling and multiplying the $T \times T$ attention matrix by values, which is quadratic in the sequence length $T$), and (3) the feed-forward network (approximately $8 B T, d, d_{ff}$, since typically $d_{ff} \approx 4d$ and there are two large matrix multiplications in the FFN per token). Total forward-pass FLOPs for the model scale with $L \cdot \text{FLOPs}{\text{layer}}$ (i.e., linearly with the number of layers). This equation highlights a few things: the $4 B T d^2$ term (from the projections) usually dominates when $d$ is large, whereas the $2 B T^2 d$ term (from attention) grows more significant as $T$ grows (due to the $T^2$ factor). The feed-forward term $8 B T d d{ff}$ can also dominate if the FFN inner dimension $d_{ff}$ is very large. If we double the hidden size $d$, the first and third terms roughly quadruple (since they have $d^2$ and $d \cdot d_{ff}$ and $d_{ff}$ often scales with $d$), which means computational cost grows quadratically with model width. Similarly, increasing $T$ (context length) has a super-linear impact because of the $T^2$ term in attention. This is why scaling up models (either in size or context length) leads to dramatically higher compute requirements per inference or training step, and it underscores the importance of efficient software and hardware to handle these FLOPs.
+
+\subsubsection{Attention complexity}
+Self-attention exhibits quadratic time \emph{and} memory complexity\index{complexity!attention} in sequence length:
+\begin{equation}
+\label{eq:attn-complexity}
+\mathcal{C}_{\text{attn}}(T) ;\in; \Theta(T^2).
+\end{equation}
+This means if you double the context length $T$, the work the model must do for the attention mechanism roughly quadruples. This property is a primary driver for context-window engineering\index{context window!engineering} and motivates numerous methods to deal with long inputs more efficiently. For instance, \textit{paged attention}\index{attention!paged} techniques treat the attention memory like a pageable resource (moving chunks in and out so that not all $T^2$ attention weights are in memory at once), \textit{local or sliding-window attention}\index{attention!sliding-window} limits each token to attend only to a neighborhood of tokens (reducing complexity to linear in $T$ at the cost of some context blindness), and retrieval-based approaches skip attending to distant tokens by instead fetching only the most relevant pieces into a shorter context. All these methods aim to manage or circumvent the $\Theta(T^2)$ blow-up in attention cost for long sequences in production.
+
+\subsubsection{Throughput and batching}
+Given mean time-to-first-token (TTFT) $\tau_0$ (the initial overhead or latency before a model starts streaming out tokens) and per-token generation time $\tau_1$, the per-request latency\index{latency!per-request} for $N$ generated tokens can be modeled as
+\begin{equation}
+\label{eq:latency}
+\text{latency}(N) \approx \tau_0 ;+; N \cdot \tau_1.
+\end{equation}
+This reflects that no matter how many tokens you ultimately generate, there is a fixed cost $\tau_0$ to set up the generation (which includes things like loading the model, processing the prompt, and the overhead of the first decoding step\index{decoding}). Once generation begins, each additional token typically takes roughly $\tau_1$ more time (which depends on model size and hardware, often on the order of a few tens of milliseconds per token for large models on a single GPU). Now, with dynamic batching\index{batching!dynamic} of size $B$ (i.e., serving $B$ requests simultaneously in one forward pass by concatenating them in a batch), the system can amortize $\tau_0$ across multiple requests. In an ideal scenario (assuming the hardware can perfectly parallelize across the batch and not saturate), the throughput in tokens per second per GPU approaches:
+\begin{equation}
+\label{eq:throughput}
+\text{throughput (tokens/s/GPU)} ;\approx; \frac{B \cdot N}{\tau_0 + N \cdot \tau_1},,
+\end{equation}
+as $B$ increases, up until some saturation point set by memory bandwidth or other overheads. In simpler terms, if one token stream takes $\tau_0$ overhead + $N \tau_1$ time, $B$ streams batched together still incur about the same $\tau_0$ (shared) plus $N \tau_1$ (since they all generate $N$ tokens in parallel), so you get $B$ times the work done in that combined time. This formula is an idealized guideline; in practice, batching helps a lot when $\tau_0$ is a large fraction of total time (which is true for small $N$, e.g., short answers, or when using very large models where initialization is expensive), but if $B$ is increased too far, other factors will limit the gains. Real systems start to see diminishing returns due to factors like GPU memory limits (bigger batches need more memory), scheduling and context-switching overhead, or non-linear effects like cache misses. Nonetheless, dynamic batching is a crucial technique in LLMOps to increase throughput and reduce cost per query, especially in high-traffic applications: by intelligently grouping user requests, one can keep the expensive GPU fully utilized.
+
+\subsubsection{Temperature and determinism}
+Sampling temperature\index{temperature!sampling} $\tau$ is a decoding hyperparameter\index{hyperparameter} that rescales the model's output logits\index{logit} $z$ by $z' = z/\tau$ before the softmax\index{softmax} is taken to generate probabilities. As $\tau \to 0$, this effectively makes the softmax distribution peak more sharply around the highest-logit token (and in the limit $\tau=0$ the decoding becomes greedy\index{greedy decoding}, always picking the single most likely token, thus deterministic\index{deterministic}). As $\tau$ increases above 1, the output distribution flattens, giving more randomness and higher entropy\index{entropy} to the model's choices. Operationally, $\tau$ is a control knob to balance diversity\index{diversity} and stability\index{stability} in the outputs. A low temperature can be used when a consistent, reliable answer is needed every time (at the cost of possibly sounding formulaic or refusing to consider alternative phrasings), whereas a higher temperature can be used in creative tasks like story generation where variety is valuable. From an LLMOps perspective, setting the temperature (and other decoding parameters like top-$k$\index{top-k} or top-$p$\index{top-p} nucleus sampling\index{nucleus sampling}) is part of prompt management and configuration: it allows us to adjust how much the model "explores" versus "exploits" its knowledge. The right setting often depends on the application and even on the deployment stage (during initial prototyping one might allow more randomness to see the model's range, but in production one might dial it down to ensure more predictable behavior).
+
+% ------------------ Illustrative Diagrams ------------------
+\subsubsection{Illustrative Diagrams}
+\label{sec:ch2-illustrative-diagrams}
+
+\begin{figure}[t]
+    \centering
+    \begin{llmfigbox}
+    % --- Transformer Block Schematic (TikZ) ---
+    % Color definitions
+    \definecolor{inputblue}{RGB}{44,102,146}
+    \definecolor{attentionorange}{RGB}{201,111,29}
+    \definecolor{normgreen}{RGB}{34,139,96}
+    \definecolor{ffnpurple}{RGB}{123,88,163}
+    \begin{tikzpicture}[
+      font=\small,
+      >=Stealth,
+      node distance=10mm,
+      box/.style={draw=none, rounded corners=5pt, minimum width=36mm, minimum height=10mm, align=center, inner sep=5pt, font=\small\bfseries}
+    ]
+        % Nodes with color coding
+        \node[box, fill=inputblue!15] (input) {Input (tokens)};
+        \node[box, fill=attentionorange!15, below=of input] (mha) {Multi-Head Attention};
+        \node[box, fill=normgreen!15, below=10mm of mha] (addnorm1) {Add \& Norm};
+        \node[box, fill=ffnpurple!15, below=10mm of addnorm1] (ffn) {Feed-Forward Network};
+        \node[box, fill=normgreen!15, below=10mm of ffn] (addnorm2) {Add \& Norm};
+        \node[box, fill=inputblue!15, below=12mm of addnorm2] (output) {Hidden States / Next Block};
+
+        % Arrows - enhanced
+        \draw[-{Latex}, line width=1.2pt, color=black!70] (input) -- (mha);
+        \draw[-{Latex}, line width=1.2pt, color=black!70] (mha) -- (addnorm1);
+        \draw[-{Latex}, line width=1.2pt, color=black!70] (addnorm1) -- (ffn);
+        \draw[-{Latex}, line width=1.2pt, color=black!70] (ffn) -- (addnorm2);
+        \draw[-{Latex}, line width=1.2pt, color=black!70] (addnorm2) -- (output);
+
+        % Residual connections (dashed for distinction)
+        \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=black!60] ($(input.south west)+(1mm,-1mm)$) -- ++(0,-22mm) -| (addnorm1.west);
+        \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=black!60] ($(addnorm1.south west)+(1mm,-1mm)$) -- ++(0,-17mm) -| (addnorm2.west);
+
+        % Labels
+        \node[align=left, anchor=west] at ($(mha.east)+(1.2,0)$) {Self-attention\\(KV cache affects memory)};
+        \node[align=left, anchor=west] at ($(ffn.east)+(1.2,0)$) {$d \rightarrow d_{ff} \rightarrow d$};
+        \node[align=left, anchor=west] at ($(addnorm2.east)+(1.2,0)$) {Residual + LayerNorm};
+    \end{tikzpicture}
+    \end{llmfigbox}
+    \caption{Transformer architecture\index{Transformer!architecture} determines inference memory and compute requirements. The attention mechanism\index{attention!mechanism}, FFN layers\index{FFN}, and residual paths\index{residual connection} each contribute to memory (dominated by parameters and KV cache, Eq.~\ref{eq:param-mem}, \ref{eq:kv-cache}) and compute cost (scales with Eq.~\ref{eq:flops-layer}). Understanding these components enables capacity planning and optimization decisions.}
+    \label{fig:ch02_transformer_block}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \begin{llmfigbox}
+    % --- Quadratic Attention Complexity Plot (pgfplots) ---
+    \begin{tikzpicture}[font=\small]
+        \begin{axis}[
+            width=0.95\linewidth,
+            height=7cm,
+            xlabel={Sequence length $T$ (tokens)},
+            ylabel={Relative cost (arb. units)},
+            xlabel style={font=\bfseries},
+            ylabel style={font=\bfseries},
+            xmin=0, xmax=4096,
+            ymin=0, ymax=1.1,
+            xtick={0,1024,2048,3072,4096},
+            ytick={0,0.25,0.5,0.75,1.0},
+            tick align=outside,
+            ticklabel style={font=\footnotesize},
+            grid=major,
+            grid style={gray!30, line width=0.4pt},
+            minor grid style={gray!15, line width=0.25pt},
+            legend style={at={(0.03,0.97)},anchor=north west, draw=none, fill=none, font=\footnotesize, column sep=15pt},
+            axis line style={line width=1pt},
+        ]
+            % Normalize to max at 4096
+            \addplot+[smooth, very thick, line width=1.8pt, mark=none, domain=0:4096, samples=200, color=red!70!black]
+                {(x^2)/(4096^2)};
+            \addlegendentry{$\Theta(T^2)$ attention (Eq.~\ref{eq:attn-complexity})};
+
+            \addplot+[smooth, dashed, dash pattern=on 4pt off 2pt, very thick, line width=1.8pt, mark=none, domain=0:4096, samples=200, color=blue!70!black]
+                {x/4096};
+            \addlegendentry{Linear reference};
+
+        \end{axis}
+    \end{tikzpicture}
+    \end{llmfigbox}
+    \caption{Attention cost grows quadratically with context length $T$ (solid), outpacing linear strategies (dashed). This motivates paged attention\index{attention!paged}, local attention\index{attention!local}, and RAG to manage long contexts in production.}
+    \label{fig:ch02_quadratic_attn}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \begin{llmfigbox}
+    % --- Parameter scaling over time (pgfplots) ---
+    \begin{tikzpicture}[font=\small]
+      \begin{axis}[
+        width=0.95\linewidth, height=7cm,
+        ymode=log, log basis y=10,
+        xlabel={Year}, ylabel={Parameters},
+        xlabel style={font=\bfseries},
+        ylabel style={font=\bfseries},
+        xmin=2017, xmax=2022,
+        ymin=1e7, ymax=1e12,
+        xtick={2017,2018,2020,2022},
+        xticklabels={2017, 2018, 2020, 2022},
+        tick align=outside,
+        ticklabel style={font=\footnotesize},
+        grid=major,
+        grid style={gray!30, line width=0.4pt},
+        minor grid style={gray!15, line width=0.25pt},
+        axis line style={line width=1pt},
+      ]
+        \addplot+[smooth, very thick, line width=1.8pt, mark=*, mark size=3.5pt, mark options={fill=white, draw=red!70!black, line width=1.2pt}, color=red!70!black] coordinates {
+          (2017,6.5e7)   % Transformer (~65M)
+          (2018,3.4e8)   % BERT Large (~340M)
+          (2020,1.75e11) % GPT-3 (175B)
+          (2022,5.4e11)  % PaLM (540B)
+        };
+      \end{axis}
+    \end{tikzpicture}
+    \end{llmfigbox}
+    \caption{Empirical growth in Transformer-based model size (log scale). Parameter counts have increased by orders of magnitude, driving distinct operational constraints in memory, compute, and cost.}
+    \label{fig:ch02_llm_scale}
+\end{figure}
+
+% ------------------ Capacity Planning Sidebar ------------------
+\begin{tcolorbox}[
+  title={\textbf{Capacity Planning: A100/H100 Quick Rules}},
+  colback=gray!5,
+  colframe=gray!60!black,
+  colbacktitle=gray!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt,
+  breakable
+]
+\small
+\noindent\textbf{GPU memory budgets (inference):}
+\begin{center}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lcc}
+\toprule
+Device & HBM (GB) & Notes \\
+\midrule
+NVIDIA A100 & 40, 80 & Widely deployed; FP16/INT8 common \\
+NVIDIA H100 & 80     & Higher throughput; FP8/INT8 common \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textbf{Rule-of-thumb parameter memory (FP16):}
+\begin{center}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrr}
+\toprule
+Model & Params $P$ & $M_{\text{params}}$ (GB) \\
+\midrule
+7B    & $7\!\times\!10^9$   & $\approx 14$ \\
+13B   & $1.3\!\times\!10^{10}$ & $\approx 26$ \\
+70B   & $7.0\!\times\!10^{10}$ & $\approx 140$ \\
+175B  & $1.75\!\times\!10^{11}$ & $\approx 350$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textbf{KV-cache sizing examples (FP16, Eq.~\ref{eq:kv-cache}):}
+\begin{itemize}[leftmargin=1.2em, itemsep=2pt]
+\item \textbf{7B-like} ($L{=}32$, $d{=}4096$): coefficient $\approx \num{524288}$ bytes per token per batch. For $B{=}8$, $T{=}2048$: $M_{\text{KV}}\approx$\SI{8}{\gibi\byte}; for $B{=}8$, $T{=}8192$: \SI{32}{\gibi\byte}.
+\item \textbf{13B-like} ($L{=}40$, $d{=}5120$): coefficient $\approx \num{819200}$ bytes per token per batch. For $B{=}4$, $T{=}4096$: $\approx$\SI{12.5}{\gibi\byte}; for $B{=}8$, $T{=}8192$: $\approx$\SI{50}{\gibi\byte}.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Fit heuristics (single GPU, FP16):}
+\begin{itemize}[leftmargin=1.2em, itemsep=2pt]
+\item \textbf{A100-40GB:} 7B fits with moderate $B{\times}T$ (e.g., $B{=}8$, $T{=}2048$ $\Rightarrow$ $\sim$14+8$=$\SI{22}{\gibi\byte}); 13B fits only with conservative $B{\times}T$ (e.g., $B{=}4$, $T{=}4096$ $\Rightarrow$ $\sim$26+12.5$=$\SI{38.5}{\gibi\byte}, tight). 70B+ requires tensor parallelism.
+\item \textbf{A100/H100-80GB:} 7B/13B allow larger $B{\times}T$ (e.g., 13B with $B{=}8$, $T{=}8192$ $\Rightarrow$ $\sim$26+50$=$\SI{76}{\gibi\byte}). 70B+ still needs multi-GPU sharding.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Ops recommendations:}
+\begin{itemize}[leftmargin=1.2em, itemsep=2pt]
+\item Reserve 10\%--20\% headroom for fragmentation/overheads.
+\item Use quantized weights (INT8/FP8) to halve or better the parameter footprint.
+\item Employ paged attention and sequence batching; monitor $B{\times}T$ against Eq.~\ref{eq:kv-cache}.
+\item For 70B+, plan tensor/pipeline parallelism; co-tune batcher to avoid KV spills.
+\end{itemize}
+\end{tcolorbox}
+
+% ------------------ Throughput vs TTFT Plot ------------------
+\begin{figure}[t]
+    \centering
+    \begin{llmfigbox}
+    \begin{tikzpicture}[font=\small]
+        \begin{axis}[
+            width=0.95\linewidth,
+            height=7cm,
+            xlabel={TTFT $\tau_0$ (s)},
+            ylabel={Throughput (tokens/s/GPU)},
+            xlabel style={font=\bfseries},
+            ylabel style={font=\bfseries},
+            xmin=0, xmax=2.0,
+            ymin=0, ymax=900,
+            tick align=outside,
+            ticklabel style={font=\footnotesize},
+            grid=major,
+            grid style={gray!30, line width=0.4pt},
+            minor grid style={gray!15, line width=0.25pt},
+            legend style={at={(0.97,0.97)},anchor=north east, draw=none, fill=none, font=\footnotesize, column sep=15pt},
+            axis line style={line width=1pt},
+        ]
+            % Constants: N = 120 tokens, tau1 = 0.02 s/token
+            \addplot+[smooth, very thick, line width=1.8pt, domain=0:2.0, samples=200, color=blue!70!black] {(1*120) / (x + 120*0.02)};
+            \addlegendentry{$B{=}1$};
+
+            \addplot+[smooth, dashed, dash pattern=on 4pt off 2pt, very thick, line width=1.8pt, domain=0:2.0, samples=200, color=green!70!black] {(4*120) / (x + 120*0.02)};
+            \addlegendentry{$B{=}4$};
+
+            \addplot+[smooth, dotted, very thick, line width=1.8pt, domain=0:2.0, samples=200, color=orange!70!black] {(8*120) / (x + 120*0.02)};
+            \addlegendentry{$B{=}8$};
+
+            \addplot+[smooth, dashdotted, very thick, line width=1.8pt, domain=0:2.0, samples=200, color=violet!70!black] {(16*120) / (x + 120*0.02)};
+            \addlegendentry{$B{=}16$};
+        \end{axis}
+    \end{tikzpicture}
+    \end{llmfigbox}
+    \caption{Throughput vs.\ TTFT trade-off determines batching strategy and capacity planning. Larger batches ($B$) amortize TTFT overhead, improving throughput, but real systems saturate due to kernel/IO limits before reaching theoretical maximums. Understanding this trade-off helps teams optimize batch sizes for their latency requirements. Using Eq.~\ref{eq:throughput} with $N{=}120$ tokens/request and $\tau_1{=}\SI{0.02}{s/token}$ provides planning guidelines, not guarantees.}
+    \label{fig:ch02_ttft_throughput}
+\end{figure}
+
+% ------------------ Pipeline / Concepts ------------------
+\section{Core Components of an LLMOps Pipeline}
+\label{sec:ch2-core-components}
+An effective LLMOps pipeline consists of interconnected stages, each addressing a critical part of bringing LLM-powered functionality to users. The pipeline can be thought of as a sequence of steps that data and requests flow through, from raw inputs all the way to deployed, monitored outputs:
+
+\begin{enumerate}
+\item \textbf{Data Acquisition and Preprocessing}: Curating relevant text, code, or multimodal data, then cleaning and normalizing the content. This step ensures the model is trained and evaluated on high-quality, representative data. For example, in a text dataset, acquisition might involve scraping articles from reliable sources, and preprocessing might include removing duplicates, filtering profanity or sensitive information, standardizing formats (like lowercasing or tokenizing), and so on. Good data is the foundation of an LLM’s performance, so significant effort is spent here to avoid garbage in/garbage out scenarios.
+    \item \textbf{Model Selection}: Choosing between proprietary APIs (e.g., using a service like OpenAI’s GPT-4 via API) and open-source models (e.g., LLaMA, Falcon, GPT-NeoX that one can run or fine-tune). This decision depends on factors such as performance requirements, cost constraints, data sensitivity, and the ability to customize. A proprietary model might offer cutting-edge capability or convenience but could lock the system into a specific provider and incur higher ongoing costs, whereas an open-source model can be self-hosted and modified but might require more engineering effort to reach comparable quality. LLMOps involves evaluating these trade-offs, possibly starting with an API for rapid prototyping and later transitioning to an open model for more control.
+
+\item \textbf{Fine-tuning and Adaptation}: Adapting the model to domain-specific tasks using techniques like supervised fine-tuning (SFT), parameter-efficient tuning (e.g., LoRA for adding small low-rank weight updates), or Reinforcement Learning from Human Feedback (RLHF). In this stage, the base model’s general capabilities are specialized: for instance, fine-tuning on company support tickets to create a customer service assistant, or on medical texts for a healthcare application. Full fine-tuning (updating all model weights) can be resource-intensive, so often LLMOps uses more efficient methods like LoRA (which adds only a few trainable parameters) or prefix tuning, etc., especially if the base model is very large. If alignment with human preferences or complex behaviors is needed, RLHF might follow to further refine how the model responds (making it more polite, more accurate, or otherwise aligned with user expectations).
+
+\item \textbf{Prompt and Chain Development}: Designing effective prompts and multi-step reasoning chains. Prompt engineering is a creative and iterative process where we craft the input text (including instructions and examples) that guides the model to produce the desired output. For complex applications, this often extends to chaining multiple prompts and model calls together, possibly with logic in between (for example, one prompt to interpret user intent, another to fetch relevant data, a third to compose an answer using that data). Frameworks like LangChain facilitate this by letting developers define “chains” or flows of prompts, tools, and model invocations. In this stage of the pipeline, one might experiment with different phrasings, few-shot examples, or step-by-step breakdowns (chain-of-thought prompting) to maximize the model’s performance on the task.
+
+\item \textbf{Evaluation and Testing}: Applying both automated and human-in-the-loop evaluations to measure the model or system performance before (and during) deployment. Automated tests might include metrics like perplexity, ROUGE/L BLEU scores for summarization or translation tasks, or more specialized metrics (e.g., truthfulness/factuality checks using retrieval or known datasets). Additionally, one would run the model on a suite of test inputs (possibly the same ones repeatedly) to see if it meets requirements: Does it follow instructions? Does it stay within response length limits? Does it avoid disallowed content? Human evaluators often play a role too: they might rate the quality of outputs (fluency, helpfulness, correctness) or identify subtle issues that automated metrics miss (like a slight biased tone or a formatting mistake). This stage is critical to catch problems early and set a performance baseline for the system.
+
+\item \textbf{Deployment and Serving}: Hosting models in scalable environments so that end-users (or downstream systems) can actually use the LLM’s capabilities. Deployment involves picking the right infrastructure (cloud vs on-prem, CPU vs GPU vs specialized hardware) and setting up the model behind an API or microservice. It also includes packaging the model (e.g., using a Docker container, or optimizing it with TensorRT or ONNX runtime) and establishing a process for updates (CI/CD for models). Serving goes hand-in-hand with deployment and refers to the runtime aspect: how incoming requests are handled. This might involve load balancing across multiple instances, using a high-performance inference server (such as Hugging Face’s Text Generation Inference or vLLM which are optimized for LLM serving), and managing things like request queues, timeouts, and multi-tenancy (if many clients use the model concurrently). In the LLMOps pipeline, deployment is not a one-time event but an ongoing concern, because models may be updated or rolled back, and the serving infrastructure needs to remain robust as usage grows.
+
+\item \textbf{Monitoring and Feedback Loops}: Tracking latency, quality, and safety metrics in production, and feeding results back into improvement cycles. Once the system is live, LLMOps doesn’t stop—one must continuously observe it. Monitoring includes traditional uptime and performance metrics (Is the service up? What’s the average response time? GPU utilization?), as well as application-specific metrics (Are the answers factually correct? How often is the model refusing requests or triggering safety filters? Are users asking new types of questions that we didn’t anticipate?). Tools for observability might log every request and response for analysis (with privacy safeguards as needed), track drift in the types of queries, or measure user satisfaction if feedback is provided. A feedback loop means that this real-world data is periodically taken back to the lab: for example, compiling a new dataset of actual user questions the model struggled with, and then using that to refine prompts or perform another fine-tuning round. It may also involve setting up alerting: if a sudden spike in, say, toxic content is detected in outputs, the team is alerted to intervene (perhaps by tightening a filter or investigating a possible prompt exploit). This stage ensures the system remains performant and aligned over time, essentially closing the cycle and connecting back to data acquisition or prompt design as needed.
+
+\end{enumerate}
+
+Listing~\ref{lst:ch02_pipeline_config} shows a complete pipeline configuration that orchestrates all stages from data acquisition to monitoring.
+
+\begin{llmlistingbox}{LLMOps pipeline configuration}
+\label{lst:ch02_pipeline_config}
+\begin{lstlisting}[style=springer]
+# LLMOps Pipeline Configuration
+pipeline_version: "1.0.0"
+pipeline_id: "ishtar_production"
+
+# Stage 1: Data Acquisition & Preprocessing
+data_acquisition:
+  sources:
+    - type: "api"
+      endpoint: "https://api.conflict-reports.org/v1"
+      refresh_interval: "1h"
+    - type: "crawler"
+      targets: ["trusted_news_sites"]
+      schedule: "0 */6 * * *"
+  preprocessing:
+    deduplication: true
+    language_detection: true
+    quality_threshold: 0.7
+    output_format: "normalized_json"
+
+# Stage 2: Model Selection
+model_selection:
+  base_model: "gpt-4-turbo"
+  provider: "openai"
+  fallback_model: "gpt-3.5-turbo"
+  selection_criteria:
+    - cost_per_1k_tokens
+    - latency_p95_ms
+    - quality_score_threshold: 0.85
+
+# Stage 3: Fine-tuning & Adaptation
+fine_tuning:
+  method: "lora"
+  dataset: "datasets/ishtar_conflict_v2.1"
+  hyperparameters:
+    learning_rate: 2e-4
+    epochs: 3
+    batch_size: 8
+  evaluation_metrics:
+    - "factual_consistency"
+    - "citation_accuracy"
+    - "neutrality_score"
+
+# Stage 4: Prompt & Chain Development
+prompt_development:
+  template_repository: "prompts/ishtar/"
+  versioning_strategy: "semantic"
+  a_b_testing:
+    enabled: true
+    traffic_split: 0.1
+  chain_config:
+    - step: "retrieve"
+      component: "rag_retriever"
+    - step: "synthesize"
+      component: "llm_synthesizer"
+    - step: "verify"
+      component: "verification_agent"
+
+# Stage 5: Evaluation & Testing
+evaluation:
+  golden_set: "datasets/golden/ishtar_v1.0"
+  test_suites:
+    - name: "factuality"
+      threshold: 0.90
+    - name: "safety"
+      threshold: 0.95
+    - name: "citation_coverage"
+      threshold: 0.85
+  regression_control:
+    baseline_version: "v1.2.0"
+    min_improvement: 0.02
+
+# Stage 6: Deployment & Serving
+deployment:
+  infrastructure: "kubernetes"
+  replicas: 3
+  autoscaling:
+    min_replicas: 2
+    max_replicas: 10
+    target_ttft_ms: 500
+  serving_runtime: "vllm"
+  gpu_requirements:
+    type: "nvidia.com/gpu"
+    count: 1
+
+# Stage 7: Monitoring & Feedback Loops
+monitoring:
+  metrics:
+    - "latency_p50_p95_p99"
+    - "token_usage"
+    - "cost_per_request"
+    - "refusal_rate"
+    - "hallucination_flags"
+  feedback_collection:
+    user_ratings: true
+    correction_tracking: true
+    incident_logging: true
+  alerting:
+    latency_spike_threshold_ms: 1000
+    error_rate_threshold: 0.05
+    cost_anomaly_threshold: 1.5
+\end{lstlisting}
+\end{llmlistingbox}
+
+\begin{table}[t]
+\centering
+\small
+\caption{LLMOps pipeline stages transform raw data into production-ready LLM systems. Each stage produces specific artifacts and requires distinct operational practices. Understanding these components enables teams to design end-to-end workflows that ensure quality, reliability, and continuous improvement from data acquisition through monitoring and feedback.}
+\label{tab:ch02_pipeline_components}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Stage} & \textbf{Key Activities} & \textbf{Outputs/Artifacts} \\
+\midrule
+\textbf{Data Acquisition \& Preprocessing} & Curating text/code/multimodal data; cleaning, normalizing, deduplication; filtering sensitive content & Cleaned datasets; preprocessing pipelines; data quality reports \\
+\addlinespace[2pt]
+\textbf{Model Selection} & Evaluating proprietary APIs vs.\ open-source models; assessing performance, cost, customization needs & Selected model; API contracts or self-hosted infrastructure; cost projections \\
+\addlinespace[2pt]
+\textbf{Fine-tuning \& Adaptation} & Supervised fine-tuning (SFT); parameter-efficient tuning (LoRA); RLHF for alignment & Fine-tuned model weights; adapter layers; alignment datasets; evaluation metrics \\
+\addlinespace[2pt]
+\textbf{Prompt \& Chain Development} & Crafting prompts; designing multi-step chains; few-shot examples; chain-of-thought patterns & Versioned prompt templates; chain definitions (LangChain); prompt performance metrics \\
+\addlinespace[2pt]
+\textbf{Evaluation \& Testing} & Automated metrics (perplexity, ROUGE, BLEU); factuality checks; human evaluation; test suites & Evaluation reports; test datasets; baseline performance metrics; quality scores \\
+\addlinespace[2pt]
+\textbf{Deployment \& Serving} & Infrastructure selection (cloud/on-prem, GPU/CPU); containerization; API setup; load balancing; CI/CD & Deployed models; serving APIs; container images; infrastructure-as-code; monitoring dashboards \\
+\addlinespace[2pt]
+\textbf{Monitoring \& Feedback Loops} & Latency/quality/safety tracking; drift detection; user feedback collection; alerting; continuous evaluation & Production metrics; drift signals; feedback datasets; incident reports; improvement recommendations \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Key Concepts in LLMOps}
+\label{sec:ch2-key-concepts}
+\subsection{Prompt Engineering}
+Prompt engineering is the iterative process of designing inputs to elicit desired behavior from a language model. In LLMOps, prompts are treated as a crucial piece of the system’s logic, almost like source code for the model’s behavior. Crafting a good prompt can involve instructions (telling the model how to respond or in what style), question framing, and providing examples of the desired output (few-shot examples) to guide the model. Prompts can be static templates that are filled with dynamic data at runtime (for instance, a template that always includes a certain system instruction or format), or they can be constructed on the fly, possibly enriched via retrieval of relevant context. The importance of prompt engineering arises from the fact that large language models are incredibly flexible but also sensitive to wording and context. A slight rephrase of a question can sometimes lead to a large difference in the output. For example, when interacting with an LLM, asking “Explain the concept of LLMOps” versus “What is LLMOps and why does it matter?” might yield different styles of answer. A prompt engineer’s job is to find the phrasings and structures that consistently get the model to produce useful and correct responses. Over time, prompt engineering has evolved from an art (trial-and-error crafting of questions) to more of a science, with techniques such as providing the model with step-by-step reasoning structure (chain-of-thought) or using role-playing context (e.g., prefixing the prompt with “You are a helpful assistant…”) to influence the tone and quality of outputs. In an LLMOps context, prompts are versioned, A/B tested, and maintained just like code, because improvements in prompts can directly translate to better system performance without needing to retrain the model.
+
+
+
+In LLMOps, prompts are treated as first-class artifacts to be versioned and evaluated. Advanced strategies include:
+\begin{itemize}
+    \item \textbf{Prompt chaining}: Break complex tasks into multi-step prompts.
+    \item \textbf{Dynamic prompt templates}: Parameterized templates enriched via retrieval.
+    \item \textbf{Prompt pattern libraries}: Few-shot patterns, self-critique, and role prompting.
+    \item \textbf{Evaluation-driven refinement}: A/B test prompts against factuality and coherence metrics.
+\end{itemize}
+
+Listing~\ref{lst:ch02_prompt_cot} demonstrates a chain-of-thought prompt template that guides the model through step-by-step reasoning.
+
+\begin{llmlistingbox}{Chain-of-thought prompt template with few-shot examples}
+\label{lst:ch02_prompt_cot}
+\begin{lstlisting}[style=springer]
+# Chain-of-Thought Prompt Template
+version: "2.1.0"
+template_id: "ishtar_analysis_cot"
+description: "Multi-step reasoning for conflict analysis"
+
+system_message: |
+  You are an expert conflict journalism analyst. When analyzing
+  complex situations, break down your reasoning into clear steps.
+  Always cite sources and explain your logic.
+
+user_template: |
+  Analyze the following situation step by step:
+  
+  {context}
+  
+  Question: {user_query}
+  
+  Think through this systematically:
+  1. What are the key facts?
+  2. What are the different perspectives?
+  3. What are the implications?
+  4. What is the most reliable conclusion?
+
+# Few-shot examples demonstrating chain-of-thought
+few_shot_examples:
+  - user: |
+      Context: Reports indicate ceasefire violations in Region X.
+      Question: What is the most reliable assessment?
+    assistant: |
+      Let me think through this step by step:
+      
+      1. **Key facts:**
+         - Official sources [Source: OFF-001] report 2 incidents
+         - NGO sources [Source: NGO-042] report 3 incidents
+         - Both agree on location: northern villages
+         - Timeline discrepancy: OFF-001 says 14:00-18:00, NGO-042 says 13:30-19:00
+      
+      2. **Different perspectives:**
+         - Official sources may underreport for political reasons
+         - NGO sources may have broader monitoring coverage
+         - Both sources have verified track records
+      
+      3. **Implications:**
+         - The discrepancy suggests possible underreporting
+         - The overlap in location confirms core events
+         - Timeline difference is within acceptable margin
+      
+      4. **Most reliable conclusion:**
+         Based on cross-referencing [Source: OFF-001] and [Source: NGO-042],
+         at least 2-3 incidents occurred in northern villages between
+         13:30-19:00. The NGO count is likely more comprehensive, but
+         both sources confirm the core events.
+
+# Configuration
+parameters:
+  temperature: 0.4
+  max_tokens: 800
+  enforce_steps: true
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Retrieval-Augmented Generation (RAG)}
+Retrieval-Augmented Generation combines LLMs with search or database retrieval over external knowledge sources to improve factual accuracy and reduce hallucination rates. In a RAG setup, when the model is given a query, the system first uses a retriever component to fetch relevant documents, passages, or data that might help answer the query. These retrieved pieces of information are then provided to the LLM (typically by inserting them into the prompt context) so that the model can base its output on up-to-date or specific knowledge, rather than relying purely on what was embedded in its parameters during training. For example, imagine building a legal assistant bot using an LLM. Laws and regulations change frequently, and a general model might not have the latest updates. With RAG, when a user asks a question about a particular law, the system could first retrieve the actual text of the law or relevant case precedents from a document database, then supply those to the model to ground its answer. The LLM, seeing the actual reference text in its prompt, can quote it or summarize it, greatly increasing the likelihood that its answer is correct and specific. This approach also mitigates hallucinations (where a model might otherwise make up a plausible-sounding but incorrect answer) because the model is focusing on real reference material. In practice, RAG systems often use a vector database to store embeddings of documents. When a query comes in, it is converted to an embedding and the nearest neighbors (the most semantically similar documents) are retrieved. Those documents (or their most relevant excerpts) are then included in the prompt. The LLM’s job becomes “read this provided context and answer based on it.” This way, even if the model’s training cutoff was a year ago, the system can provide it with information from today. Importantly, RAG allows continuous knowledge updates without having to retrain the base model: if new information comes in, you just add it to the knowledge store and it will be retrieved as needed. For LLMOps, designing a robust RAG pipeline means addressing issues like ensuring the retrieved text is reliable (e.g., preferring trusted sources), managing prompt length (you can’t stuff an unlimited amount of text into the model’s context), and latency (doing the search and model inference quickly enough). But when done right, RAG can significantly enhance an LLM application’s capabilities, blending the model’s linguistic fluency with a knowledge database’s accuracy.
+
+
+\subsection{Tool Calling and Structured Outputs}
+\label{sec:ch2-tool-calling}
+Modern LLM applications increasingly rely on \emph{tool calling} (sometimes called function calling)
+and schema-constrained generation. Operationally, tool specifications and JSON schemas become
+versioned interfaces: even small changes to a schema or tool contract can cause downstream breakage,
+and must be caught by regression suites and release gates. Structured outputs reduce brittle parsing
+and improve reliability by enforcing adherence to an explicit schema \cite{openai_structured_outputs_docs,openai_structured_outputs_blog}.
+Tool calling introduces additional surfaces for observability and security, because model behavior now
+includes tool-selection decisions, tool arguments, and tool responses that must be validated and traced
+end-to-end \cite{openai_function_calling_docs}.
+
+\subsubsection{Ops implications}
+LLMOps teams typically treat tool definitions as deployable artifacts (with semantic versioning), add
+contract tests for tools, and monitor tool-call rates, error rates, and downstream impact on user outcomes.
+When tools can act on external systems, sandboxing and least-privilege access become essential controls.
+
+Listing~\ref{lst:ch02_tool_schema} shows a versioned tool schema with contract validation and security controls.
+
+\begin{llmlistingbox}{Tool calling schema with versioning and validation}
+\label{lst:ch02_tool_schema}
+\begin{lstlisting}[style=springer]
+{
+  "tool_schema_version": "2.0.0",
+  "tool_id": "fetch_conflict_report",
+  "tool_name": "fetch_conflict_report",
+  "description": "Retrieve a conflict report by ID with access control",
+  
+  "versioning": {
+    "semantic_version": "2.0.0",
+    "changelog": {
+      "2.0.0": "Added access control validation",
+      "1.1.0": "Added caching support",
+      "1.0.0": "Initial version"
+    },
+    "deprecated": false,
+    "backward_compatible": true
+  },
+  
+  "security": {
+    "requires_auth": true,
+    "sandboxed": true,
+    "rate_limit": {
+      "requests_per_minute": 30,
+      "burst_size": 5
+    },
+    "access_control": {
+      "required_permissions": ["read:conflict_reports"],
+      "enforce_tenant_isolation": true
+    }
+  },
+  
+  "parameters": {
+    "type": "object",
+    "required": ["report_id"],
+    "properties": {
+      "report_id": {
+        "type": "string",
+        "pattern": "^[A-Z]{2}-\\d{6}$",
+        "description": "Conflict report identifier"
+      },
+      "include_metadata": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include source metadata"
+      }
+    }
+  },
+  
+  "returns": {
+    "type": "object",
+    "required": ["report", "source", "verified"],
+    "properties": {
+      "report": {
+        "type": "object",
+        "description": "Report content"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source identifier"
+      },
+      "verified": {
+        "type": "boolean",
+        "description": "Verification status"
+      }
+    }
+  },
+  
+  "contract_tests": [
+    "tests/tools/fetch_conflict_report_v2.0.0.yaml"
+  ],
+  
+  "monitoring": {
+    "track_call_rate": true,
+    "track_error_rate": true,
+    "track_latency": true,
+    "alert_thresholds": {
+      "error_rate": 0.05,
+      "p95_latency_ms": 500
+    }
+  }
+}
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Evaluation Metrics}
+Evaluating LLMs requires looking at multiple metrics, because no single number perfectly captures an LLM’s performance on complex tasks. Beyond traditional accuracy or exact-match metrics, LLMOps practitioners consider: \begin{itemize}
+\item \textbf{Factual consistency}: Does the model’s output contain true statements and avoid contradicting known facts? For example, if the model summarizes an article or answers a question, factual consistency checks whether it correctly represents the source material or real-world truth.
+\item \textbf{Coherence and style adherence}: Is the output logically coherent and well-structured? Does it follow any specific style guidelines or tone that the application requires? In a story generation task, coherence might mean the plot doesn’t have holes and the text flows sensibly. Style adherence could involve using a formal tone for a business application or ensuring the model’s response format matches what the user expects (bullet points, JSON, etc.).
+\item \textbf{Safety and toxicity}: Does the model avoid producing harmful, offensive, or disallowed content? This metric covers a broad area of “safe” usage: not generating hate speech, not revealing private data, not giving dangerous instructions, etc. In practice, one might have automated detectors for toxicity or bias that assign scores to the model’s outputs. Lower is better, meaning the content is safer. This category also includes checking that the model is behaving as aligned with ethical guidelines (for instance, not taking a biased stance or not hallucinating defamatory claims).
+\item \textbf{Latency and cost per query}: From an operational standpoint, it’s crucial to measure how fast the model returns an answer (latency) and how much compute or money each query costs. A model could be extremely accurate and eloquent, but if it takes 20 seconds to answer or if each answer costs \$1.00 of GPU time, it might be impractical. Monitoring these metrics ensures that the system meets the real-time needs of users and stays within budget. There is often a trade-off here: a larger model might give better answers but with higher latency and cost, so the team might need to optimize or consider distillation (using a smaller model) if these metrics are outside acceptable bounds.
+\end{itemize}
+
+Often, evaluating an LLM system means combining automated metrics (like the above, possibly computed by scripts or additional models) with human evaluations (like user ratings or expert review). For example, one might regularly sample outputs and have people score them for helpfulness or correctness. Over time, these metrics guide the development: if factual consistency is low, that might prompt adding a RAG component; if latency is too high, that might prompt optimizing the model or the hardware. In later chapters, we will explore specific evaluation methodologies and tools, but at the fundamental level it's important to recognize that LLMOps deals with a vector of metrics rather than a single scalar measure of "accuracy."
+
+Listing~\ref{lst:ch02_evaluation_config} shows a comprehensive evaluation metrics configuration that defines thresholds and measurement approaches for each metric category.
+
+\begin{llmlistingbox}{Evaluation metrics configuration}
+\label{lst:ch02_evaluation_config}
+\begin{lstlisting}[style=springer]
+# Evaluation Metrics Configuration
+evaluation_version: "1.2.0"
+evaluation_id: "ishtar_comprehensive"
+
+metrics:
+  # Factual Consistency
+  factual_consistency:
+    enabled: true
+    measurement_method: "claim_verification"
+    tools:
+      - "fact_checker_v1.0"
+      - "rag_faithfulness_scorer"
+    threshold: 0.85
+    weight: 0.30
+    slice_analysis:
+      - "domain:conflict_reports"
+      - "domain:ngo_bulletins"
+  
+  # Coherence & Style Adherence
+  coherence:
+    enabled: true
+    measurement_method: "llm_as_judge"
+    judge_model: "gpt-4"
+    judge_prompt: "prompts/judges/coherence_v1.0.txt"
+    threshold: 0.80
+    weight: 0.20
+  
+  style_adherence:
+    enabled: true
+    measurement_method: "classifier"
+    classifier_model: "style_classifier_v2.1"
+    required_attributes:
+      - "neutral_tone"
+      - "journalistic_format"
+      - "citation_format"
+    threshold: 0.90
+    weight: 0.15
+  
+  # Safety & Toxicity
+  safety:
+    enabled: true
+    measurement_method: "multi_detector"
+    detectors:
+      - name: "toxicity"
+        model: "perspective_api"
+        threshold: 0.20
+      - name: "bias"
+        model: "bias_detector_v1.3"
+        threshold: 0.15
+      - name: "harmful_content"
+        model: "safety_classifier_v2.0"
+        threshold: 0.10
+    weight: 0.25
+    fail_on_violation: true
+  
+  # Latency & Cost
+  latency:
+    enabled: true
+    metrics:
+      - name: "ttft"
+        p50_threshold_ms: 300
+        p95_threshold_ms: 600
+        p99_threshold_ms: 1000
+      - name: "tokens_per_second"
+        min_threshold: 10.0
+    weight: 0.10
+  
+  cost:
+    enabled: true
+    tracking:
+      - "cost_per_request_usd"
+      - "tokens_per_request"
+      - "cost_per_1k_tokens"
+    budget_threshold_usd: 0.05
+    alert_on_exceed: true
+    weight: 0.10
+
+# Aggregation
+aggregation:
+  method: "weighted_average"
+  overall_threshold: 0.82
+  require_all_critical: true
+  critical_metrics:
+    - "safety"
+    - "factual_consistency"
+
+# Reporting
+reporting:
+  format: "json"
+  include_slices: true
+  include_examples: true
+  publish_to: "s3://ishtar-evals/reports/"
+\end{lstlisting}
+\end{llmlistingbox}
+
+\begin{table}[t]
+\centering
+\small
+\caption{LLM evaluation requires multi-dimensional metrics beyond traditional accuracy. Factual consistency, coherence, safety, and operational metrics each capture different aspects of system quality. Understanding these metric categories enables teams to design comprehensive evaluation frameworks that balance correctness, user experience, safety, and cost efficiency.}
+\label{tab:ch02_evaluation_metrics}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Metric Category} & \textbf{Description} & \textbf{Measurement Approach} & \textbf{Operational Impact} \\
+\midrule
+\textbf{Factual Consistency} & Output contains true statements; avoids contradicting known facts or source material & Cross-reference with trusted sources; claim-level verification; RAG faithfulness checks & Low scores indicate need for RAG integration or retrieval improvements \\
+\addlinespace[2pt]
+\textbf{Coherence \& Style} & Output is logically structured; follows required style guidelines or tone; format compliance & Automated coherence scoring; style classifiers; format validation (JSON, structured output) & Poor coherence suggests prompt engineering needs; style issues require fine-tuning or template updates \\
+\addlinespace[2pt]
+\textbf{Safety \& Toxicity} & Avoids harmful, offensive, or disallowed content (hate speech, private data, dangerous instructions) & Toxicity classifiers (Perspective API); bias detectors; content filters; safety-trigger monitoring & High toxicity rates trigger safety filter updates; bias detection informs retraining priorities \\
+\addlinespace[2pt]
+\textbf{Latency \& Cost} & Response time (TTFT, tokens/s) and compute cost per query; token usage (prompt vs.\ completion) & P50/P95/P99 latency histograms; token accounting; cost per request tracking & Exceeds thresholds drive model optimization, hardware upgrades, or routing to cheaper models \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Evaluation Frameworks and Tooling}
+In addition to custom ``golden sets'' and human review, several evaluation frameworks have emerged to support
+repeatable, scalable testing. HELM provides a broad taxonomy for evaluating language models across scenarios and
+desiderata \cite{helm}. For system-level evaluation of prompts, chains, tools, and agents, OpenAI Evals offers a
+practical harness and registry approach \cite{openai_evals}. For RAG systems, automated and reference-free metrics have
+become common; RAGAS proposes a suite of metrics for context relevance and faithfulness, while ARES evaluates RAG quality
+using trained judges and prediction-powered inference to reduce annotation costs \cite{ragas,ares}.
+
+\subsection{Human Feedback and Alignment}
+As language models become more powerful, ensuring they align with human intentions and values is paramount. Two key approaches in this domain are Reinforcement Learning from Human Feedback (RLHF) and Constitutional AI.
+
+In \textbf{Reinforcement Learning from Human Feedback (RLHF)}, the idea is to use human judgments as a source of reward signal to fine-tune the model’s behavior. A typical RLHF process involves first collecting a dataset of model outputs with corresponding human preference labels. For instance, given a prompt, the model might produce multiple different responses, and human evaluators rank them from best to worst (or mark which ones are acceptable). From this, a reward model is trained to predict the human-preferred ranking. Then the language model is further tuned using reinforcement learning (often with an algorithm like Proximal Policy Optimization, PPO) to maximize the reward model’s score for its outputs. The effect is that the model learns to prefer outputs that humans found better, which usually translates to outputs that are more helpful, correct, and benign. RLHF was famously used to align GPT-3.5 and GPT-4 to human conversational preferences, greatly improving their usefulness in assistant-like settings. For an LLMOps practitioner, RLHF is a powerful but complex tool—it requires infrastructure to collect human feedback at scale and careful tuning to avoid issues like the model gaming the reward. 
+
+\textbf{Constitutional AI} is another approach to alignment, where instead of relying heavily on direct human feedback for every example, the process is guided by a set of written principles or a “constitution.” These principles could be things like “The AI should not output hate speech” or “The AI should follow the user’s instructions as long as they are not harmful or illegal” (often a mix of ethical guidelines and desired behaviors). The model is then refined through a process of self-critiquing and improvement: it generates outputs, another AI system or an automated process checks those outputs against the constitution principles and provides feedback or edits, and the model is updated to better comply with the principles. Essentially, it’s trying to encode human values and policies into the training process itself, reducing the need for humans to give feedback on every single failure. Anthropic, an AI research company, has popularized this approach by creating a “constitution” for their language models to follow. In practice, Constitutional AI can be combined with RLHF: the constitution might be used to generate initial feedback or as a filter for what’s acceptable, and then humans fine-tune further on tricky cases. 
+
+In an LLMOps context, implementing human feedback and alignment mechanisms means not treating the model training as one-and-done. Instead, the system remains open to continuous improvement: user feedback, whether explicit (like a thumbs-up/down on responses) or implicit (like users rephrasing questions when they got a bad answer), can be aggregated and used to identify where the model is misaligned or underperforming. Then targeted fine-tuning or policy adjustments can be made. Alignment also involves careful monitoring—one needs to watch for new kinds of bad outputs as the user base grows, since what counts as a problematic output can be context-dependent. Ultimately, the goal of alignment is to build models that are not just smart, but also behave in ways that are helpful, harmless, and in accordance with the users’ needs and societal values.
+
+
+\subsection{Security, Privacy, and Threat Modeling}
+\label{sec:ch2-security}
+LLM systems introduce distinct vulnerability classes that extend beyond conventional application security.
+Prompt injection, insecure output handling, data exfiltration through retrieval or tools, and denial-of-service
+via adversarial long contexts are now common operational concerns. A practical baseline is to map controls
+and tests to the OWASP Top 10 for LLM Applications, and to treat these risks as first-class acceptance criteria
+in CI/CD and incident response \cite{owasp_llm_top10}.
+
+\subsubsection{Operational controls}
+Common mitigations include instruction hierarchy and content sanitization, constrained tool schemas,
+sandboxed tool execution, retrieval-time permission checks, output filtering for policy compliance,
+and red-teaming with adversarial prompts. High-stakes workflows often require calibrated uncertainty,
+human review, and audit logging.
+
+\subsection{Transformer Architecture Foundations for LLMOps}
+To understand LLM-specific operational constraints, it’s helpful to briefly review core Transformer model elements and highlight their implications for scale, memory, and latency (many of which we quantified in the earlier equations). This section isn’t a full tutorial on Transformers, but rather a focus on those aspects of the architecture that most affect LLMOps decisions (like hardware requirements and optimization strategies).
+
+\subsubsection{Self-attention and multi-head attention}
+At the heart of a Transformer is the self-attention mechanism. Given an input
+sequence represented by a matrix $X \in \mathbb{R}^{n \times d_{\text{model}}}$
+(where $n$ is the sequence length and $d_{\text{model}}$ is the model's hidden
+dimension), the model computes queries ($Q$), keys ($K$), and values ($V$) as
+linear projections of $X$. For head $i$,
+\begin{equation}
+  Q_i = X W_i^{Q}, \qquad
+  K_i = X W_i^{K}, \qquad
+  V_i = X W_i^{V},
+\end{equation}
+with $W_i^{Q}, W_i^{K}, W_i^{V} \in \mathbb{R}^{d_{\text{model}}\times d_k}$.
+Typically $d_k = d_{\text{model}}/h$ when there are $h$ heads.
+
+The scaled dot-product attention is
+\begin{equation}
+  \mathrm{Attn}(Q_i,K_i,V_i)
+  \;=\;
+  \mathrm{softmax}\!\left(\frac{Q_i K_i^{\top}}{\sqrt{d_k}}\right) V_i,
+\end{equation}
+meaning each token's query is matched against all tokens' keys to produce
+attention weights (the softmax of the scaled dot products), and those weights
+are used to take a weighted combination of values.
+
+After computing this for each head $i$, the outputs
+$O_i = \mathrm{Attn}(Q_i,K_i,V_i)$ are concatenated and projected:
+\begin{equation}
+  O \;=\; \mathrm{concat}(O_1,\ldots,O_h)\, W^{O},
+  \qquad
+  W^{O} \in \mathbb{R}^{h d_v \times d_{\text{model}}},
+\end{equation}
+often with $d_v = d_k$ so that $h d_v = d_{\text{model}}$ (making $W^{O}$ square).
+
+
+From an operations perspective, self-attention is the component that introduces the quadratic complexity in sequence length $n$ (or $T$ as we denoted earlier). The matrix $Q_i K_i^\top$ is of size $n \times n$, and computing the softmax over it (and multiplying by $V_i$) involves $\mathcal{O}(n^2)$ time and memory per head. This is why Eq.\ref{eq:kv-cache} had a $T^2$ term and Eq.\ref{eq:flops-layer} had a term proportional to $T^2$. Multi-head attention mitigates some limitations by allowing the model to focus on different “aspects” of the sequence with different heads, but it multiplies the computational cost by the number of heads $h$ (though in Eq.~\ref{eq:flops-layer} we had already accounted for all heads collectively in those terms). For LLMOps, the takeaway is that the attention mechanism is what can make long sequences expensive, and any method to optimize an LLM often involves making attention more efficient (via approximation or engineering). Additionally, the need to store $K$ and $V$ for all past tokens in tasks like language generation (so that each new token can attend to prior ones) is what leads to the KV-cache memory growth discussed earlier.
+
+\subsubsection{Positional encodings}
+Transformers are permutation-invariant by design: if you shuffle the input vectors $X$, a vanilla Transformer (without positional information) would produce the same output because it does not know token positions. To inject order, positional encodings are added to the input embeddings. A classic choice is the fixed sinusoidal encoding: for position $p$ (starting at $0$ for the first token) and encoding dimension index $i$,
+\begin{align}
+  \mathrm{PE}(p)_{2i}   &= \sin\!\left(\frac{p}{10000^{\,2i/d_{\text{model}}}}\right), \\
+  \mathrm{PE}(p)_{2i+1} &= \cos\!\left(\frac{p}{10000^{\,2i/d_{\text{model}}}}\right).
+\end{align}
+This yields a deterministic, continuous set of vectors that the model can learn to interpret to recover token positions.
+
+Other approaches include \emph{learned} positional embeddings (position vectors are parameters trained with the model) and \emph{rotary position embeddings} (RoPE), which apply a position-dependent rotation to queries and keys in each dimension. From an operational standpoint, positional encodings affect how well a model handles contexts longer than it was trained on. Learned positional embeddings have a fixed limit (e.g., trained up to 2048 tokens), whereas sinusoidal and RoPE can, in principle, be extrapolated to longer sequences (though with varying fidelity). RoPE, used in many open-source LLMs, often degrades more gracefully beyond the training context window. In practical LLMOps terms, if you plan to extend context (e.g., from 2048 to 4096+ tokens), it is crucial to know which encoding is used: some allow extending with minimal changes (RoPE can be extended by continuing the rotation pattern, with care), while others may require modifying and retraining the position embeddings. Certain alternatives (e.g., ALiBi or relative-position variants) encode distance directly in the attention mechanism and can be more compute/memory-friendly for long sequences.
+
+
+\subsubsection{Feed-forward networks (FFN)}
+After the attention sub-layer in each Transformer block, there is typically a \emph{feed-forward network} (FFN) applied to each token independently. This is usually implemented as a two-layer multilayer perceptron (MLP) with a non-linear activation function $\phi$ (commonly GELU) between the layers.  
+
+Formally, if $x$ is the token representation coming out of the attention sub-layer (after the first layer normalization and residual addition), the FFN computes:
+\begin{equation}
+\phi(x W_1 + b_1) W_2 + b_2,
+\label{eq:ffn-formula}
+\end{equation}
+where $W_1 \in \mathbb{R}^{d_{\text{model}} \times d_{ff}}$ and $W_2 \in \mathbb{R}^{d_{ff} \times d_{\text{model}}}$, with biases $b_1 \in \mathbb{R}^{d_{ff}}$ and $b_2 \in \mathbb{R}^{d_{\text{model}}}$ (biases are often omitted when estimating parameter counts).  
+
+The feed-forward dimension $d_{ff}$ is typically much larger than $d_{\text{model}}$—in many architectures, $d_{ff} \approx 4 \, d_{\text{model}}$. This expansion projects each token’s features into a higher-dimensional space (enabling more expressive transformations via the nonlinearity) before projecting them back down. The total parameter count for the FFN is approximately:
+\begin{equation}
+\#\text{params}_{\text{FFN}} \approx 2 \, d_{\text{model}} \, d_{ff},
+\end{equation}
+since the weights $W_1$ and $W_2$ dominate.  
+
+\noindent\textbf{Example:}  
+For $d_{\text{model}} = 4096$ and $d_{ff} = 16384$:
+\begin{align}
+\#\text{params}_{\text{FFN}} &\approx 2 \cdot 4096 \cdot 16384 \approx 134 \ \text{million}, \\
+\#\text{params}_{\text{Attention}} &\approx 4 \cdot 4096^2 \approx 67 \ \text{million}.
+\end{align}
+Thus, FFNs often exceed the attention mechanism in both parameter count and FLOPs (see Eq.~\ref{eq:flops-layer}, where the $8 B T d \, d_{ff}$ term is typically large).  
+
+\noindent\textbf{Operational considerations:}  
+FFNs are highly parallelizable across tokens since there is no interaction between positions (each token’s vector is processed independently). This makes them well-suited for efficient execution on modern accelerators, as they consist of large matrix multiplications with dimensions independent of the context length. However, because each Transformer layer contains two large FFN matrices, they contribute significantly to both inference latency and training time.  
+
+To mitigate these costs, LLM deployments often use:
+\begin{itemize}
+    \item \textbf{Lower precision computation} (e.g., FP16, BF16, INT8) to reduce memory bandwidth and FLOPs.
+    \item \textbf{Kernel fusion} to combine multiple operations into fewer GPU kernels.
+    \item \textbf{Architectural variants} such as Mixture-of-Experts (MoE) or gated FFNs to reduce effective FLOPs and parameter count without significant performance degradation.
+\end{itemize}
+
+\noindent\textbf{LLMOps implications:}  
+From an operational perspective, FFN weights account for a substantial portion of total model memory usage. During quantization or distillation, FFN layers are prime candidates for compression due to their large parameter footprint and parallelizable structure.
+
+
+\subsubsection{Residual connections and LayerNorm}
+Transformers make extensive use of \emph{residual connections} and \emph{layer normalization} to stabilize and accelerate training. A residual connection means that the input to a sub-layer (e.g., the attention mechanism or the FFN) is added to the output of that sub-layer before passing to the next stage.  
+
+In pseudo-code for a Transformer block:
+\begin{align}
+y &= \text{LayerNorm}\left( x + \text{Attention}(x) \right), \\
+z &= \text{LayerNorm}\left( y + \text{FFN}(y) \right),
+\end{align}
+where $x$ is the block input, $y$ is the intermediate output, and $z$ is the block’s final output.  
+
+Layer Normalization (LayerNorm) is defined for an input vector $x \in \mathbb{R}^d$ (such as the feature vector for a single token) as:
+\begin{align}
+\hat{x}_k &= \frac{x_k - \mu(x)}{\sqrt{\sigma^2(x) + \epsilon}}, \\
+\text{LN}(x)_k &= \gamma_k \, \hat{x}_k + \beta_k,
+\end{align}
+where $\mu(x)$ is the mean of the components of $x$, $\sigma^2(x)$ is the variance, and $\epsilon$ is a small constant for numerical stability. The parameters $\gamma, \beta \in \mathbb{R}^d$ are learned scaling and shifting vectors.  
+
+\noindent\textbf{Intuition:}  
+LayerNorm stabilizes the distribution of activations by normalizing them to have mean $0$ and variance $1$ (before scaling and shifting), which helps prevent value explosion or vanishing in deep networks.  
+
+\noindent\textbf{Variants:}  
+\begin{itemize}
+    \item \textbf{Pre-LN vs. Post-LN:} Refers to whether LayerNorm is applied before or after the main sub-layer computation. Modern architectures often prefer Pre-LN for stability in very deep models.
+    \item \textbf{RMSNorm:} A variant that normalizes only by the root mean square (variance), without mean centering.
+\end{itemize}
+
+\noindent\textbf{Operational considerations:}  
+From an inference perspective, LayerNorm layers are lightweight in both compute (elementwise operations) and memory (only two learned vectors of length $d$). They have negligible impact on throughput or memory usage at scale.  
+
+However, residual connections mean that the original sub-layer input (e.g., $x$) must be available later for the addition. During inference, this is trivial (kept in registers or temporary memory), but during training, it often requires storing a copy for backpropagation—unless recomputation techniques like \emph{activation checkpointing} are used.  
+
+\noindent\textbf{Convergence considerations:}  
+Removing residual connections or normalization layers can significantly degrade training stability and model quality. In LLMOps contexts, one might encounter:
+\begin{itemize}
+    \item Migrating a model to a different normalization scheme for performance gains.
+    \item Handling architectural variations (e.g., GPT-2’s LayerNorm placement differs from the original Transformer).
+\end{itemize}
+These details are usually handled by model architects, but operators should ensure these layers are implemented efficiently—most modern deep learning libraries do so by default.
+
+
+\subsubsection{Worked example (KV-cache sizing)}
+To cement the earlier KV-cache memory formula (Eq.~\ref{eq:kv-cache}), consider a concrete example.  
+Assume a model with:
+\[
+L = 32 \quad \text{layers}, \quad d = 4096 \quad \text{hidden size},
+\]
+which is in the ballpark of a $6{-}7$B parameter model such as GPT-J or smaller LLaMA variants.  
+Suppose we run a batch of:
+\[
+B = 8 \quad \text{sequences}, \quad T = 2048 \quad \text{tokens each},
+\]
+using FP16 representations ($b = 2$ bytes per value).  
+
+\noindent Plugging into Eq.~\ref{eq:kv-cache}:
+\begin{equation}
+M_{\text{KV}} \approx 2 \cdot 32 \cdot 8 \cdot 2048 \cdot 4096 \cdot 2.
+\end{equation}
+
+\noindent Stepwise computation:
+\begin{align}
+2 \cdot 32 &= 64, \\
+64 \cdot 8 &= 512, \\
+512 \cdot 2048 &= 1{,}048{,}576 \quad (\text{i.e., } 2^{20}), \\
+1{,}048{,}576 \cdot 4096 &= 4{,}294{,}967{,}296 \quad (\text{i.e., } 2^{32}), \\
+4{,}294{,}967{,}296 \cdot 2 &= 8{,}589{,}934{,}592 \ \text{bytes}.
+\end{align}
+
+\noindent Thus:
+\[
+M_{\text{KV}} \approx 8.59 \times 10^9 \ \text{bytes} \ \approx 8 \ \text{GiB}.
+\]
+
+\noindent This means that for each inference with these settings, the model allocates about $8$~GiB solely for storing the keys and values for attention. This $8$~GiB is \emph{in addition} to the memory required for the model’s parameters and other overhead.  
+
+For example, if the model’s parameters require roughly $14$~GiB (e.g., a $7$B parameter model in FP16), the total per-GPU requirement becomes:
+\[
+14 \ \text{GiB (weights)} \ + \ 8 \ \text{GiB (KV cache)} \ \approx \ 22 \ \text{GiB}.
+\]
+On a $16$~GiB GPU, this configuration will not fit; even on a $24$~GiB GPU, it will be tight once other buffers and runtime overhead are considered.  
+
+\noindent\textbf{LLMOps implications:}  
+Techniques such as \emph{paged attention} become relevant in such cases. With a paged KV cache, portions of the cache that are not needed immediately are offloaded to CPU memory or VRAM swap space and brought back only when required, effectively working around strict GPU memory limits.  
+
+Additionally, many systems dynamically adjust $B \times T$ to control memory usage—for example, reducing $B$ when $T$ is large. This example illustrates why long sequences and high batch sizes are challenging for LLM inference, and why careful \emph{capacity planning} (as discussed in the GPU planning sidebar) is essential.
+
+
+\subsubsection{Rule-of-thumb parameter memory}
+Let us revisit parameter memory with a quick table that aligns with Eq.~\ref{eq:param-mem} for some representative model scales (all assuming FP16 weights):
+
+\begin{table}[t]
+\centering
+\small
+\caption{Parameter memory requirements determine deployment feasibility and hardware selection. Memory scales linearly with parameter count, making large models (70B+) require multi-GPU deployments even with quantization. Understanding these requirements enables teams to plan infrastructure investments and choose appropriate model sizes for their constraints.}
+\label{tab:ch02_param_memory}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabular}{lrr}
+\toprule
+\rowcolor{gray!10}
+\textbf{Model} & \textbf{Parameters $P$} & \textbf{$M_{\text{params}}$ (approx.)} \\
+\midrule
+7B   & $7\times 10^9$   & $\approx 14$~GB \\
+13B  & $1.3\times 10^{10}$ & $\approx 26$~GB \\
+70B  & $7.0\times 10^{10}$ & $\approx 140$~GB \\
+175B & $1.75\times 10^{11}$ & $\approx 350$~GB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These figures make it immediately clear that once models reach tens of billions of parameters, a single standard GPU (commonly 16 or 24~GB of memory) cannot hold the model, necessitating \emph{sharding} across multiple GPUs or using techniques like 8-bit quantization (which would roughly halve these memory numbers—potentially bringing a 13B model down to $\sim$13~GB, allowing it to fit on a 16~GB GPU).  
+
+Even for the 7B model ($\sim$14~GB in FP16), one needs a GPU with at least 16~GB to host it comfortably, or must reduce precision or offload some layers to CPU memory. By the time you consider a 70B model at $\sim$140~GB, it is clear that no single GPU can handle it. Only configurations such as an 8-way 80~GB GPU server with tensor parallelism, or systems with CPU offloading and substantial RAM, could run it—and even then with performance penalties.  
+
+\noindent\textbf{LLMOps implications:}  
+From an operational perspective, model size directly drives the need for:
+\begin{itemize}
+    \item \textbf{Model parallelism} (splitting the model across GPUs).
+    \item \textbf{Model compression} (quantization, pruning).
+    \item \textbf{Efficient serving frameworks} to optimize inference throughput.
+\end{itemize}
+
+In short, these memory requirements mean that large-scale models cannot be loaded and served like typical ML models. Sharding, quantization, and offloading are central to LLMOps deployment strategies.  
+
+It is also worth noting that hardware advances—such as per-GPU memory doubling from 40~GB to 80~GB when moving from A100 to H100, or new memory technologies—partly address these needs. However, model sizes have been increasing faster than single-node GPU memory, pushing much of the complexity onto the \emph{software} and \emph{operations} layer.
+
+
+\section{The LLM Lifecycle}
+\label{sec:ch2-lifecycle}
+
+\subsection{Governance and Risk Management}
+\label{sec:ch2-governance}
+As LLMs become embedded in mission-critical workflows, organizations increasingly require formal governance:
+clear accountability, documented controls, and repeatable evidence that systems meet safety and compliance requirements.
+The NIST AI Risk Management Framework (AI RMF) provides a useful structure for organizing these practices around
+\emph{govern}, \emph{map}, \emph{measure}, and \emph{manage} functions \cite{nist_ai_rmf}. For generative AI, NIST has also published
+a dedicated profile to help teams interpret these controls for LLM-enabled systems \cite{nist_genai_profile}.
+
+\subsubsection{LLMOps linkage}
+In operational terms, governance shows up as policy-as-code, auditable traces, access controls over data and tools,
+model/prompt/version provenance, and documented evaluation thresholds that gate releases. These practices enable both
+internal accountability and external assurance (for example, to customers, regulators, or newsroom standards boards).
+
+
+Deploying LLMs in real applications is not a linear, one-off project, but rather a cyclical process. We can think of the lifecycle of an LLM in production as a continuous loop with distinct phases:
+
+\begin{enumerate}
+    \item \textbf{Prototype:} Rapidly test prompts and model capabilities in a sandbox environment.  
+    The goal here is to validate the initial idea with minimal time and resource investment. Teams may use a smaller model (for faster iteration) or an existing API to assess whether the concept holds promise.  
+    \noindent\emph{Example:} Building a quick demo where a language model answers a few domain-specific queries to gauge feasibility and identify obvious issues. The prototype phase embraces agility: try many prompts, observe outputs, and adjust quickly.
+
+    \item \textbf{Integrate:} Connect LLMs with other services, such as databases, APIs, or user interfaces.  
+    Once the core concept is proven, the LLM is integrated into a larger system. This might involve wiring the model to a chatbot front-end, connecting it to a company knowledge base, or linking it with a data pipeline. Integration includes writing code to:
+    \begin{itemize}
+        \item Take user input.
+        \item Formulate the correct prompt (possibly pulling in data from other sources).
+        \item Send the request to the LLM (or LLM API).
+        \item Post-process the output and return it to the user.
+    \end{itemize}
+    The aim is to ensure the model does not operate in isolation. For example, if a query requires retrieving customer information from a database, the integrated system should handle that—either through retrieval steps given to the LLM or by programmatically inserting relevant content into the prompt.
+
+    \item \textbf{Harden:} Add safety, monitoring, and optimization layers to move from proof-of-concept to production-ready service.  
+    Hardening involves addressing \emph{non-functional} requirements:
+    \begin{itemize}
+        \item \textbf{Security:} Preventing misuse or exploits.
+        \item \textbf{Reliability:} Adding timeouts, fallback models, or circuit breakers for graceful degradation.
+        \item \textbf{Safety:} Implementing filters, audits, and human review processes to handle ethical risks.
+    \end{itemize}
+    This phase may also involve performance optimization—adopting more efficient models or tuning deployment infrastructure for scale. By the end of this phase, thorough testing is conducted, including:
+    \begin{itemize}
+        \item Adversarial prompting tests.
+        \item Load tests to validate throughput (e.g., $X$ requests/sec).
+    \end{itemize}
+
+    \item \textbf{Scale:} Expand deployments to handle production traffic.  
+    Scaling may involve:
+    \begin{itemize}
+        \item Deploying across multiple regions or data centers for low-latency access.
+        \item Increasing GPU/CPU capacity to meet demand.
+        \item Refactoring pipeline components to eliminate bottlenecks.
+    \end{itemize}
+    At scale, new challenges emerge—e.g., novel user queries breaking assumptions, or high costs per query prompting caching strategies or model tiering (switching to cheaper models for non-critical cases). In LLMOps, scaling also means scaling \emph{operations}: instituting CI/CD for models and prompts, and building tools for support teams to monitor system health.
+
+    \item \textbf{Iterate:} Use logs, metrics, and feedback for continuous refinement.  
+    This phase cycles back to something like prototyping but is driven by real-world data. Logs might reveal systematic misunderstandings (requiring prompt tweaks), while feedback might point to unsatisfactory outputs (motivating fine-tuning). Metrics may show performance drift—e.g., relevance decline due to outdated information—prompting updates to retrieval databases or fine-tunes.  
+    This iterative mindset is crucial: the external world and user expectations evolve, and what is “state-of-the-art” today may be mediocre tomorrow.
+\end{enumerate}
+
+\noindent By viewing LLM deployment through this lifecycle lens, teams ensure no critical phase is skipped. Each phase feeds into the next, and the loop may repeat quickly (daily or weekly) or slowly (every few months). The key is that it is \emph{never static}. Later chapters will detail how specific tools and processes support each stage of this lifecycle.
+
+
+\section{Tools and Frameworks}
+\label{sec:ch2-tools}
+A healthy LLMOps practice leverages a variety of tools and frameworks to streamline development and operations. The ecosystem is rapidly evolving, but as of this writing, some popular and useful categories include:
+
+\begin{itemize}
+    \item \textbf{LangChain, LlamaIndex:} Frameworks for orchestrating prompts, retrieval, and external tool usage in LLM applications.  
+    LangChain provides a high-level interface for building chains of actions involving LLMs, such as parsing user input, querying a database or API, and generating a final answer. It offers numerous integrations, allowing seamless connection to vector databases, APIs, and external data sources.  
+    LlamaIndex (formerly GPT Index) focuses on connecting LLMs to external data sources by creating indices of documents for efficient retrieval. These frameworks abstract much of the boilerplate for building complex LLM-driven applications, enabling developers to focus on higher-level logic.  
+    For LLMOps, such frameworks can accelerate prototyping and enforce better organization of prompts and data, though tuning and monitoring remain essential.
+
+    \item \textbf{MLflow, Weights \& Biases (W\&B):} Tools for experiment tracking and model management.  
+    MLflow enables logging of parameters, metrics, and artifacts (e.g., model binaries) from training or fine-tuning runs. It also includes a model registry for versioning and deployment.  
+    W\&B offers experiment tracking with strong visualization and collaboration features, including live metric plots, run comparisons, dataset versioning, and model management.  
+    In the LLMOps context, these tools maintain reproducibility and accountability. For example, fine-tuning a model with different learning rates or prompt templates can be fully tracked, enabling easy root-cause analysis for performance regressions.
+
+    \item \textbf{Vector Databases:} Critical for Retrieval-Augmented Generation (RAG) or any similarity search over embeddings.  
+    Examples include Pinecone and Weaviate (managed services) and FAISS (an open-source library from Facebook). Vector databases are optimized for storing and retrieving high-dimensional embeddings (e.g., 768-D from BERT or 4096-D from GPT-family models). They often support:
+    \begin{itemize}
+        \item Metadata filtering.
+        \item Hybrid search (combining vector similarity with keyword search).
+    \end{itemize}
+    In LLMOps, vector databases enable robust retrieval pipelines. For instance, encoding a large document repository into embeddings, storing them, and retrieving top-$k$ matches for a query directly impacts result quality and performance. Choice of vector DB should consider scale, latency, cost, and integration ease.
+
+    \item \textbf{Serving Frameworks:} Efficient LLM serving requires specialized infrastructure.  
+    Examples include \texttt{vLLM}, Hugging Face TGI (Text Generation Inference), and NVIDIA TensorRT-LLM:
+    \begin{itemize}
+        \item \texttt{vLLM} uses dynamic batching and caching (\emph{PagedAttention}) to improve throughput while supporting long sequences without excessive memory usage.
+        \item Hugging Face TGI supports multi-client batching, model sharding, and safe termination for long generations.
+        \item TensorRT-LLM uses NVIDIA’s TensorRT backend for kernel fusion and lower-precision execution.
+    \end{itemize}
+    These frameworks eliminate the need for custom GPU kernel development and provide APIs for integration. However, each requires careful configuration (batch sizes, sharding strategies) for optimal performance.
+
+    \item \textbf{Observability Platforms:} Essential for monitoring both system health and model behavior.  
+    Traditional tools such as Prometheus and Grafana remain valuable:
+    \begin{itemize}
+        \item Prometheus scrapes metrics (latency, memory usage, request counts).
+        \item Grafana visualizes metrics in dashboards and sets alerts.
+    \end{itemize}
+    Specialized LLM observability tools are emerging, such as \texttt{LangFuse}, which traces LLM calls and tool usage, providing insights into prompt chains, response lengths, and anomalies. Other options include OpenAI \emph{evals} and LangSmith by LangChain.  
+    These tools help detect issues like refusal spikes, hallucination increases, or regression after deployment changes, enabling fine-grained debugging.
+\end{itemize}
+
+In practice, a well-engineered LLMOps pipeline might use several of the above: e.g., LangChain for prompting and retrieval orchestration, Pinecone as the vector database, Hugging Face TGI for serving on an NVIDIA GPU cluster, W\&B for experiment tracking, and Prometheus/Grafana plus LangFuse for observability.  
+
+The exact stack varies by organization and project, but the goal is consistent: use the right tools to reduce development effort, ensure reliability, and maintain quality as the system scales.
+
+
+\section{Ishtar AI: A Running Example}
+\label{sec:ch2-ishtar-running-example}
+
+\subsubsection{A concrete query trace}
+To make the operational surface area tangible, consider a typical journalist request:
+\emph{``What is the latest on ceasefire negotiations, and how credible are reports of violations in the northern region?''}
+A production \ishtar{} trace would record (i) the prompt and policy versions used, (ii) the retrieved evidence set
+(including source provenance and timestamps), (iii) any tool calls (e.g., entity resolution, geocoding, timeline extraction),
+and (iv) the final answer with citations. This trace provides the basis for reproducibility, debugging, and auditability.
+
+\subsubsection{Release gates for reliability}
+Before deployment, the same query (and a broader regression suite) can be evaluated for groundedness, citation correctness,
+and refusal behavior under adversarial variants. If a model upgrade improves helpfulness but increases hallucination rate,
+LLMOps gates can prevent release or route the request to a safer fallback model. This ``measure-then-ship'' discipline is
+particularly important for conflict-zone reporting, where errors can amplify misinformation or endanger sources.
+
+
+In \ishtar{}, LLMOps fundamentals manifest in concrete ways:
+\begin{itemize}
+    \item Adaptive prompting with fast-changing crisis data.
+    \item A RAG pipeline that injects verified, up-to-date sources into context.
+    \item Evaluation emphasizing factuality and timeliness.
+    \item Human-in-the-loop feedback from journalists to reduce bias and improve relevance.
+\end{itemize}
+
+Understanding these fundamentals will allow practitioners to design robust, adaptable, and ethical LLM applications — the core mission of this book.
+
+In the coming chapters, we will build on these fundamentals and dive deeper into each aspect: Chapter~\ref{ch:infra} covers infrastructure and environment design, Chapter~\ref{ch:cicd} addresses CI/CD practices for LLM systems, Chapter~\ref{ch:monitoring} focuses on monitoring and observability, and Chapter~\ref{ch:scaling} examines scaling strategies. Throughout these chapters, we will always circle back to how these concepts apply in our running example and real-world deployments.
+
+
+
+
+
+\section*{Chapter Summary}
+This chapter defined LLMOps as the operational discipline required to deploy and maintain LLM-powered systems reliably.
+We connected core systems constraints (parameter memory, KV cache, and attention complexity) to practical serving concerns
+(TTFT, throughput, and cost), and we outlined the end-to-end LLMOps pipeline spanning prompts, retrieval, serving, evaluation,
+monitoring, security, and governance. The \ishtar{} running example will serve as a continuous reference implementation for
+the remaining chapters.
+
+\printbibliography[
+  heading=subbibliography,
+  segment=\therefsegment,
+  resetnumbers=true
+]
+

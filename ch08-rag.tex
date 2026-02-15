@@ -1,0 +1,1373 @@
+\chapter{Retrieval-Augmented Generation (RAG) – Integrating Knowledge Bases}
+\label{ch:rag}
+\newrefsegment
+\index{Retrieval-Augmented Generation|see{RAG}}
+
+% ----------------------------
+% Chapter 8 — Abstract (online)
+% ----------------------------
+\abstract*{This chapter provides a comprehensive guide to Retrieval-Augmented Generation (RAG) as a foundational pattern for grounding LLM outputs in external evidence. We motivate RAG through the limitations of static model knowledge (cutoffs, hallucination risk, and lack of private/domain context) and then unpack the core components of production RAG systems: ingestion and preprocessing, chunking and metadata enrichment, embedding generation, vector indexing, retrieval, reranking, prompt augmentation, and generation with citations. We compare retriever strategies (dense, sparse, and hybrid) and discuss modern enhancements such as fusion, late interaction, and query rewriting. The chapter then addresses operational concerns: scaling vector search (sharding, replication, caching), constructing context under token budgets, measuring end-to-end RAG quality (faithfulness, answer relevance, attribution), and securing the pipeline via access control, provenance, and injection-aware defenses. An Ishtar AI case study illustrates an evidence-first RAG design for crisis reporting, and the chapter concludes with a best-practices checklist to operationalize RAG as a versioned, observable, and testable subsystem.}
+
+\epigraph{\emph{"A model without retrieval is like a journalist without sources."}}{David Stroud}
+
+% --- Reader-visible abstract (PDF) ---
+\textbf{Abstract} This chapter provides a comprehensive guide to Retrieval-Augmented Generation (RAG) as a foundational pattern for grounding LLM outputs in external evidence. We motivate RAG through the limitations of static model knowledge (cutoffs, hallucination risk, and lack of private/domain context) and then unpack the core components of production RAG systems: ingestion and preprocessing, chunking and metadata enrichment, embedding generation, vector indexing, retrieval, reranking, prompt augmentation, and generation with citations. We compare retriever strategies (dense, sparse, and hybrid) and discuss modern enhancements such as fusion, late interaction, and query rewriting. The chapter then addresses operational concerns: scaling vector search (sharding, replication, caching), constructing context under token budgets, measuring end-to-end RAG quality (faithfulness, answer relevance, attribution), and securing the pipeline via access control, provenance, and injection-aware defenses. An Ishtar AI case study illustrates an evidence-first RAG design for crisis reporting, and the chapter concludes with a best-practices checklist to operationalize RAG as a versioned, observable, and testable subsystem.
+
+\begin{tcolorbox}[
+  title={\textbf{Chapter Overview}},
+  colback=blue!5,
+  colframe=blue!40!black,
+  colbacktitle=blue!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm
+]
+\noindent\textbf{Chapter roadmap.}
+This chapter introduces Retrieval-Augmented Generation (RAG) as a foundational pattern for grounding LLM outputs in external evidence:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Motivation for RAG in the context of LLMOps
+    \item Core components of a production RAG system (ingestion, indexing, retrieval, reranking, prompt augmentation, and generation)
+    \item Retriever strategies (dense, sparse, and hybrid), context construction, reranking and filtering, chunking, and vector index choices
+    \item Query processing patterns (including multi-hop and agentic RAG)
+    \item Scaling and performance considerations, evaluation of end-to-end RAG quality, and security and compliance
+    \item An \ishtar{} case study and an operational best-practices checklist
+\end{itemize}
+
+\medskip
+\noindent\textbf{Learning objectives.} After reading this chapter, you will be able to:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Understand why RAG is essential for grounding LLM outputs in external evidence
+    \item Design production RAG systems with proper ingestion, indexing, and retrieval
+    \item Compare and choose retriever strategies (dense, sparse, hybrid)
+    \item Scale vector search and measure end-to-end RAG quality
+    \item Secure RAG pipelines with access control and provenance
+\end{itemize}
+\end{tcolorbox}
+
+\section{Introduction}
+\label{sec:ch8-introduction}
+Large Language Models (LLMs) are powerful, but inherently limited by their training data cut-off and inability to store all world knowledge in their parameters. Once trained, an LLM's knowledge is effectively frozen at its cutoff date and cannot automatically incorporate new events, domain-specific information, or private data. This limitation often results in outdated answers, hallucinations, and fabricated facts \cite{Lewis2020RAG,Pinecone2023RAG}. 
+
+Retrieval-Augmented Generation (RAG) bridges this gap by coupling an LLM with an external knowledge retrieval system, enabling real-time access to up-to-date and authoritative information. Instead of relying solely on static parameters, the LLM can dynamically pull in relevant context from external sources at query time, making responses more accurate, context-aware, and grounded in evidence \cite{Guu2020REALM,Izacard2020Fusion}. 
+
+This chapter provides a comprehensive guide to RAG in LLMOps, exploring architectural patterns, tooling, performance considerations, and real-world examples using \ishtar{}. RAG has rapidly become the go-to technique for integrating external knowledge into LLM pipelines, consistently outperforming approaches such as unsupervised fine-tuning for tasks requiring freshness, specialization, or private data integration \cite{Borgeaud2022RETRO,Thakur2021BEIR,RAGAS2023}.
+
+
+\section{Why RAG is Essential for LLMOps}
+\label{sec:rag-why-rag-is-essential-for-llmops}
+Retrieval-Augmented Generation (RAG)\index{RAG} is best understood as a \emph{system design pattern}: instead of asking an LLM to answer from parametric memory alone, we attach a retrieval layer that supplies task-relevant evidence at inference time \cite{Lewis2020RAG,Guu2020REALM}. In LLMOps, this design has two major consequences:
+
+\begin{itemize}
+    \item \textbf{Knowledge becomes updateable.} You can improve answers by updating the corpus (and its index) rather than re-training the base model.
+    \item \textbf{Answers become auditable.} The system can expose citations to retrieved passages, enabling verification and post-incident debugging.
+\end{itemize}
+
+Without retrieval, production systems frequently encounter the same failure modes:
+
+\begin{itemize}
+    \item \textbf{Staleness}: answers reflect an LLM's training cutoff rather than current reality.
+    \item \textbf{Hallucinations}: fluent but unsupported claims when the model lacks an internal fact.
+    \item \textbf{Private/domain gaps}: missing organizational knowledge, policies, and specialized terminology.
+\end{itemize}
+
+For \ishtar{}, where crisis reporting depends on freshness and traceability, RAG is the mechanism that turns a general-purpose model into an evidence-first system.
+
+\subsection{Outdated Information}
+LLMs have a knowledge cutoff: once trained, they do not automatically incorporate events after the training window. When asked about recent incidents or rapidly evolving situations, a base model may respond confidently with outdated or incorrect information \cite{Lewis2020RAG,Pinecone2023RAG}. RAG mitigates staleness by retrieving from a continuously updated corpus—news feeds, internal reports, or curated databases—so the model conditions its answer on current sources rather than static parameters.
+
+\subsection{Hallucinations and Accuracy}
+Hallucinations are often a byproduct of the model optimizing for plausibility rather than truth when evidence is missing. RAG shifts the task from open-book recall to \emph{grounded synthesis}: the model is given retrieved passages and instructed to answer using that evidence \cite{Lewis2020RAG,Izacard2020Fusion}. This does not eliminate hallucinations outright, but it makes them easier to detect (via attribution) and easier to reduce (via retrieval and prompt improvements). In practice, RAG evaluation frameworks explicitly measure \emph{faithfulness}—the degree to which an answer is supported by the retrieved context—alongside answer relevance \cite{RAGAS2023}.
+
+\subsection{Adapting to Emerging Events}
+In fast-changing domains such as crisis response, a system must incorporate new information minutes after publication. RAG supports this by allowing ingestion and indexing to run continuously, so newly arrived updates become retrievable without re-training \cite{Nakano2021WebGPT,Asai2020MultiHop}. For \ishtar{}, this property matters operationally: the system can ingest an official bulletin, index it, and begin citing it in downstream answers as soon as it is available.
+
+\subsection{Domain-Specific and Private Knowledge}
+Base LLMs cannot directly access private corpora (e.g., internal policies, incident runbooks, proprietary product documentation). RAG enables secure, targeted access by embedding and indexing private content in a vector store, then retrieving only the subset relevant to a user query \cite{Johnson2019FAISS,Pinecone2023RAG}. This pattern supports specialization without re-training and can be combined with metadata-based filtering to enforce permissions (e.g., by team, role, region, or document sensitivity).
+
+\subsection{When RAG Is Not Enough}
+RAG is not a universal solution. It can fail when (i) the corpus is incomplete or low quality, (ii) retrieval misses the relevant passage (low recall), (iii) sources conflict, or (iv) the task requires complex transformation beyond what retrieved text provides. These cases often require a combination of stronger retrieval (hybrid + reranking), better curation, structured data sources, and targeted fine-tuning for reasoning or format compliance \cite{Thakur2021BEIR,Borgeaud2022RETRO}.
+
+\subsubsection*{Summary}
+RAG is essential to LLMOps because it makes knowledge \emph{updatable}, answers \emph{auditable}, and domain specialization \emph{practical}. Operational excellence depends less on a single "best model" and more on the quality, freshness, and governance of the retrieval pipeline.
+
+\section{Core Components of a RAG System}
+\label{sec:rag-core-components-of-a-rag-system}
+A production RAG system\index{RAG!system} consists of \emph{offline} components (ingestion\index{ingestion}, cleaning\index{cleaning}, chunking\index{chunking}, embedding\index{embedding}, indexing\index{indexing}) and \emph{online} components (query processing\index{query processing}, retrieval\index{retrieval}, reranking\index{reranking}, context construction\index{context!construction}, and generation\index{generation}). Fig.~\ref{fig:ch08_rag_querytime} summarizes the online query-time loop.
+
+\begin{figure}[tb]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[
+    node distance=16mm and 12mm,
+    auto,
+    >=Stealth,
+    block/.style={
+        rectangle,
+        draw=none,
+        rounded corners=5pt,
+        minimum height=12mm,
+        minimum width=28mm,
+        align=center,
+        inner sep=5pt,
+        font=\small
+    },
+    arrow/.style={
+        ->,
+        very thick,
+        line width=1.2pt,
+        draw=black!60
+    }
+]
+% Color definitions
+\definecolor{queryblue}{RGB}{44,102,146}
+\definecolor{processgreen}{RGB}{34,139,96}
+\definecolor{retrieveorange}{RGB}{201,111,29}
+\definecolor{rerankpurple}{RGB}{123,88,163}
+\definecolor{packviolet}{RGB}{153,102,204}
+\definecolor{genred}{RGB}{173,63,60}
+\definecolor{answerteal}{RGB}{0,128,128}
+
+% Pipeline stages
+\node[block, fill=queryblue!15] (q) {\textbf{User query}};
+\node[block, fill=processgreen!15, right=of q] (qp) {\textbf{Query processing}\\[2pt]\footnotesize rewrite, filters};
+\node[block, fill=retrieveorange!15, right=of qp] (ret) {\textbf{Retrieval}\\[2pt]\footnotesize dense/sparse/hybrid};
+\node[block, fill=rerankpurple!15, right=of ret] (rr) {\textbf{Rerank \& filter}\\[2pt]\footnotesize cross-encoder, RRF};
+\node[block, fill=packviolet!15, right=of rr] (pack) {\textbf{Context packer}\\[2pt]\footnotesize dedupe, trim, cite};
+\node[block, fill=genred!15, right=of pack] (gen) {\textbf{LLM generation}};
+\node[block, fill=answerteal!15, below=of gen, node distance=18mm] (ans) {\textbf{Answer + citations}};
+
+% Flow arrows
+\draw[arrow] (q) -- (qp);
+\draw[arrow] (qp) -- (ret);
+\draw[arrow] (ret) -- (rr);
+\draw[arrow] (rr) -- (pack);
+\draw[arrow] (pack) -- (gen);
+\draw[arrow] (gen) -- (ans);
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Query-time RAG pipeline design determines answer quality and citation fidelity. Retrieval supplies evidence; reranking and filtering improve top-$k$ quality; the context packer constructs a token-budgeted prompt with source identifiers; the generator produces an answer that can cite the retrieved chunks. This pipeline structure enables grounded, verifiable responses by preserving source attribution throughout the generation process.}
+\label{fig:ch08_rag_querytime}
+\end{figure}
+
+The remainder of this section walks through the main building blocks and the operational concerns attached to each. Table~\ref{tab:ch08_rag_components} summarizes the key components and their operational concerns.
+
+\begin{table}[tb]
+\centering
+\small
+\caption{RAG system components span offline ingestion and online query processing. Understanding component responsibilities and operational concerns enables teams to design robust, scalable RAG pipelines. Each component introduces specific failure modes and optimization opportunities that must be addressed in production deployments.}
+\label{tab:ch08_rag_components}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Component} & \textbf{Offline/Online} & \textbf{Key Responsibilities} & \textbf{Operational Concerns} \\
+\midrule
+\textbf{Document Ingestion} & Offline & Acquisition (file sync, crawlers, APIs); normalization (HTML/PDF extraction); quality gates (deduplication, spam filtering); metadata enrichment (timestamps, ACL tags, reliability scores) & Freshness SLOs; parsing failures; ingestion lag; source reliability tracking \\
+\addlinespace[1pt]
+\textbf{Chunking} & Offline & Preserve semantic coherence; construct passages with sufficient context; structural vs.\ token-window strategies & Chunk size/overlap tuning; versioning alongside embedding model; retrieval quality impact \\
+\addlinespace[1pt]
+\textbf{Embedding Generation} & Offline & Map chunks to vector representations; batch processing for efficiency; maintain model consistency & Embedding model versioning; recomputation on model/chunking changes; batch throughput optimization \\
+\addlinespace[1pt]
+\textbf{Vector Store} & Offline/Online & ANN index (HNSW/IVF); metadata store for filtering; stable identifier layer (doc $\rightarrow$ chunk $\rightarrow$ passage) & Write performance under incremental updates; filter behavior (pre vs.\ post); sharding and replication; identifier stability \\
+\addlinespace[1pt]
+\textbf{Query Processing} & Online & Query preprocessing (spell correction, normalization); query rewriting/expansion; metadata filtering & Latency overhead; query transformation quality; filter selectivity impact \\
+\addlinespace[1pt]
+\textbf{Retrieval} & Online & Dense/sparse/hybrid retrieval; top-$k$ candidate generation; recall optimization & Retrieval latency (p50/p95/p99); recall@K on golden sets; hybrid fusion tuning \\
+\addlinespace[1pt]
+\textbf{Reranking \& Filtering} & Online & Precision optimization; cross-encoder or late-interaction reranking; duplicate removal; access control enforcement & Reranker latency; precision/recall trade-offs; filter impact on recall \\
+\addlinespace[1pt]
+\textbf{Context Packing} & Online & Order passages; deduplicate; add separators and source identifiers; fit token budget & Token efficiency; passage ordering impact on quality; citation link preservation \\
+\addlinespace[1pt]
+\textbf{Generation} & Online & Produce answer conditioned on retrieved context; prioritize faithfulness; cite sources; abstain when evidence missing & Generation latency; faithfulness to retrieved passages; citation accuracy; abstention rate monitoring \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Document Ingestion}
+Document ingestion\index{ingestion!document} collects, normalizes, and enriches knowledge sources to populate the retrieval corpus\index{corpus}. In production, ingestion is not a one-time job: it is a continuously running subsystem responsible for freshness\index{freshness}, quality\index{quality}, and provenance\index{provenance} \cite{Pryon2023}. Typical steps include:
+\begin{itemize}
+    \item \textbf{Acquisition\index{acquisition}:} file sync, crawlers\index{crawler}, API connectors\index{API connector}, and event streams\index{event stream}.
+    \item \textbf{Normalization\index{normalization}:} HTML/PDF extraction\index{extraction}, encoding fixes, language detection\index{language detection}, and format conversion\index{format conversion}.
+    \item \textbf{Quality gates\index{quality gate}:} deduplication\index{deduplication}, spam filtering\index{spam filtering}, and minimum-content checks.
+    \item \textbf{Metadata enrichment\index{metadata!enrichment}:} timestamps, source identifiers, access control tags\index{access control}, and reliability scores\index{reliability score}.
+\end{itemize}
+For \ishtar{}, ingestion emphasizes timeliness and source reliability\index{reliability!source} (e.g., prioritizing official bulletins and trusted news wires for critical facts).
+
+\subsection{Chunking and Passage Construction}
+RAG retrieval operates on \emph{chunks}\index{chunk}, not entire documents. Chunking\index{chunking} should preserve semantic coherence\index{semantic coherence} and include enough local context to support answer synthesis\index{synthesis}. Common strategies include structural chunking\index{chunking!structural} (by headings/sections), token-window chunking\index{chunking!token-window} (fixed size with overlap\index{overlap}), or hybrid approaches\index{chunking!hybrid} that respect both structure and size constraints. Chunking decisions directly affect retrieval quality and prompt efficiency, and should be treated as versioned configuration alongside the embedding model.
+
+\subsection{Embedding Generation}
+Each chunk is mapped to a vector representation\index{vector representation} so that semantic similarity search\index{similarity search} becomes possible. Dense retrieval models\index{retrieval!dense} (e.g., dual encoders\index{dual encoder}) learn representations where semantically related texts lie nearby in vector space\index{vector space} \cite{Karpukhin2020DPR}. In practice:
+\begin{itemize}
+    \item Use \textbf{the same embedding model\index{embedding!model}} for both document and query embeddings\index{embedding!query}.
+    \item Batch embedding jobs\index{embedding!batch} to reduce cost and improve throughput.
+    \item Recompute embeddings\index{embedding!recomputation} when either the embedding model changes or chunking logic changes.
+\end{itemize}
+
+\subsection{Vector Store (Index + Metadata)}
+The vector store provides approximate nearest neighbor search at scale and stores metadata used for filtering (e.g., time, region, ACL tags). ANN structures such as HNSW and IVF are widely used to balance latency and recall \cite{Johnson2019FAISS,Malkov2018HNSW,Jegou2011PQ}. Section~\ref{sec:rag-vector-database-considerations} discusses index choices, sharding, replication, and operational tuning.
+
+In production, it is useful to decompose a ``vector database'' into three responsibilities:
+(i) an ANN index over embeddings, (ii) a metadata store that supports filtering and ranking, and (iii) a stable identifier layer that maps retrieval results back to the original evidence units (document $\rightarrow$ chunk $\rightarrow$ passage). For RAG, the identifier layer is not optional: citations, access control enforcement, and lifecycle operations (update/delete/re-ingest) all depend on stable, versioned IDs.
+
+Two engineering constraints frequently surprise teams moving from prototypes to production. First, \emph{writes are operationally meaningful}: ingestion often performs high-rate upserts during backfills or news surges, and many ANN structures exhibit different behavior under incremental updates than under bulk builds. Second, \emph{metadata is part of the query plan}: filters can dramatically reduce search work (improving latency), but if filters are applied as post-processing on too-small candidate sets, they can silently reduce recall. Treat index design, metadata schema, and filter behavior as a coupled system and validate them with end-to-end evaluation and tracing.
+
+Listing~\ref{lst:ch08_vector_index_config} shows a production vector index configuration with metadata schema and access control.
+
+\begin{llmlistingbox}{Vector Index Configuration (YAML)}
+\label{lst:ch08_vector_index_config}
+\begin{lstlisting}[style=springer]
+# vector_index_config.yaml
+index_name: "ishtar-news-vector-index"
+description: "Configuration for the primary vector index of news articles."
+
+provider: "pinecone" # Options: "pinecone", "weaviate", "qdrant", "faiss_on_disk"
+environment: "us-east-1-aws"
+dimension: 384 # Matches embedding model output dimension (e.g., MiniLM-L6-v2)
+metric: "cosine" # Similarity metric: "cosine", "euclidean", "dotproduct"
+
+# Pinecone specific configuration
+pinecone_config:
+  cloud: "aws"
+  region: "us-east-1"
+  pod_type: "p1.x1" # Pinecone pod type
+  replicas: 2
+  shards: 1 # Number of shards for the index
+
+# Indexing strategy
+indexing_strategy:
+  batch_size: 100 # Number of vectors to upsert in a single batch
+  update_frequency: "hourly" # How often to update the index
+  rebuild_on_schema_change: true # Rebuild index if metadata schema changes
+
+# Metadata schema for filtering and storage
+metadata_schema:
+  - name: "document_id"
+    type: "string"
+    indexed: true
+  - name: "published_date"
+    type: "datetime"
+    indexed: true
+  - name: "source_outlet"
+    type: "string"
+    indexed: true
+  - name: "category"
+    type: "string"
+    indexed: true
+  - name: "security_clearance"
+    type: "integer"
+    indexed: true
+    default: 0 # Public access
+
+# Access control for retrieval
+access_control:
+  enabled: true
+  default_clearance_level: 0 # Only retrieve public documents by default
+  user_attribute_mapping: "user.security_clearance" # Map user attribute to metadata
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Retrieval and Candidate Generation}
+Given a query, the retriever produces candidates that may contain answer-bearing evidence. Retrieval can be dense, sparse (BM25), or hybrid, with hybrid systems often improving robustness in heterogeneous enterprise corpora \cite{Thakur2021BEIR,Lin2021SPLADE}. At query time, retrieval frequently includes:
+\begin{itemize}
+    \item query preprocessing (spell correction, normalization),
+    \item optional query rewriting or expansion,
+    \item metadata filtering (e.g., last 24 hours, specific region),
+    \item retrieval of top-$k$ candidates for downstream reranking.
+\end{itemize}
+
+\subsection{Reranking and Filtering}
+Initial retrieval prioritizes recall; reranking prioritizes precision. A common pattern is to retrieve a larger candidate set (e.g., top-50) and apply a reranker to select a smaller set (e.g., top-5) for the prompt. Rerankers range from lightweight heuristics (recency boosts, Maximal Marginal Relevance) to neural rerankers such as late-interaction models (e.g., ColBERT) \cite{khattab2020colbert,Zhan2021ColBERTv2} or rank-fusion methods (e.g., RRF) \cite{cormack2009rrf}. Filtering may remove duplicates, enforce access control, or drop low-confidence hits.
+
+\subsection{Augmented Prompting and Context Packing}
+Retrieved passages must be assembled into a prompt under a strict token budget. This step is more than concatenation: it requires ordering, deduplication, separators, and source identifiers so that the model can cite evidence and avoid blending unrelated passages. Section~\ref{sec:rag-augmenting-the-prompt} provides practical prompt construction patterns.
+
+\subsection{Generation with Attribution}
+Finally, the LLM generates an answer conditioned on retrieved context. In evidence-first settings, the generator should:
+\begin{itemize}
+    \item prioritize faithfulness to retrieved passages,
+    \item cite sources inline (or produce a structured mapping to citations),
+    \item explicitly abstain ("I don't know") when evidence is missing.
+\end{itemize}
+These behaviors can be encouraged with prompt instructions and enforced via evaluation gates (Section~\ref{sec:rag-metrics}).
+
+Listing~\ref{lst:ch08_rag_pipeline_config} provides a complete end-to-end RAG pipeline configuration integrating all components.
+
+\begin{llmlistingbox}{End-to-End RAG Pipeline Configuration (YAML)}
+\label{lst:ch08_rag_pipeline_config}
+\begin{lstlisting}[style=springer]
+# full_rag_pipeline.yaml
+pipeline_id: "ishtar_e2e_rag_v1"
+description: "Complete RAG pipeline configuration for Ishtar AI."
+
+# 1. Document Ingestion & Preprocessing
+ingestion_config:
+  source_connectors:
+    - name: "news_api_connector"
+      type: "api"
+      endpoint: "https://api.news.com/v1/articles"
+      schedule: "every_15_minutes"
+    - name: "internal_reports_connector"
+      type: "filesystem"
+      path: "/data/internal_reports"
+      schedule: "daily"
+  
+  preprocessing_steps:
+    - name: "html_to_text"
+      processor: "BeautifulSoup"
+    - name: "pii_redaction"
+      processor: "Presidio"
+      config: {entities: ["PERSON", "LOCATION", "PHONE_NUMBER"]}
+    - name: "language_detection"
+      processor: "FastText"
+
+# 2. Chunking
+chunking_config_ref: "lst:ch08_chunking_config" # Reference to Listing 8.1
+
+# 3. Embedding Generation
+embedding_config:
+  model: "sentence-transformers/all-MiniLM-L6-v2"
+  batch_size: 64
+  device: "cuda"
+  cache_enabled: true # Use embedding cache
+
+# 4. Vector Store
+vector_store_config_ref: "lst:ch08_vector_index_config" # Reference to Listing 8.2
+
+# 5. Retrieval
+retrieval_config_ref: "lst:ch08_retrieval_config" # Reference to Listing 8.3
+
+# 6. Context Packing & LLM Generation
+generation_config:
+  llm_model: "llama-3.1-8b-instruct"
+  llm_endpoint: "http://llm-inference-service.llm-namespace.svc.cluster.local:8080"
+  decoding_params:
+    temperature: 0.7
+    top_p: 0.9
+    max_new_tokens: 512
+  
+  prompt_template_id: "news_summary_with_citations_v1"
+  context_window_strategy: "truncate_oldest" # Truncate oldest passages if context too long
+  citation_generation:
+    enabled: true
+    format: "markdown_link" # [1] (Source Title)
+
+# 7. Post-processing & Safety
+post_processing_config:
+  - name: "hallucination_detector"
+    model: "fact_check_classifier_v1"
+    action_on_detect: "flag_for_human_review"
+  - name: "toxicity_filter"
+    model: "perspective_api"
+    action_on_detect: "refuse_response"
+
+# 8. Monitoring & Evaluation
+monitoring_config:
+  telemetry_schema_ref: "lst:ch05_telemetry_schema_json" # Reference to Listing 5.1
+  evaluation_suite_ref: "lst:ch04_eval_harness_config" # Reference to Listing 4.1
+  alerting_config_ref: "lst:ch05_alerting_config" # Reference to Listing 5.4
+\end{lstlisting}
+\end{llmlistingbox}
+
+\section{Architectural Patterns for RAG}
+\label{sec:rag-architectural-patterns-for-rag}
+There is more than one way to design a RAG system. The best architecture depends on query complexity, latency budget, and the reliability requirements of the application \cite{Lewis2020RAG,Izacard2020Fusion}. We outline three common patterns.
+
+\subsection{Single-Stage RAG}
+Single-stage RAG performs one retrieval and one generation pass:
+\texttt{query $\rightarrow$ retrieval $\rightarrow$ prompt augmentation $\rightarrow$ generation}.
+This pattern is easy to implement and tune, and works well when answers are localized to a small number of passages.
+
+\textbf{Strengths:}  
+\begin{itemize}
+    \item Low latency and low operational complexity.
+    \item Strong performance for fact-based questions when retrieval recall is high.
+\end{itemize}
+
+\textbf{Limitations:}  
+\begin{itemize}
+    \item Struggles with multi-hop questions that require multiple evidence sets.
+    \item Brittle when the first retrieval misses answer-bearing context.
+\end{itemize}
+
+\subsection{Multi-Stage (Iterative) RAG}
+Multi-stage RAG introduces iteration: the system decomposes a query into sub-questions, retrieves evidence for each step, and synthesizes a final answer \cite{Asai2020MultiHop,Nakano2021WebGPT}. Common variants include:
+\begin{itemize}
+    \item \textbf{Decomposition:} the LLM generates sub-questions and retrieves per sub-question.
+    \item \textbf{Iterative refinement:} draft $\rightarrow$ identify gaps $\rightarrow$ retrieve again $\rightarrow$ revise.
+    \item \textbf{Planner--researcher:} a planner controls a sequence of retrieval and synthesis steps.
+\end{itemize}
+Multi-stage systems often increase recall and reasoning depth, but require careful termination criteria and caching to control latency and cost.
+
+\subsection{Agent-Enhanced RAG}
+Agent-enhanced RAG treats retrieval as one tool among many. An agent decides when to retrieve, how to reformulate queries, and whether additional tools (web search, calculators, structured DB queries) are needed. This can improve flexibility, but increases the risk surface (prompt injection, tool misuse) and requires stronger guardrails and observability.
+
+\subsubsection*{Summary}
+Architectural choice is an LLMOps decision: single-stage RAG is the baseline, multi-stage RAG improves multi-hop coverage, and agentic patterns provide flexibility at the cost of complexity and stricter governance.
+
+\FloatBarrier
+\section{Designing the Ingestion Pipeline}
+\label{sec:rag-designing-the-ingestion-pipeline}
+A robust ingestion pipeline is the foundation of an effective RAG system—\emph{garbage in, garbage out} applies strongly here \cite{Pryon2023}. The ingestion process should be designed as a reliable data product with clear ownership, quality checks, and observability.
+
+In practice, ingestion is the boundary between data engineering and model inference. It determines which facts the system is \emph{capable} of retrieving, how quickly new knowledge becomes available, and whether retrieved evidence is traceable to an authoritative source. Two operational principles are worth making explicit:
+
+\textbf{Freshness as an SLO.} Define a corpus freshness objective in time units (e.g., ``95\% of new bulletins become retrievable within 5 minutes''). Measure the end-to-end lag from source publication $\rightarrow$ successful parsing $\rightarrow$ embedding $\rightarrow$ index availability. Without an explicit freshness SLO, teams often optimize the wrong metric (throughput) while users experience stale answers.
+
+\textbf{Stable identifiers and idempotency.} Assign a canonical \texttt{doc\_id} and \texttt{doc\_version}, then derive stable \texttt{chunk\_id}s. Ensure ingestion is idempotent: reprocessing a document should produce the same identifiers (unless the chunking/embedding version changes). This is essential for reliable deletes, deduplication, and audit trails.
+
+Fig.~\ref{fig:ch08_ingestion_pipeline} illustrates the ingestion pipeline stages from data sources to vector store.
+
+\begin{figure}[tb]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[
+    node distance=16mm,
+    auto,
+    >=Stealth,
+    block/.style={
+        rectangle,
+        draw=none,
+        rounded corners=5pt,
+        minimum height=14mm,
+        minimum width=32mm,
+        align=center,
+        inner sep=5pt,
+        font=\small
+    },
+    arrow/.style={
+        ->,
+        very thick,
+        line width=1.2pt,
+        draw=black!60
+    }
+]
+% Color definitions
+\definecolor{sourceblue}{RGB}{44,102,146}
+\definecolor{preprocessgreen}{RGB}{34,139,96}
+\definecolor{chunkorange}{RGB}{201,111,29}
+\definecolor{deduppurple}{RGB}{123,88,163}
+\definecolor{metadataviolet}{RGB}{153,102,204}
+\definecolor{vectorred}{RGB}{173,63,60}
+
+% Nodes
+\node[block, fill=sourceblue!15] (sources) {\textbf{Data Sources}\\[2pt]\footnotesize Databases, APIs, Websites,\\RSS, Social Media};
+\node[block, fill=preprocessgreen!15, below=of sources] (preprocess) {\textbf{Preprocessing \& Cleaning}\\[2pt]\footnotesize Format conversion, noise removal,\\translation};
+\node[block, fill=chunkorange!15, below=of preprocess] (chunk) {\textbf{Chunking Strategy}\\[2pt]\footnotesize Paragraphs, sections,\\token windows};
+\node[block, fill=deduppurple!15, below=of chunk] (dedup) {\textbf{Deduplication \& Filtering}\\[2pt]\footnotesize Remove duplicates,\\drop irrelevant data};
+\node[block, fill=metadataviolet!15, below=of dedup] (metadata) {\textbf{Metadata Enrichment}\\[2pt]\footnotesize Timestamps, geotags,\\source reliability};
+\node[block, fill=vectorred!15, below=of metadata] (vector) {\textbf{Vector Store}\\[2pt]\footnotesize FAISS, Pinecone,\\Weaviate, Milvus};
+
+% Arrows
+\draw[arrow] (sources) -- (preprocess);
+\draw[arrow] (preprocess) -- (chunk);
+\draw[arrow] (chunk) -- (dedup);
+\draw[arrow] (dedup) -- (metadata);
+\draw[arrow] (metadata) -- (vector);
+
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Ingestion pipeline design determines RAG freshness and retrieval quality. Proper preprocessing, chunking, and deduplication prevent stale data and duplicate evidence, while metadata enrichment enables filtering and provenance tracking. This pipeline structure enables reliable, auditable RAG systems.}
+\label{fig:ch08_ingestion_pipeline}
+\end{figure}
+
+\begin{tcolorbox}[
+  title={\textbf{Engineering sidebar: A minimal ingestion contract}},
+  colback=gray!5,
+  colframe=gray!60!black,
+  colbacktitle=gray!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\small
+At minimum, store the following fields per chunk:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+  \item \textbf{Identity:} \texttt{doc\_id}, \texttt{doc\_version}, \texttt{chunk\_id}, \texttt{chunk\_index}
+  \item \textbf{Provenance:} source URL / publisher ID, \texttt{fetched\_at}, \texttt{published\_at} (if available)
+  \item \textbf{Governance:} ACL tags / tenant ID, sensitivity label, retention class
+  \item \textbf{Reproducibility:} parser version, chunking version, embedding model version
+\end{itemize}
+\end{tcolorbox}
+
+\begin{itemize}
+    \item Scheduled crawlers for periodic updates.
+    \item Streaming ingestion for real-time feeds.
+    \item Deduplication and relevance filtering.
+    \item Metadata enrichment (timestamps, geotags, source reliability scores, access tags).
+\end{itemize}
+
+\subsection{Data Sources and Scheduling}
+Determine where knowledge comes from and how frequently it must be updated. Static sources (policies, manuals) can be ingested on a schedule or trigger (file change events). Dynamic sources (news, incident streams) typically require continuous ingestion. For \ishtar{}, a hybrid approach works well: periodic crawls of authoritative sources plus streaming ingestion for time-sensitive feeds.
+
+\subsection{Preprocessing and Cleaning}
+Raw data must be normalized into consistent, high-quality text. This step is deceptively important: extraction errors (especially from PDFs, scanned documents, and complex HTML) can create misleading chunks that are semantically ``near'' the right answer but factually incomplete. Preprocessing should therefore preserve both \emph{text} and \emph{structure}: titles, section headings, tables, and source URLs frequently become critical metadata for later retrieval and attribution.
+
+Typical cleaning steps include:
+\begin{itemize}
+    \item strip boilerplate (navigation, scripts, ads),
+    \item convert formats (PDF $\rightarrow$ text; HTML $\rightarrow$ text) while preserving section boundaries when possible,
+    \item detect language and preserve language metadata,
+    \item remove obvious noise (very short pages, duplicated boilerplate),
+    \item normalize encodings, whitespace, and punctuation so embeddings are stable across re-ingestion.
+\end{itemize}
+Preprocessing quality often dominates downstream retrieval quality, especially in heterogeneous enterprise corpora. Treat extraction code as versioned, testable infrastructure: a small parser change can shift chunk boundaries and silently alter retrieval behavior.
+
+\subsection{Chunking Strategy}
+Chunking determines the retrieval unit. Two practical principles are:
+\begin{itemize}
+    \item \textbf{Semantic coherence}: a chunk should stand alone as an evidence unit.
+    \item \textbf{Prompt efficiency}: a chunk should fit comfortably within the context budget once combined with other passages.
+\end{itemize}
+Token-window chunking with overlap is a common baseline, while structural chunking (by headings and sections) often improves interpretability and citation quality.
+
+\begin{tcolorbox}[
+  title={\textbf{Chunking heuristics that work in practice}},
+  colback=green!5,
+  colframe=green!40!black,
+  colbacktitle=green!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\small
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+  \item Prefer \textbf{200--400 token} chunks for general text; increase for highly structured documents when section boundaries are meaningful.
+  \item Use \textbf{10--20\% overlap} when chunking by size to avoid splitting key facts across boundaries.
+  \item Store \textbf{document title + section path} as metadata and optionally prepend it to chunks to improve retrieval interpretability.
+  \item For tables/code, preserve formatting where possible and consider separate chunking rules (e.g., row groups).
+\end{itemize}
+\end{tcolorbox}
+
+Table~\ref{tab:ch08_chunking_strategies} compares different chunking strategies and their trade-offs.
+
+\begin{table}[tb]
+\centering
+\small
+\caption{Chunking strategy selection balances semantic coherence with prompt efficiency. Different strategies suit different document types and use cases. Understanding trade-offs enables teams to optimize retrieval quality while managing token budgets effectively.}
+\label{tab:ch08_chunking_strategies}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}p{2cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Strategy} & \textbf{Chunk Size} & \textbf{Overlap} & \textbf{Use Cases} & \textbf{Trade-offs} \\
+\midrule
+\textbf{Token-window} & 200--400 tokens (general text); larger for structured docs & 10--20\% overlap to avoid splitting facts & General-purpose text; documents without clear structure; baseline approach & Simple to implement; may split semantic units; requires overlap tuning \\
+\addlinespace[1pt]
+\textbf{Structural} & Variable (by headings/sections) & Minimal (only at section boundaries) & Documents with clear hierarchy (manuals, academic papers, technical docs) & Preserves semantic coherence; improves citation quality; requires structure detection \\
+\addlinespace[1pt]
+\textbf{Hybrid} & 200--400 tokens with structure awareness & 10--20\% within sections; respect section boundaries & Mixed document types; when both structure and size matter & Best of both worlds; more complex implementation; requires structure parsing \\
+\addlinespace[1pt]
+\textbf{Specialized} & Variable (row groups for tables; function-level for code) & Context-dependent & Tables, code, structured data; domain-specific formats & Preserves formatting/structure; requires custom parsers; may not generalize \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Listing~\ref{lst:ch08_chunking_config} demonstrates a production chunking configuration that supports multiple document types and strategies.
+
+\begin{llmlistingbox}{Chunking Strategy Configuration (YAML)}
+\label{lst:ch08_chunking_config}
+\begin{lstlisting}[style=springer]
+# chunking_config.yaml
+strategy_name: "IshtarNewsChunking"
+description: "Configuration for chunking news articles for RAG."
+
+default_strategy:
+  type: "recursive_text_splitter"
+  chunk_size: 512 # Max tokens per chunk
+  chunk_overlap: 128 # Overlap between consecutive chunks
+  separators: ["\n\n", "\n", ". ", "? ", "! ", "; ", " "] # Prioritized separators
+
+# Specific strategies for different document types
+document_type_strategies:
+  "report":
+    type: "structural_splitter" # Split by sections, headings
+    max_chunk_size: 1024
+    min_chunk_size: 100
+    section_delimiters: ["#", "##", "###"] # Markdown headings
+  "legal_document":
+    type: "sentence_splitter"
+    max_sentences_per_chunk: 5
+    overlap_sentences: 1
+    metadata_to_include: ["case_id", "paragraph_id"]
+  "social_media_post":
+    type: "fixed_size_splitter"
+    chunk_size: 128
+    chunk_overlap: 0
+    add_metadata:
+      source: "social_media"
+      platform: "twitter"
+
+# Global settings
+add_document_metadata:
+  source_system: "IshtarIngestion"
+  processing_date: "{{current_date}}" # Dynamic value
+  embedding_model_version: "sentence-transformers-v1.0"
+
+# Post-chunking filters
+filters:
+  - type: "min_token_length"
+    min_tokens: 50
+  - type: "remove_boilerplate"
+    patterns: ["^Advertisement", "Copyright \\d{4}"]
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Deduplication and Canonicalization}
+Duplicates waste storage and bias retrieval toward repeated content. Apply:
+\begin{itemize}
+    \item exact deduplication (hashing),
+    \item near-duplicate detection for templated content,
+    \item retention policies for updated documents (keep versions with timestamps or keep only the latest).
+\end{itemize}
+In time-sensitive applications, it is often useful to keep historical versions but rank recent content higher via metadata.
+
+\subsection{Metadata Enrichment}
+Metadata enables filtering and ranking:
+\begin{itemize}
+    \item source identifiers (URL, publisher, document ID),
+    \item timestamps and version IDs,
+    \item geography and topic tags,
+    \item access control tags for multi-tenant deployments.
+\end{itemize}
+Vector databases typically support metadata filters, enabling retrieval constraints such as "only the last 24 hours" or "only documents visible to this user" \cite{Pinecone2023RAG}.
+
+\subsection{Operational Considerations}
+Ingestion pipelines should be operated like production data systems:
+\begin{itemize}
+    \item \textbf{Scalability}: handle surges (e.g., breaking events).
+    \item \textbf{Fault tolerance}: connector failures should degrade gracefully.
+    \item \textbf{Monitoring}: track documents/hour, parsing failures, embedding backlog, and index update latency.
+    \item \textbf{Re-indexing}: plan for embedding model upgrades and chunking changes.
+\end{itemize}
+
+\subsubsection*{Summary}
+Ingestion quality and freshness determine RAG quality. Treat ingestion as a versioned, observable subsystem with explicit SLAs: "How quickly does new knowledge become retrievable?" is often the most important operational question in production RAG.
+
+\FloatBarrier
+\section{Vector Database Considerations}
+\label{sec:rag-vector-database-considerations}
+The vector database is the retrieval substrate of RAG. Choosing the right index type, scaling strategy, and operational controls determines whether retrieval meets latency and availability requirements \cite{Johnson2019FAISS,Malkov2018HNSW,Jegou2011PQ}.
+
+\subsection{Index Type (Accuracy vs.\ Speed Trade-offs)}
+Vector databases typically offer multiple ANN index structures:
+\begin{itemize}
+    \item \textbf{Flat (exact):} 100\% recall but linear scan; best for small corpora or evaluation baselines.
+    \item \textbf{HNSW:} graph-based ANN; strong speed/recall trade-off but RAM intensive \cite{Malkov2018HNSW}.
+    \item \textbf{IVF:} clustering-based ANN; tunable trade-off via probed clusters \cite{Johnson2019FAISS}.
+    \item \textbf{PQ:} compresses vectors for memory efficiency; often paired with IVF at very large scale \cite{Jegou2011PQ}.
+\end{itemize}
+The best choice depends on corpus size, memory constraints, and latency SLOs. Always benchmark on representative queries and document distributions.
+
+Table~\ref{tab:ch08_vector_index_comparison_landscape} provides a detailed comparison of index types.
+
+\begin{table}[tb]
+\centering
+\small
+\caption{Vector index selection drives RAG latency and cost. Different index types trade off query speed (HNSW fastest), memory footprint (IVF-PQ most compact), and update overhead (flat index simplest but slowest). Choose based on query volume, update frequency, and memory constraints.}
+\label{tab:ch08_vector_index_comparison_landscape}
+\begin{threeparttable}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{%
+  >{\raggedright\arraybackslash}p{1.4cm}  % Index Type
+  >{\raggedright\arraybackslash}p{1.2cm}  % Recall
+  >{\raggedright\arraybackslash}p{1.6cm}  % Latency
+  >{\raggedright\arraybackslash}p{1.6cm}  % Memory
+  >{\raggedright\arraybackslash}p{1.6cm}  % Scale
+  >{\raggedright\arraybackslash}X  % Notes
+}
+\toprule
+\rowcolor{gray!10}
+\textbf{Index Type} & \textbf{Recall} & \textbf{Latency} & \textbf{Memory} & \textbf{Scale} & \textbf{Notes / Tunables \& Use Cases} \\
+\midrule
+\textbf{Flat (Exact)} &
+100\% &
+Highest (linear scan); GPU helps &
+Baseline &
+Small–mid ($\sim$10\textsuperscript{5}–10\textsuperscript{6} with GPU) &
+Pros: exact, simple; gold standard for eval. Cons: poor scaling. Use for small corpora, eval baselines, or latency-insensitive tasks. Tunables: batch size, GPU use. \cite{Johnson2019FAISS} \\
+\addlinespace[1pt]
+
+\textbf{HNSW} &
+$\sim$90–95\% (tunable $\uparrow$) &
+Very low; sub-10–50\,ms &
+High (graph links) &
+Mid–large (10\textsuperscript{6}–10\textsuperscript{8}); RAM-bound &
+Pros: excellent speed/recall trade-off; robust default in many DBs. Cons: memory heavy; build time. Tunables: \texttt{M}, \texttt{efConstruction}, \texttt{efSearch}. Great general-purpose ANN for RAG. \cite{Malkov2018HNSW} \\
+\addlinespace[1pt]
+
+\textbf{IVF} &
+High (depends on probes) &
+Low–moderate; searches subset &
+Moderate &
+Large (10\textsuperscript{7}+); disk-friendly &
+Pros: tunable speed/recall via \texttt{nlist}/\texttt{nprobe}. Cons: may miss NNs in other cells. Tunables: \texttt{nlist} (clusters), \texttt{nprobe} (probed cells). Good for tens of millions+. \cite{Johnson2019FAISS} \\
+\addlinespace[1pt]
+
+\textbf{PQ} &
+Moderate (compression loss) &
+Low–moderate; fast distance &
+Very low (byte codes) &
+Very large (10\textsuperscript{8}–10\textsuperscript{9}+) &
+Pros: drastic memory savings; enables billion-scale. Cons: recall drops vs. full precision. Often combined with IVF (IVF-PQ) or residual PQ. Tunables: code size, subquantizers. \cite{Jegou2011PQ,Johnson2019FAISS} \\
+\addlinespace[1pt]
+
+\textbf{Hybrids} (e.g., IVF+PQ, IVF+HNSW) &
+High (balanced) &
+Low; tuned per layer &
+Moderate–high &
+Very large; flexible &
+Compose strengths: e.g., IVF narrows candidates; PQ compresses; HNSW refines. Use when you need sub-100\,ms on 100M–1B vectors with manageable RAM. \cite{Johnson2019FAISS,Malkov2018HNSW,Jegou2011PQ} \\
+\bottomrule
+\end{tabularx}
+
+\begin{tablenotes}[flushleft]\scriptsize
+\item \textbf{Guidance:} For $\leq$ a few million vectors, HNSW or Flat+GPU often suffice; at tens of millions, IVF (optionally with reranking) is a strong choice; for 100M–1B+, consider IVF+PQ or hybrid schemes and/or distributed shards. Always validate on your data distribution and latency SLOs. \cite{Johnson2019FAISS,Malkov2018HNSW,Jegou2011PQ}
+\end{tablenotes}
+
+\end{threeparttable}
+\end{table}
+
+\subsection{Sharding and Logical Partitioning}
+Sharding distributes vectors across nodes so that index memory and query throughput can scale horizontally. In most deployments, it is helpful to separate two decisions: \emph{physical sharding} (how embeddings are placed across machines) and \emph{logical partitioning} (how queries are routed to a subset of those machines). Physical sharding aims for balanced load and predictable capacity, while logical partitioning aims to reduce the candidate search space and to enforce governance boundaries such as tenancy, security domains, and data residency \cite{Kleppmann2017DDIA}.
+
+\textbf{Physical sharding.} A common default is hash-based sharding on a stable key (e.g., chunk ID) to balance storage and traffic. Hash sharding reduces hotspots but does not reduce query work: a query may still need to fan out to multiple shards unless the database supports a global routing layer. Some systems also support range-based placement (e.g., by time) to co-locate related content, but range partitions require explicit rebalancing as distributions shift (e.g., daily news surges).
+
+\textbf{Logical partitions.} When an application has a natural partition key (region, product, tenant, security domain), routing queries to the relevant partition can reduce latency and cost while improving relevance. In \ishtar{}, geographic partitioning is a natural fit: a query about Italy should not search a shard containing unrelated regions unless explicitly required. Logical partitions also provide operational benefits: teams can scale ``hot'' partitions independently, apply different retention policies, and perform maintenance on one partition without globally degrading retrieval.
+
+\textbf{Routing and fallback.} Partitioning introduces a recall risk when the router misclassifies the query or when relevant evidence spans partitions. A robust pattern is to make routing \emph{confidence-aware}: query the primary partition first, and if retrieval confidence is low (e.g., weak similarity scores, low reranker margins, or sparse evidence coverage), fall back to querying a broader set (neighboring regions or a global shard) with a strict budget. This design keeps average latency low without sacrificing coverage on edge cases.
+
+\textbf{Skew and rebalancing.} Real workloads are rarely uniform. ``Hot shards'' can occur because certain tenants, regions, or topics dominate traffic. Monitor shard-level QPS, memory pressure, and tail latency, and be prepared to split or replicate hot partitions. When logical partitions are unavoidable for governance reasons (e.g., tenant isolation), replication is often the simplest way to mitigate hotspots without changing the partition key.
+
+\begin{tcolorbox}[
+  title={\textbf{Engineering sidebar: Designing shard keys for RAG}},
+  colback=yellow!5,
+  colframe=yellow!40!black,
+  colbacktitle=yellow!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\small
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+  \item Prefer \textbf{stable, business-meaningful} partition keys (tenant, region) so rebalancing is rare.
+  \item Ensure partitions support \textbf{governance constraints} (ACL boundaries, residency) in addition to performance goals.
+  \item Monitor for \textbf{skew and hot shards}: popularity and ingestion rates can be highly non-uniform in news-like workloads.
+  \item Design an explicit \textbf{fallback plan} (multi-partition query with a budget) so partitioning does not become a recall regression.
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{Replication and High Availability}
+Replication improves availability and throughput by maintaining multiple copies of each shard. For RAG, retrieval sits on the critical path of user-facing latency, so replication must be designed with \emph{tail latency} in mind: in large distributed systems, rare slowdowns in any component can dominate p99 response time and become user-visible \cite{Dean2013TailAtScale}. Replication also provides operational flexibility: it enables rolling upgrades, capacity rebalancing, and incident response actions such as draining unhealthy nodes without global downtime.
+
+\textbf{Replica roles and consistency.} Vector workloads are typically read-heavy (many queries per write) and can often tolerate eventual consistency, as long as the system is explicit about its semantics. Common patterns include leader--follower replication (writes to a primary, reads from followers) and multi-leader replication (writes in multiple regions with conflict resolution). The right choice depends on update rate and correctness requirements: if freshness is paramount, asynchronous replication is usually acceptable; if legal or financial correctness depends on newest facts, tighter consistency and explicit ``freshness'' metadata may be required.
+
+\textbf{Failure domains and placement.} Choose replication factor and placement aligned with your failure model (instance, rack, availability zone, or region). Cross-zone replication is a common baseline for high availability; cross-region replication is justified when user latency requirements or data residency constraints require regional reads. Be explicit about blast radius: a design that survives one node failure may still fail on an availability zone outage if all replicas are co-located.
+
+\textbf{Operational signals.} Beyond availability, replication should be monitored as a performance control. Track p50/p95/p99 retrieval latency, error rates, replica lag (if applicable), and queue/backpressure metrics. Trigger scale-out or reroute traffic before user-visible degradation; in practice, p95 and p99 are often the leading indicators for retrieval incidents.
+
+\subsection{Persistence, Backups, and Re-indexing}
+A vector index is almost always a \emph{derived} artifact: it can be rebuilt from raw source documents plus the versioned ingestion configuration (extraction, chunking) and the embedding model. Treating the index as the system of record leads to brittle operations, because any embedding upgrade, tokenizer change, or chunking refactor becomes a destructive migration. Instead, production RAG systems retain (i) canonical source documents (or extracted text), (ii) ingestion metadata required to reproduce chunk boundaries and access controls, and (iii) the versioned embedding configuration used to produce each vector \cite{Kleppmann2017DDIA}.
+
+\textbf{Persistence and backups.} Managed vector stores typically provide durability primitives (replicated storage, snapshots). Self-managed deployments (e.g., FAISS embedded inside an application) require explicit snapshotting and restore testing \cite{Johnson2019FAISS}. Snapshot design should include (a) the ANN index state, (b) the metadata store, and (c) the ID mapping layer; backing up only the ANN graph is insufficient for auditability, deletes, and provenance. For high-stakes systems, periodically validate backups by restoring into an isolated environment and running a small retrieval regression suite.
+
+\textbf{Re-indexing as a first-class workflow.} Re-indexing is normal, not exceptional: it occurs when embeddings change, chunking rules change, metadata schemas evolve, or corrupted/poisoned documents must be purged. Treat re-indexing like a production migration with explicit runbooks and quality gates (Section~\ref{sec:rag-metrics}). When possible, prefer \emph{blue/green} rebuilds over in-place mutation so you can validate the new index under live traffic shadowing before cutover.
+
+\begin{tcolorbox}[
+  title={\textbf{Engineering sidebar: Blue/green re-indexing pattern}},
+  colback=blue!5,
+  colframe=blue!40!black,
+  colbacktitle=blue!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\small
+\begin{enumerate}[leftmargin=1.8em, itemsep=3pt]
+  \item \textbf{Build a new index (green)} from the canonical corpus using the new embedding/chunking version.
+  \item \textbf{Dual write} new ingests to both old (blue) and green indexes during the migration window to avoid gaps.
+  \item \textbf{Validate} retrieval recall@k, latency SLOs, and citation correctness on a regression suite.
+  \item \textbf{Cut over} read traffic via a feature flag or router switch; monitor tail latency and error rates.
+  \item \textbf{Decommission} the old index only after a stability period and after verifying restore procedures for green.
+\end{enumerate}
+\end{tcolorbox}
+
+\subsection{Metadata Filters and Hybrid Queries}
+Metadata filters enable time-aware retrieval, tenant isolation, and compliance constraints. In practice, filtering is also a performance tool: high-selectivity predicates (e.g., \texttt{region=EU} and \texttt{timestamp > now-24h}) can shrink the candidate set and make more aggressive ANN settings unnecessary. In \ishtar{}, filters such as region and recency also operationalize editorial policies: high-urgency queries can be constrained to trusted sources and recent windows, while investigative queries may intentionally broaden the time range or include lower-trust sources (with appropriate labeling).
+
+\textbf{Pre-filter vs.\ post-filter.} Many vector databases implement filtering as a post-processing step: retrieve top-$k$ by vector similarity, then drop results that fail the filter. Post-filtering is simple but can reduce recall when the filter excludes a large fraction of candidates. A pragmatic mitigation is to \emph{over-retrieve} (e.g., top-50 or top-200), apply filters, and then rerank the surviving set. For workloads with strict filters (multi-tenant isolation, narrow time windows), consider partitioning by the filter key (Section~\ref{sec:rag-vector-database-considerations}) so filtering happens by routing rather than by discarding.
+
+\textbf{Hybrid queries.} Hybrid retrieval (dense + sparse) is increasingly common in production systems because it improves robustness for rare terms, codes, and proper nouns \cite{Lin2021SPLADE}. Filters and hybrid scoring should be designed together: lexical signals often matter most on constrained, high-precision searches (IDs, locations), while dense signals matter most on semantic questions. A common production pattern is: apply metadata filters, retrieve a large candidate set with a hybrid retriever, then rerank with a cross-encoder or late-interaction model to produce the final evidence pack.
+
+\subsection{Security Baselines}
+Treat the vector database as sensitive infrastructure: it often contains embeddings derived from private text and metadata that encodes access decisions. Moreover, the vector store is part of an \emph{attack surface}: adversaries may attempt to exfiltrate information via retrieval, poison the corpus so that harmful content is retrieved, or embed prompt injection strings in untrusted sources that later get surfaced to the generator. Security guidance for LLM applications increasingly treats RAG as a first-class risk area (e.g., prompt injection and sensitive information disclosure) \cite{OWASP2024LLMTop10}.
+
+Baseline controls include:
+\begin{itemize}
+    \item enforce strong authentication and authorization (prefer short-lived credentials and scoped service roles),
+    \item encrypt in transit and at rest (including backups and snapshots),
+    \item log query access (user, tenant, retrieved document IDs) for auditing and abuse detection,
+    \item isolate tenants via separate indexes or strict metadata filters, and validate filters as part of testing.
+\end{itemize}
+
+Two pragmatic additions improve real-world resilience. First, rate limit and anomaly-detect retrieval traffic to make exfiltration attempts observable. Second, treat ingestion as part of the security perimeter: validate sources, attach provenance metadata, and quarantine low-trust documents so they cannot silently dominate retrieval results. For systems with untrusted corpora, consider explicit ``source trust'' controls that influence both retrieval ranking and downstream prompt packing.
+
+\subsubsection*{Summary}
+Vector DB selection is an engineering trade-off across recall, latency, and operational complexity. For most teams, the practical objective is not perfect nearest-neighbor recall but consistently retrieving answer-bearing evidence under strict latency SLOs.
+
+\FloatBarrier
+\section{Retriever Strategies}
+\label{sec:rag-retriever-strategies}
+Retriever strategy determines the \emph{evidence set} the generator sees, and therefore strongly influences answer quality \cite{Lewis2020RAG,Karpukhin2020DPR,Thakur2021BEIR}. Modern systems typically combine dense, sparse, and hybrid retrieval with reranking.
+
+\subsection{Dense Retrieval (Semantic Search)}
+Dense retrieval embeds queries and documents into a shared vector space and retrieves by similarity \cite{Karpukhin2020DPR}. It excels at semantic matching (synonyms, paraphrases) and works well for natural-language queries.
+
+\textbf{Advantages:}  
+\begin{itemize}
+    \item Robust to vocabulary mismatch (e.g., paraphrases).
+    \item Effective for multilingual and heterogeneous corpora when embeddings are well trained.
+\end{itemize}
+
+\textbf{Limitations:}  
+\begin{itemize}
+    \item Can underperform on rare terms, IDs, and numbers.
+    \item May require reranking to reach high precision at top-$k$ \cite{Thakur2021BEIR}.
+\end{itemize}
+
+\subsection{Sparse Retrieval (Lexical / Keyword Search)}
+Sparse retrieval methods such as BM25 represent text with sparse term weights and rank by lexical overlap \cite{robertson2009bm25}. They remain highly effective for exact matches: names, product codes, dates, and domain-specific terminology.
+
+\textbf{Advantages:}  
+\begin{itemize}
+    \item Strong precision for exact terms and constrained queries.
+    \item Interpretable and easy to debug (term-level contributions).
+\end{itemize}
+
+\textbf{Limitations:}  
+\begin{itemize}
+    \item Brittle to synonymy and paraphrasing.
+    \item Requires careful tokenization and normalization for noisy corpora.
+\end{itemize}
+
+Neural sparse methods (e.g., SPLADE) blend lexical interpretability with learned term expansion, often improving recall while retaining sparse indexing \cite{Lin2021SPLADE}.
+
+\subsection{Hybrid Retrieval}
+Hybrid retrieval combines dense and sparse signals. Common implementations include:
+\begin{itemize}
+    \item \textbf{Score fusion}: combine normalized dense and sparse scores (often weighted).
+    \item \textbf{Two-stage}: one retriever for recall (large candidate set), then rerank for precision.
+\end{itemize}
+Hybrid approaches are widely used in enterprise RAG because user queries mix natural language with identifiers, acronyms, and domain jargon \cite{Thakur2021BEIR,Lin2021SPLADE}.
+
+\subsubsection*{Summary}
+Dense retrieval provides semantic coverage, sparse retrieval provides exact-match precision, and hybrid retrieval improves robustness. Most production systems use hybrid retrieval plus a reranker to construct a small, high-quality evidence set for the generator.
+
+Listing~\ref{lst:ch08_retrieval_config} demonstrates a production hybrid retrieval configuration with query processing and reranking.
+
+\begin{llmlistingbox}{Retrieval Configuration (YAML)}
+\label{lst:ch08_retrieval_config}
+\begin{lstlisting}[style=springer]
+# retrieval_config.yaml
+retrieval_pipeline_id: "ishtar_hybrid_retrieval_v2"
+description: "Configuration for hybrid retrieval in Ishtar AI RAG pipeline."
+
+query_processing:
+  query_expansion:
+    enabled: true
+    method: "llm_rewrite" # Use a small LLM to rewrite/expand query
+    model: "llama-3.1-8b-query-rewriter"
+    num_variants: 3 # Generate 3 variants of the query
+  
+  query_compression:
+    enabled: false # Not enabled by default for initial retrieval
+    method: "hyde" # Hypothetical Document Embedding
+
+retrievers:
+  - name: "dense_vector_search"
+    type: "vector_db"
+    vector_store_index: "ishtar-news-vector-index"
+    top_k: 10 # Retrieve top 10 candidates from vector DB
+    filters:
+      published_date: {gte: "now-30d"} # Only recent documents
+      category: ["politics", "conflict"]
+    weight: 0.7 # Weight in hybrid search
+  
+  - name: "sparse_keyword_search"
+    type: "keyword_search"
+    search_engine: "elasticsearch"
+    index_name: "ishtar-news-keywords"
+    top_k: 20 # Retrieve top 20 candidates from keyword search
+    weight: 0.3 # Weight in hybrid search
+    
+reranker:
+  enabled: true
+  model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  top_n: 5 # Select top 5 after reranking all candidates from retrievers
+  batch_size: 32 # Batch size for reranker inference
+
+post_retrieval_filters:
+  - type: "deduplication"
+    strategy: "embedding_similarity"
+    threshold: 0.95
+  - type: "access_control"
+    policy_engine: "opa" # Open Policy Agent
+    policy_name: "document_access_policy_v1"
+
+monitoring:
+  metrics_enabled: true
+  log_retrieved_documents: true # Log full content of retrieved docs (after redaction)
+\end{lstlisting}
+\end{llmlistingbox}
+
+Table~\ref{tab:ch08_retriever_strategies} compares dense, sparse, and hybrid retrieval approaches.
+
+\begin{table}[tb]
+\centering
+\small
+\caption{Retriever strategy selection determines RAG recall and latency. Dense retrieval captures semantic similarity, sparse retrieval provides exact-match precision, and hybrid approaches combine both for robustness. Choose based on query characteristics, corpus structure, and latency requirements.}
+\label{tab:ch08_retriever_strategies}
+\begin{threeparttable}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Strategy} & \textbf{Strengths} & \textbf{Limitations} & \textbf{Scalability / Ops} & \textbf{Use Cases \& Notes} \\
+\midrule
+\textbf{Dense Retrieval} 
+& Captures semantics and paraphrases; language-agnostic with multilingual encoders \cite{Karpukhin2020DPR} 
+& Misses rare terms/IDs; interpretability is limited \cite{Thakur2021BEIR} 
+& Requires ANN index (HNSW/IVF/PQ); recall tunable via top-$k$ and reranking \cite{Johnson2019FAISS,Malkov2018HNSW} 
+& Best for conceptual similarity and natural-language queries. Often paired with rerankers to boost precision. \\
+\addlinespace[4pt]
+
+\textbf{Sparse Retrieval} 
+& Precise for keywords, dates, codes; interpretable; efficient incremental updates \cite{robertson2009bm25} 
+& Vocabulary mismatch; weak synonym handling without expansion 
+& Inverted indexes scale well; vocabulary growth is the main constraint 
+& Indispensable when exact wording matters (legal, academic, incident IDs). Neural sparse methods improve recall \cite{Lin2021SPLADE}. \\
+\addlinespace[4pt]
+
+\textbf{Hybrid Retrieval} 
+& Combines semantic coverage with exact matching; robust to query variability \cite{Thakur2021BEIR,Lin2021SPLADE} 
+& Requires tuning fusion weights and reranking budgets 
+& Two-stage designs scale well by separating recall and precision 
+& Strong default for enterprise RAG and heterogeneous corpora. Useful when queries blend jargon and natural language. \\
+\bottomrule
+\end{tabularx}
+\begin{tablenotes}\footnotesize
+\item \textbf{Summary:} Dense excels at semantic matching, sparse ensures exact term coverage, and hybrid retrieval often delivers the most robust performance in production RAG.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\subsection{Modern Retrieval Patterns: Fusion, Late Interaction, and HyDE}
+Beyond the dense/sparse/hybrid taxonomy, modern RAG systems often combine multiple retrievers and rerankers to improve top-$k$ quality.
+
+\textbf{Rank fusion.} Reciprocal Rank Fusion (RRF) combines the ranked outputs of multiple retrievers and is widely used because it is simple, robust, and often improves recall without heavy tuning \cite{cormack2009rrf}.
+
+\textbf{Late interaction.} Late-interaction models such as ColBERT improve retrieval fidelity by retaining token-level interactions while still enabling efficient indexing \cite{khattab2020colbert,Zhan2021ColBERTv2}. These models are useful when "semantic similarity" alone is too coarse.
+
+\textbf{Query-side generation.} HyDE (Hypothetical Document Embeddings) generates a hypothetical answer-like document, embeds it, and retrieves near that embedding; this can improve recall in zero-shot settings without labeled relevance data \cite{gao2023hyde}.
+
+\subsection{Query Rewriting and Expansion}
+Query transformations can significantly improve retrieval quality:
+\begin{itemize}
+    \item \textbf{Conversational rewriting}: rewrite follow-up queries into standalone questions.
+    \item \textbf{Multi-query retrieval}: generate multiple query variants (synonyms, sub-questions), retrieve for each, then fuse (often with RRF).
+    \item \textbf{Decomposition}: break complex questions into sub-queries (Section~\ref{sec:rag-architectural-patterns-for-rag}).
+\end{itemize}
+These techniques are particularly valuable when user queries are underspecified or when relevant evidence is scattered across documents.
+
+\FloatBarrier
+\section{Augmenting the Prompt}
+\label{sec:rag-augmenting-the-prompt}
+Retrieval alone does not guarantee grounding. The retrieved evidence must be \emph{packaged} so the generator uses it correctly. Prompt augmentation typically requires decisions about: context budget, ordering, separators, and citation strategy.
+
+\subsection{Context Budgeting and Selection}
+LLMs have fixed context windows, and the RAG system must reserve tokens for the model's answer. A practical approach is:
+\begin{enumerate}
+    \item retrieve a larger candidate set (e.g., top-20),
+    \item rerank and filter,
+    \item pack the top-$k$ evidence passages (e.g., $k=3$--$8$) under the remaining token budget.
+\end{enumerate}
+When passages are long, extract the answer-bearing sentences (extractive compression) or summarize passages before packing. Avoid over-truncation: removing qualifiers, dates, or units can cause the model to misinterpret evidence.
+
+\subsection{Ordering, Grouping, and Separators}
+Ordering matters because many models exhibit positional bias: relevant evidence placed in the middle of a long context can be used less reliably than evidence placed near the beginning or end (``lost in the middle'') \cite{Liu2024LostInTheMiddle}. Context packing should therefore be treated as an algorithmic step, not a formatting detail.
+
+Common ordering strategies include:
+\begin{itemize}
+    \item \textbf{Relevance-first}: highest-ranked passages first (default).
+    \item \textbf{Recency-first within topic}: when time matters (e.g., crisis updates).
+    \item \textbf{Grouped by source}: when comparing sources is valuable (e.g., official bulletin vs.\ social reports).
+\end{itemize}
+
+In practice, two additional heuristics are often helpful. First, prefer a \emph{diverse} evidence set: avoid packing near-duplicate passages by applying deduplication or Maximal Marginal Relevance (MMR) so each chunk contributes distinct facts. Second, place the single most answer-bearing passage either at the beginning or the end of the context, and keep secondary passages nearby; this ``sandwich'' layout often improves robustness on long-context models.
+
+Finally, always separate passages clearly (delimiters, document IDs, and optional ``BEGIN/END SOURCE'' markers) to reduce accidental blending. The generator should be able to unambiguously associate each claim with a specific evidence block, which is a prerequisite for reliable citations. Table~\ref{tab:ch08_prompt_patterns} summarizes common prompt augmentation patterns and their use cases.
+
+\begin{table}[tb]
+\centering
+\small
+\caption{Prompt augmentation patterns determine how retrieved evidence is presented to the generator. Ordering strategies address positional bias, while implementation patterns ensure reliable citation and evidence utilization. Choosing the right pattern depends on document characteristics, query types, and model behavior.}
+\label{tab:ch08_prompt_patterns}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Pattern} & \textbf{Ordering Strategy} & \textbf{Use Case} & \textbf{Implementation Notes} \\
+\midrule
+\textbf{Relevance-first} & Highest-ranked passages first (default ordering) & General-purpose queries; when retrieval quality is high & Simple to implement; may suffer from positional bias on long contexts; works well with reranking \\
+\addlinespace[1pt]
+\textbf{Recency-first} & Most recent passages first within topic/query match & Time-sensitive queries (crisis updates, news, real-time data) & Requires timestamp metadata; combine with relevance filtering; prioritize freshness over pure relevance \\
+\addlinespace[1pt]
+\textbf{Grouped by source} & Group passages by source/document; order groups by relevance & When comparing sources is valuable (official vs.\ social reports, multiple perspectives) & Enables source comparison; requires source metadata; may increase token usage \\
+\addlinespace[1pt]
+\textbf{Diverse evidence (MMR)} & Apply Maximal Marginal Relevance to avoid near-duplicates; each chunk contributes distinct facts & When retrieved set has high redundancy; to maximize information density & Requires similarity computation; reduces redundancy; improves token efficiency \\
+\addlinespace[1pt]
+\textbf{Sandwich layout} & Place most answer-bearing passage at beginning or end; secondary passages nearby & Long-context models; when single passage dominates answer & Addresses ``lost in the middle'' effect \cite{Liu2024LostInTheMiddle}; requires passage ranking confidence \\
+\addlinespace[1pt]
+\textbf{Clear separators} & Use delimiters, document IDs, ``BEGIN/END SOURCE'' markers & All RAG systems; critical for citation accuracy & Prevents accidental blending; enables unambiguous citation links; standard format: \texttt{[1] <source> <passage>} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Prompt Instructions and Abstention}
+After listing context, include explicit instructions that make the grounding contract testable. A minimal pattern is:
+\begin{quote}\small
+Using only the CONTEXT, answer the QUESTION. If the CONTEXT does not contain the answer, say ``I don't know.'' Cite sources using the provided identifiers.
+\end{quote}
+This instruction pattern encourages grounded answers and makes unanswerable questions observable via abstention rates.
+
+Operationally, abstention is a feature, not a failure. A well-designed RAG system should refuse to speculate when retrieval is weak or when sources conflict. To make abstention reliable, combine prompt instructions with \emph{system-side signals}: similarity thresholds, reranker margins, and source trust scores can gate generation or trigger a fallback retrieval step. Monitor abstention rate over time; sudden changes often indicate ingestion regressions, index outages, or query distribution shift.
+
+In high-stakes settings, it is also useful to distinguish between (i) ``no evidence found'' and (ii) ``evidence found but conflicting/low-trust.'' The former suggests an ingestion or recall problem; the latter suggests an editorial or verification workflow (e.g., request human review or present multiple sourced viewpoints).
+
+\subsection{Citations and Attribution}
+There are two common citation strategies:
+\begin{enumerate}
+    \item \textbf{Inline citations by prompting}: label passages (e.g., [1], [2]) and instruct the model to cite them.
+    \item \textbf{Post-hoc attribution}: align answer spans to passages after generation to produce citations deterministically.
+\end{enumerate}
+Prompted citations are easy to implement but can be misattributed; post-hoc approaches are more reliable but require additional engineering. Regardless of strategy, evaluate citation precision and answer faithfulness (Section~\ref{sec:rag-metrics}) \cite{RAGAS2023}.
+
+\subsection{Multi-Turn Conversations}
+Conversational RAG must decide how to combine conversation history with retrieval:
+\begin{itemize}
+    \item rewrite follow-up questions into standalone queries,
+    \item store a short memory of user constraints (e.g., region, timeframe),
+    \item re-run retrieval per turn to keep grounding fresh.
+\end{itemize}
+Systems that simply append long chat history risk exceeding token budgets and diluting evidence relevance; query rewriting plus selective memory is typically more robust.
+
+\subsection{A Practical Prompt Template}
+A concise template that works well in production is:
+
+\begin{tcolorbox}[
+  title={\textbf{Practical Prompt Template for RAG}},
+  colback=teal!5,
+  colframe=teal!40!black,
+  colbacktitle=teal!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=12pt,
+  after skip=12pt
+]
+\small
+\ttfamily
+\textbf{SYSTEM:} You are an assistant that answers using provided evidence.\\[2pt]
+\textbf{QUESTION:} \emph{<user question>}\\[2pt]
+\textbf{CONTEXT:}\\[2pt]
+[1] <title / source / date>\\
+<passage>\\[2pt]
+[2] <title / source / date>\\
+<passage>\\[2pt]
+\textbf{INSTRUCTIONS:} Answer the QUESTION using only CONTEXT. Cite sources as [1], [2]. If insufficient evidence, say ``I don't know.''
+\end{tcolorbox}
+
+This template makes the evidence boundaries explicit and gives the model a stable citation format.
+
+\subsubsection*{Summary}
+Effective prompt augmentation is the art of constructing a compact, well-delimited evidence set that fits the token budget, encourages faithful synthesis, and supports transparent attribution.
+
+\section{Evaluation of RAG Pipelines}\label{sec:rag-metrics}
+Evaluating a RAG system requires measuring both retrieval and generation—and their interaction. The goal is not merely "good answers," but \emph{predictably grounded answers} under operational constraints (latency, cost, and safety).
+
+\subsection{Retrieval Quality}
+If relevance labels are available, use standard IR metrics:
+\begin{itemize}
+    \item Recall@k: is answer-bearing evidence in the top-$k$?
+    \item MRR / nDCG: how highly is relevant evidence ranked?
+\end{itemize}
+Benchmarks such as BEIR highlight that retrieval difficulty varies widely by domain and query type, motivating hybrid retrieval and reranking for robust performance \cite{Thakur2021BEIR}.
+
+\subsection{Generation Faithfulness and Answer Relevance}
+Generation quality must capture both usefulness and grounding. Common criteria include:
+\begin{itemize}
+    \item \textbf{Answer relevance}: does the answer address the question?
+    \item \textbf{Faithfulness}: is the answer supported by retrieved context (no unsupported claims)?
+\end{itemize}
+
+In practice, teams should define an explicit rubric that separates \emph{factuality} (truth in the world) from \emph{faithfulness} (support by the retrieved evidence). Faithfulness is the controllable property of a RAG pipeline: even if sources are wrong, the system can remain faithful to them and expose citations for review. For \ishtar{}, this mirrors editorial process: the system should not invent facts, and it should allow journalists to verify claims against primary sources.
+
+Automated frameworks such as RAGAS provide practical signals for faithfulness and relevance using the retrieved passages and the generated answer \cite{RAGAS2023}. However, automated metrics should be complemented with periodic human evaluation, especially for high-impact domains, because models can be persuasive even when subtly unsupported. A pragmatic best practice is to maintain a small, continuously refreshed ``golden set'' of queries with human-validated evidence and expected citation behavior; run it on every change that touches retrieval, prompting, or generation.
+
+\subsection{Citation Accuracy and Attribution}
+If the system provides citations, evaluate them explicitly; citation failures can be worse than missing citations because they create a false sense of verification. At minimum, measure:
+\begin{itemize}
+    \item \textbf{Citation precision}: cited passages truly support the claim.
+    \item \textbf{Citation coverage}: key claims are cited (low omission rate).
+\end{itemize}
+
+A practical evaluation protocol is claim-level scoring: segment an answer into atomic claims, then check whether each claim is supported by at least one cited passage. When answers include numeric quantities (counts, dates, monetary values), require that the numeric claim be directly supported by evidence; these are the most common sources of high-impact hallucinations.
+
+From an LLMOps perspective, attribution also matters for debugging. Logging the mapping from answer spans to evidence identifiers (even if generated citations are later post-processed) enables root-cause analysis: you can distinguish retrieval misses (the right evidence was never retrieved) from synthesis errors (evidence was retrieved but misused).
+
+\subsection{Latency, Throughput, and Cost}
+Track end-to-end latency and its components:
+\begin{itemize}
+    \item query embedding latency,
+    \item vector search latency (p50/p95/p99),
+    \item reranker latency (if used),
+    \item generation latency and token counts.
+\end{itemize}
+Cost should be expressed in units that reflect the product: cost per successful answer, cost per session, or cost per 1k queries. Token-efficient context packing often yields large cost savings.
+
+\subsection{Failure Modes and Regression Testing}
+Two failure modes deserve explicit tests:
+\begin{itemize}
+    \item \textbf{Unanswerable queries}: the system should abstain rather than hallucinate.
+    \item \textbf{Retrieval miss}: the system should surface low-confidence signals (e.g., low similarity) and avoid overconfident synthesis.
+\end{itemize}
+Maintain a regression suite of queries and expected behaviors. Run it on every change to embeddings, chunking, retriever weights, prompt templates, or reranker models.
+
+\subsubsection*{Summary}
+RAG evaluation is multi-dimensional: retrieval recall, generation faithfulness, citation quality, and operational metrics must all be tracked. Without systematic evaluation, improvements in one component (e.g., more aggressive chunking) can silently degrade the end-to-end system.
+
+\section{Performance Optimization in RAG}
+\label{sec:rag-performance-optimization-in-rag}
+RAG introduces overhead: retrieval, reranking, and longer prompts all add latency and cost. Optimization should start by decomposing end-to-end latency into stages and identifying the dominant bottleneck for your workload.
+
+\subsection{Decompose and Measure}
+RAG introduces additional stages on the critical path, so performance optimization should start with instrumentation, not intuition. A practical latency model is:
+\[
+T_{\text{total}} \approx T_{\text{embed}} + T_{\text{retrieve}} + T_{\text{rerank}} + T_{\text{pack}} + T_{\text{generate}}.
+\]
+Instrument each term separately and track p95/p99, not just averages. Tail behavior is especially important because end-to-end latency composes across stages: a mildly ``spiky'' retriever combined with a mildly ``spiky'' generator can yield a much worse p99 overall \cite{Dean2013TailAtScale}.
+
+In production, treat each request as a trace with correlated identifiers: log the embedding model/version, index/version, retrieved IDs, reranker model/version, packed token count, and generation token count. This makes regressions attributable to specific components (e.g., ``p99 retrieval increased after IVF parameter change'') rather than to the system as an opaque whole. For high-throughput services, use sampling (e.g., 1--5\% of traces) to control log volume while still preserving debuggability.
+
+\subsection{Retrieval-Side Optimizations}
+Retrieval performance is governed by both algorithmic settings (ANN parameters, reranking budgets) and systems concerns (cache locality, network hops, fan-out). Common levers include:
+\begin{itemize}
+    \item \textbf{ANN tuning}: trade recall for latency by tuning HNSW/IVF parameters \cite{Malkov2018HNSW,Johnson2019FAISS}. Always validate on a fixed regression set; ANN tuning is a common source of silent recall regressions.
+    \item \textbf{Metadata pruning and routing}: filter by time/tenant/region and route to a relevant partition (Section~\ref{sec:rag-vector-database-considerations}) to reduce the search space.
+    \item \textbf{Caching}: cache frequent query embeddings and (when safe) retrieval results for repeated queries. Key caches by corpus/index version to avoid serving stale evidence after re-indexing.
+    \item \textbf{Batching}: batch query embeddings and reranker scoring when serving high throughput, especially for cross-encoder rerankers with GPU acceleration.
+\end{itemize}
+
+Two pragmatic techniques often yield outsized gains. First, maintain a \emph{hot tier}: keep frequently accessed vectors (or entire shards) in RAM and push cold content to slower storage or lower-priority replicas. Second, reduce cross-shard fan-out by using confidence-aware routing: query a primary shard, and only broaden the search when necessary. These techniques minimize network overhead and stabilize tail latency for high-QPS workloads.
+
+\subsection{Prompt and Context Optimizations}
+Prompt cost scales with the number of input tokens, and long contexts can degrade both latency and grounding quality. Reduce token load without sacrificing evidence quality:
+\begin{itemize}
+    \item pack fewer but higher-quality passages (rerank, dedupe),
+    \item use extractive compression (answer-bearing sentence selection) rather than blind truncation,
+    \item summarize long passages when necessary, but preserve citations and avoid paraphrasing numeric claims,
+    \item adopt templates that minimize boilerplate and keep evidence boundaries explicit.
+\end{itemize}
+
+Be cautious with aggressive summarization of retrieved documents: it can introduce a second opportunity for hallucination. If you add a summarization or ``contextual compression'' step, evaluate it as part of the RAG pipeline (faithfulness, citation accuracy), not as a standalone component. In many production systems, a lightweight extractive strategy (select sentences around matched spans) provides most of the token savings with far lower risk than abstractive summarization.
+
+\subsection{Generation-Side Optimizations}
+When generation is the bottleneck, the most effective controls are:
+\begin{itemize}
+    \item \textbf{model routing}: use smaller models for low-risk queries and escalate when needed,
+    \item \textbf{response caching}: cache deterministic answers with TTLs and corpus-version keys,
+    \item \textbf{streaming}: stream tokens to improve perceived latency.
+\end{itemize}
+For deeper inference optimization (batching policies, KV-cache engineering, speculative decoding), see Chapter~\ref{ch:performance}.
+
+\subsubsection*{Summary}
+Performance optimization in RAG is primarily about (i) efficient retrieval under latency SLOs and (ii) minimizing prompt tokens while preserving answer-bearing evidence.
+
+\FloatBarrier
+\section{Security and Compliance}
+\label{sec:rag-security-and-compliance}
+RAG systems often handle sensitive corpora and must be treated as production data systems with an AI interface. Security controls must cover the ingestion pipeline, the vector store, and the generation layer.
+
+\subsection{Access Control and Tenant Isolation}
+If the corpus contains confidential content, enforce access control at retrieval time. A common pattern is to attach ACL metadata to each chunk and filter retrieval results using user identity and entitlements. For multi-tenant systems, strong isolation (separate indexes or strict metadata filters) reduces the risk of cross-tenant leakage.
+
+\subsection{Data Protection: Encryption, Retention, and Deletion}
+Use encryption in transit and at rest, and define retention policies for both raw documents and embeddings. If documents must be deleted (e.g., policy updates, user deletion requests), ensure you can delete both the raw text and all derived vectors and caches. Design ingestion with "un-ingestion" as a first-class capability.
+
+\subsection{Prompt Injection and Untrusted Content}
+RAG corpora frequently include untrusted text (web pages, emails, social media). Retrieved passages may contain instructions that conflict with your system prompt. Mitigations include:
+\begin{itemize}
+    \item strict system instructions that treat retrieved text as \emph{data}, not instructions,
+    \item sanitization and normalization during ingestion,
+    \item retrieval filters that exclude low-trust sources for high-stakes answers,
+    \item output scanning for sensitive patterns (DLP) when required.
+\end{itemize}
+
+\subsection{Auditability and Monitoring}
+Log query inputs, retrieved document IDs, and model outputs (with appropriate redaction) to support debugging, compliance audits, and incident response. For \ishtar{}, auditability is essential: it enables editors to trace claims back to sources and to diagnose retrieval failures quickly.
+
+\subsubsection*{Summary}
+Security in RAG is the combination of standard data-system controls (access control, encryption, audit logs) and AI-specific controls (prompt injection defenses, output leakage monitoring, provenance). Table~\ref{tab:ch08_security_controls} provides a comprehensive overview of security controls across the RAG pipeline.
+
+\begin{table}[tb]
+\centering
+\small
+\caption{RAG security controls protect sensitive corpora and prevent AI-specific vulnerabilities. Combining standard data-system controls with AI-specific defenses creates layered protection. Each control area addresses distinct threat vectors, enabling comprehensive security coverage across ingestion, storage, and generation layers.}
+\label{tab:ch08_security_controls}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Control Area} & \textbf{Mechanism} & \textbf{Implementation} & \textbf{Compliance Alignment} \\
+\midrule
+\textbf{Access Control \& Tenant Isolation} & ACL metadata per chunk; user identity/entitlement filtering; separate indexes or strict metadata filters for multi-tenant systems & Attach ACL tags during ingestion; filter retrieval results at query time; enforce isolation via routing or separate indexes & GDPR (data minimization); SOC 2 (access controls); multi-tenant data residency requirements \\
+\addlinespace[1pt]
+\textbf{Encryption} & TLS 1.2/1.3 in transit; AES-256 at rest; secure key management (cloud KMS) & Encrypt all API endpoints; encrypt vector store and metadata; rotate encryption keys regularly & GDPR (data protection); PCI DSS (if handling payment data); HIPAA (if handling health data) \\
+\addlinespace[1pt]
+\textbf{Data Retention \& Deletion} & Retention policies for raw documents and embeddings; ``un-ingestion'' capability for deletion requests & Automated retention enforcement; delete both raw text and derived vectors; version tracking for audit trails & GDPR (right to erasure); CCPA (deletion requests); data minimization principles \\
+\addlinespace[1pt]
+\textbf{Prompt Injection Defense} & Strict system instructions treating retrieved text as data; sanitization during ingestion; low-trust source filtering; DLP scanning & System prompt hierarchy; content sanitization pipelines; source trust scoring; output pattern detection & OWASP LLM Top 10 \cite{owasp_llm_top10}; security best practices for AI systems \\
+\addlinespace[1pt]
+\textbf{Auditability \& Monitoring} & Log query inputs, retrieved document IDs, model outputs (with redaction); trace claims to sources & Structured logging with PII redaction; correlation IDs; audit trail retention; query access logging & GDPR (audit requirements); SOC 2 (monitoring); compliance audit support \\
+\addlinespace[1pt]
+\textbf{Provenance Tracking} & Source identifiers, timestamps, version tracking for documents and embeddings & Metadata enrichment during ingestion; versioned chunk IDs; citation links in outputs & Transparency requirements; source verification (critical for journalism/legal) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\FloatBarrier
+\section{Case Study: Ishtar AI's RAG Pipeline}
+\label{sec:rag-case-study-ishtar-ai-s-rag-pipeline}
+This section illustrates an evidence-first RAG design for \ishtar{}, a crisis intelligence assistant. The purpose is not to prescribe a single vendor stack, but to show how the architectural decisions discussed earlier become operational controls in a high-stakes setting.
+
+\subsection{Overview}
+\ishtar{} ingests reports from verified news wires, humanitarian organizations, government bulletins, and selected social feeds. Users ask questions such as: "How many people are missing after the flood in Region X?" or "What relief resources are available?" Without retrieval, a base model would either be stale or speculative; with RAG, \ishtar{} can cite near-real-time sources \cite{Lewis2020RAG,Nakano2021WebGPT}.
+
+\subsection{Architecture}
+\begin{enumerate}
+    \item \textbf{Ingestion agents} normalize, deduplicate, and enrich documents with region/time/source metadata.
+    \item \textbf{Embedding service} computes chunk embeddings and upserts them into the vector store.
+    \item \textbf{Vector store} indexes chunks for low-latency retrieval and supports metadata filters.
+    \item \textbf{Retriever + reranker} retrieves candidates (hybrid when needed) and selects top evidence passages.
+    \item \textbf{Context packer} assembles a prompt with source identifiers and instructions for grounded answers.
+\end{enumerate}
+
+Fig.~\ref{fig:ch08_ishtar_rag} illustrates the complete \ishtar{} RAG pipeline architecture.
+
+\begin{figure}[tb]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[
+    node distance=14mm,
+    auto,
+    block/.style={rectangle, draw=none, fill=gray!6, rounded corners, minimum height=8mm, minimum width=27mm, align=center, inner sep=3pt, font=\small},
+    arrow/.style={-{Latex}, line width=0.8pt}
+]
+\node[block] (src) {Trusted sources\\ \footnotesize (news, NGOs, bulletins)};
+\node[block, below of=src] (ing) {Ingestion \& chunking\\ \footnotesize normalize + metadata};
+\node[block, below of=ing] (idx) {Embed + index\\ \footnotesize vector store};
+\node[block, below of=idx] (ret) {Retrieve + rerank\\ \footnotesize hybrid + filtering};
+\node[block, below of=ret] (gen) {Generate answer\\ \footnotesize with citations};
+
+\draw[arrow] (src) -- (ing);
+\draw[arrow] (ing) -- (idx);
+\draw[arrow] (idx) -- (ret);
+\draw[arrow] (ret) -- (gen);
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{\ishtar{} RAG pipeline demonstrates production-ready observability and versioning practices. Each stage is observable and versioned: changes to ingestion, embeddings, retrieval, or prompting are evaluated via regression tests before release. This approach enables reliable iteration by ensuring that modifications are validated before affecting production users.}
+\label{fig:ch08_ishtar_rag}
+\end{figure}
+
+\subsection{Operational Outcomes}
+In internal evaluations, \ishtar{} achieved three practical improvements:
+\begin{itemize}
+    \item \textbf{Lower hallucination rate}: answers were more consistently supported by retrieved sources.
+    \item \textbf{Faster freshness}: new updates became available to the assistant within minutes of ingestion.
+    \item \textbf{Higher trust}: citation-backed outputs made verification and editorial review straightforward.
+\end{itemize}
+These outcomes depended less on the base model and more on retrieval quality, metadata governance, and disciplined prompt construction.
+
+\subsubsection*{Lessons Learned}
+\begin{itemize}
+    \item \textbf{Evidence quality beats evidence quantity}: fewer, higher-quality passages outperform large prompts.
+    \item \textbf{Metadata is a product feature}: region/time/source tags enable both relevance and governance.
+    \item \textbf{RAG must be observable}: log retrieved IDs and prompt sizes to debug failures quickly.
+\end{itemize}
+
+\section{Best Practices Checklist}
+\label{sec:rag-best-practices-checklist}
+RAG transforms LLMs from static knowledge stores into dynamic, evidence-grounded systems. The following checklist distills practices that consistently improve reliability in production deployments.
+
+\ChecklistBox[Best Practices Checklist]{
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}X@{}}
+\textbf{Checklist Item} & \textbf{Description} \\
+\midrule
+\textbf{Corpus \& ingestion} & Curate reliable sources; normalize and deduplicate; version chunking rules; enrich metadata (time, source, ACL). Monitor ingestion lag and parsing errors. \\
+\textbf{Embeddings \& indexing} & Treat embedding model + chunking as a coupled versioned artifact. Plan for re-indexing and backfills. Benchmark ANN parameters against recall and latency SLOs. \\
+\textbf{Retrieval \& reranking} & Use hybrid retrieval when queries mix jargon and natural language. Retrieve for recall, rerank for precision. Apply metadata filters for freshness and permissions. \\
+\textbf{Prompt construction} & Pack a small, well-delimited evidence set. Include source identifiers and clear abstention instructions. Prefer extractive compression over truncation when possible. \\
+\textbf{Evaluation \& monitoring} & Track Recall@k, faithfulness, and citation precision. Maintain regression sets and run them on every change. Log retrieved IDs, prompt sizes, and abstentions. \\
+\textbf{Security \& governance} & Enforce access control at retrieval time, encrypt data, retain audit logs, and defend against prompt injection from retrieved text. \\
+\end{tabularx}
+}
+
+\medskip
+\noindent\textbf{RAG Evaluation and Responsible Deployment.} The evaluation metrics discussed in this chapter---faithfulness, retrieval relevance, and source attribution---form the foundation for comprehensive LLM system assessment covered in Chapter~\ref{ch:testing}. The RAG-specific concerns of hallucination detection, retrieval precision, and citation accuracy extend naturally to the broader testing and evaluation framework, where adversarial testing, robustness checks, and regression gates ensure system integrity across all LLM components. Similarly, RAG's emphasis on source transparency, knowledge base curation, and data privacy aligns with the ethical considerations in Chapter~\ref{ch:ethics}: ensuring that retrieved information is unbiased, that sensitive data is handled appropriately, and that users can verify claims through citations are all aspects of responsible AI deployment. The operational discipline required for production RAG---monitoring retrieval quality, maintaining audit logs, and curating knowledge sources---complements the governance frameworks needed for ethical LLM operations.
+
+\section*{Chapter Summary}
+RAG provides a practical mechanism for grounding LLM outputs in external evidence, improving factuality, freshness, and trust while enabling source attribution.
+From an LLMOps standpoint, production-grade RAG requires treating ingestion, chunking, indexing, retrieval, reranking, and prompt construction as versioned, observable components with explicit quality gates.
+This chapter presented core RAG architectures and retriever strategies (dense, sparse, and hybrid), modern enhancements (fusion, late interaction, and query rewriting), and the operational concerns of scaling, evaluation, and security.
+In the next chapters, these RAG foundations are integrated with serving, orchestration, monitoring, and release discipline through the \ishtar{} reference implementation.
+
+\printbibliography[
+  heading=subbibliography,
+  segment=\therefsegment,
+  resetnumbers=true
+]

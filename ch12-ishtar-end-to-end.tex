@@ -1,0 +1,888 @@
+\chapter{Case Study Conclusion -- Implementing \ishtar{} End-to-End}
+\label{ch:case-study}
+\newrefsegment
+
+% ----------------------------
+% Chapter 12 — Abstract (online)
+% ----------------------------
+\abstract*{This chapter synthesizes the book's methods through an end-to-end implementation of the Ishtar AI system, from requirements to production operations. We begin with problem framing and a threat model suitable for conflict-zone journalism, then restate functional and non-functional requirements such as timeliness, citation-backed factuality, privacy, and resilience under bursty demand. We recap the reference architecture (ingestion, vector index, RAG, multi-agent orchestration, serving, and observability) and provide concrete implementation steps: platform and infrastructure setup, ingestion and embedding pipelines, index versioning, retrieval and prompt contracts with citations and uncertainty, and a controller pattern that composes retrieval, synthesis, verification, safety, and optional translation agents. We then specify CI/CD and evaluation gates that treat prompts, agent graphs, retrieval configuration, serving parameters, and index snapshots as versioned release units with canary rollouts and rollback automation. Operational practices—SLOs, dashboards, incident response, drift management, periodic re-indexing, and knowledge-base curation—are tied to measurable outcomes in latency, quality, and cost. The chapter concludes with an Ishtar-derived end-to-end checklist and future directions for multimodal inputs, adaptive planning, and standardized evaluation.}
+
+\epigraph{\emph{``A system is only as strong as its weakest operational link.''}}{David Stroud}
+
+% --- Reader-visible abstract (PDF) ---
+\textbf{Abstract} This chapter synthesizes the book's methods through an end-to-end implementation of the Ishtar AI system, from requirements to production operations. We begin with problem framing and a threat model suitable for conflict-zone journalism, then restate functional and non-functional requirements such as timeliness, citation-backed factuality, privacy, and resilience under bursty demand. We recap the reference architecture (ingestion, vector index, RAG, multi-agent orchestration, serving, and observability) and provide concrete implementation steps: platform and infrastructure setup, ingestion and embedding pipelines, index versioning, retrieval and prompt contracts with citations and uncertainty, and a controller pattern that composes retrieval, synthesis, verification, safety, and optional translation agents. We then specify CI/CD and evaluation gates that treat prompts, agent graphs, retrieval configuration, serving parameters, and index snapshots as versioned release units with canary rollouts and rollback automation. Operational practices—SLOs, dashboards, incident response, drift management, periodic re-indexing, and knowledge-base curation—are tied to measurable outcomes in latency, quality, and cost. The chapter concludes with an Ishtar-derived end-to-end checklist and future directions for multimodal inputs, adaptive planning, and standardized evaluation.
+
+\begin{tcolorbox}[
+  title={\textbf{Chapter Overview}},
+  colback=blue!5,
+  colframe=blue!40!black,
+  colbacktitle=blue!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm
+]
+\noindent\textbf{Chapter roadmap.}
+This chapter synthesizes all book methods into an end-to-end LLMOps implementation:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item \ishtar{} problem framing and concrete operational requirements
+    \item System architecture recap and step-by-step build walkthrough
+    \item Infrastructure provisioning, ingestion and knowledge-base construction
+    \item Retrieval-augmented generation, multi-agent orchestration, CI/CD and evaluation gates
+    \item Observability and SLO enforcement, security and responsible-deployment controls
+    \item Measured performance outcomes, lessons learned, and forward-looking extensions
+\end{itemize}
+
+\medskip
+\noindent\textbf{Learning objectives.} After reading this chapter, you will be able to:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Synthesize all book methods into an end-to-end LLMOps implementation
+    \item Frame problems and requirements for high-stakes LLM applications
+    \item Build complete LLMOps stacks from ingestion to governance
+    \item Implement CI/CD and evaluation gates for versioned release units
+    \item Operationalize SLOs, observability, and security controls
+\end{itemize}
+\end{tcolorbox}
+
+% Define llmlisting counter and environment if not already defined
+\makeatletter
+\@ifundefined{c@llmlisting}{%
+  \newcounter{llmlisting}[chapter]
+  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
+}{}
+\@ifundefined{llmlistingbox}{%
+  \newenvironment{llmlistingbox}[1]{%
+    \refstepcounter{llmlisting}%
+    \begin{tcolorbox}[
+      title={\textbf{Listing \thellmlisting: #1}},
+      colback=black!2,
+      colframe=black!50,
+      colbacktitle=black!12,
+      coltitle=black,
+      fonttitle=\bfseries,
+      boxrule=0.6pt,
+      arc=3pt,
+      left=3mm, right=3mm, top=2mm, bottom=4mm,
+      breakable,
+      after skip=6pt
+    ]
+  }{\end{tcolorbox}}%
+}{%
+  \renewenvironment{llmlistingbox}[1]{%
+    \refstepcounter{llmlisting}%
+    \begin{tcolorbox}[
+      title={\textbf{Listing \thellmlisting: #1}},
+      colback=black!2,
+      colframe=black!50,
+      colbacktitle=black!12,
+      coltitle=black,
+      fonttitle=\bfseries,
+      boxrule=0.6pt,
+      arc=3pt,
+      left=3mm, right=3mm, top=2mm, bottom=4mm,
+      breakable,
+      after skip=6pt
+    ]
+  }{\end{tcolorbox}}%
+}
+\makeatother
+
+\section{Introduction}
+\label{sec:ch12-introduction}
+This chapter synthesizes the methods developed throughout the book into a single, end-to-end implementation\index{implementation!end-to-end} narrative for \ishtar{}: an LLM-driven assistant built for journalists operating in conflict and crisis zones.
+Unlike low-stakes consumer chatbots, \ishtar{} is designed for \emph{time-critical}, \emph{high-uncertainty}, and \emph{high-consequence} decisions where misinformation\index{misinformation} and sensitive-data exposure\index{data exposure} can cause direct harm.
+Accordingly, the system is engineered as a full LLMOps stack\index{LLMOps!stack}---from ingestion and retrieval to serving, evaluation, observability, and governance---rather than as a single model invocation.
+
+\subsection{Synthesis Across the Four-Part Structure}
+\label{sec:ishtar-four-part-synthesis}
+
+The \ishtar{} implementation demonstrates how the four-part structure of this book translates into a cohesive production system. 
+\begin{itemize}
+    \item \textbf{Part I (Foundations):} The infrastructure provisioning (Chapter~\ref{ch:infra}) and core LLMOps concepts (Chapter~\ref{ch:llmops-fundamentals}) establish the platform and operational vocabulary.
+    \item \textbf{Part II (Delivery and Production Operations):} CI/CD gates (Chapter~\ref{ch:cicd}), comprehensive observability (Chapter~\ref{ch:monitoring}), and intelligent scaling (Chapter~\ref{ch:scaling}) ensure reliable deployment and operation.
+    \item \textbf{Part III (Optimization, Retrieval, and Agents):} Performance optimization (Chapter~\ref{ch:performance}), retrieval-augmented generation (Chapter~\ref{ch:rag}), and multi-agent orchestration (Chapter~\ref{ch:multiagent}) enable sophisticated, efficient, and reliable LLM capabilities.
+    \item \textbf{Part IV (Quality, Governance, and Capstone):} Rigorous testing and evaluation (Chapter~\ref{ch:testing}), ethical safeguards (Chapter~\ref{ch:ethics}), and this end-to-end case study synthesize all principles into a production-ready system.
+\end{itemize}
+
+\begin{tcolorbox}[
+  title={\textbf{At a Glance: The End-to-End \ishtar{} Build}},
+  colback=black!5,
+  colframe=black!40!black,
+  colbacktitle=black!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt,
+  breakable
+]
+\small
+\begin{enumerate}[leftmargin=*,label=\textbf{Step \arabic*:}]
+    \item \textbf{Provision the platform:} GPU Kubernetes cluster, networking, storage, secrets, and baseline observability (\S\ref{sec:ishtar-step-infra}).
+    \item \textbf{Build ingestion:} connectors, normalization, de-duplication, translation, PII scrubbing, and content chunking (\S\ref{sec:ishtar-step-ingestion}).
+    \item \textbf{Construct the knowledge base:} embedding services, FAISS\index{FAISS}/HNSW\index{HNSW} index design, metadata schema, and snapshot/version strategy (\S\ref{sec:ishtar-step-kb}).
+    \item \textbf{Implement RAG:} retrieval, reranking, context assembly, and citation-grounded prompting (\S\ref{sec:ishtar-step-rag}).
+    \item \textbf{Orchestrate with agents:} specialized roles (retrieval, synthesis, verification, safety, translation) under a controller (\S\ref{sec:ishtar-step-agents}).
+    \item \textbf{Operationalize delivery:} CI/CD, offline/online evaluation gates, and progressive rollout (\S\ref{sec:ishtar-step-cicd}).
+    \item \textbf{Instrument and govern:} tracing/metrics/logs, SLOs, alerting, audits, and ethical safeguards (\S\ref{sec:ishtar-ops}--\S\ref{sec:ishtar-ethics}).
+\end{enumerate}
+\end{tcolorbox}
+
+% ---------------------------------------------------------------------
+\section{Overview of \ishtar{}}
+\label{sec:ishtar-overview}
+
+\ishtar{} continuously ingests heterogeneous, fast-changing information (news wires, NGO bulletins, public health and infrastructure reports, and curated social-media signals) and provides journalists with structured, citation-grounded answers and summaries.
+The core design premise is that \emph{freshness and evidence} are first-class system objectives; therefore, the LLM is paired with a retrieval layer and a verification layer, rather than being treated as a stand-alone oracle (cf.\ Chapters~\ref{ch:rag} and~\ref{ch:multiagent}).
+
+\subsection{Problem framing and threat model}
+\label{sec:ishtar-problem-framing}
+
+\textbf{Users.} The primary users are authorized reporters and editors; \ishtar{} is not deployed as a public-facing chatbot.
+Access control is therefore part of the threat model: the system must assume that misuse can originate from both malicious insiders and compromised accounts.
+
+\textbf{Primary risks.}
+\begin{itemize}
+    \item \textbf{Hallucination and misinformation:} plausible but unsupported claims are unacceptable in journalistic workflows.
+    \item \textbf{Source manipulation:} adversarial documents (or prompt injection) can attempt to steer answers or tool use (Chapter~\ref{ch:testing} and Chapter~\ref{ch:ethics}).
+    \item \textbf{Sensitive information exposure:} even if inputs are public, aggregation can reveal operationally sensitive details (e.g., coordinates, identities, or patterns of movement).
+    \item \textbf{Operational failure:} degraded latency, retrieval outages, or model-serving instability during breaking events undermine trust and adoption.
+\end{itemize}
+
+\subsection{Functional and non-functional requirements}
+\label{sec:ishtar-requirements}
+
+An end-to-end system must be engineered against explicit requirements, not informal aspirations.
+Table~\ref{tab:ch12_ishtar_requirements} summarizes representative targets used to guide \ishtar{} design.
+
+\begin{table}[t]
+\centering
+\small
+\caption{End-to-end requirements drive architectural decisions and operational priorities. \ishtar{}'s requirements emphasize latency (sub-second responses), accuracy (verified facts), and scalability (traffic surges). These requirements determine infrastructure choices, evaluation strategies, and monitoring priorities throughout the system design.}
+\label{tab:ch12_ishtar_requirements}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{32mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Category} & \textbf{Requirement} & \textbf{Target / operationalization} \\
+\midrule
+Freshness & Ingest and index new reports quickly & Poll/stream sources continuously; end-to-end ingest $\rightarrow$ searchable in minutes; backlog alerting if lag grows. \\
+Latency & Interactive response time & TTFT $\approx$ sub-second for typical queries; p90 end-to-end completion under a few seconds; streaming for perceived latency. \\
+Groundedness & Evidence-backed outputs & Enforce citations; prefer abstention over fabrication; verification agent flags unsupported claims. \\
+Safety \& privacy & Avoid exposing sensitive data & PII/coordinate scrubbing in preprocessing; output redaction/refusal policies; audit logs. \\
+Availability & Operational reliability & 99.5\%+ service-level objective; graceful degradation and fallback modes. \\
+Scalability & Breaking-news bursts & GPU autoscaling; backpressure; priority scheduling for internal users; cache and hot-tier retrieval. \\
+Cost control & Predictable unit economics & Track cost/query; scale-to-zero for non-critical workloads; model routing where feasible. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------
+\section{Architecture recap}
+\label{sec:ishtar-arch}
+
+The implemented system follows a modular architecture: ingestion and indexing operate continuously in the background, while query handling is a low-latency, request/response pipeline.
+The major subsystems are:
+
+\begin{itemize}
+    \item \textbf{Ingestion services} that collect, normalize, de-duplicate, translate, and redact sources before indexing.
+    \item \textbf{Document store} for raw and normalized text plus metadata (object storage + relational metadata service).
+    \item \textbf{Embedding service} that produces dense vectors for both documents and queries.
+    \item \textbf{Vector index} (FAISS/HNSW) for approximate nearest-neighbor retrieval\index{retrieval!nearest-neighbor} with strict latency budgets~\cite{johnson2019billion,Malkov2018HNSW}.
+    \item \textbf{RAG runtime} that assembles context, applies reranking/filters, and enforces a citation-oriented prompt contract~\cite{Lewis2020RAG}.
+    \item \textbf{Multi-agent controller} that coordinates synthesis, verification, safety, and translation (Chapter~\ref{ch:multiagent}).
+    \item \textbf{LLM serving} on GPU nodes using optimized inference engines (vLLM\index{vLLM}/TGI\index{TGI}) (Chapters~\ref{ch:infra} and~\ref{ch:performance}).
+    \item \textbf{Observability and governance} spanning traces, metrics, logs, evaluation, and auditability (Chapters~\ref{ch:monitoring} and~\ref{ch:ethics}).
+\end{itemize}
+
+Fig.~\ref{fig:ch12_ishtar_architecture_ch12} depicts the end-to-end flows. The diagram is intentionally operational: it shows where persistence boundaries exist, where latency budgets apply, and where safety checks are enforced.
+
+\begin{figure}[tb]
+\centering
+\begin{llmfigbox}
+% Color definitions
+\definecolor{ingestblue}{RGB}{44,102,146}
+\definecolor{querygreen}{RGB}{34,139,96}
+\definecolor{sourceorange}{RGB}{201,111,29}
+\definecolor{processpurple}{RGB}{123,88,163}
+\definecolor{storeviolet}{RGB}{153,102,204}
+\definecolor{retrievered}{RGB}{173,63,60}
+\definecolor{llmteal}{RGB}{0,128,128}
+\definecolor{agentcyan}{RGB}{0,139,139}
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw=none, rounded corners=5pt, align=center, minimum height=9mm, inner sep=4pt, font=\small\bfseries},
+  lane/.style={draw=none, rounded corners=6pt},
+  arrow/.style={-{Stealth[length=2.5mm,width=2mm]}, line width=1.2pt, color=black!70},
+  dashedarrow/.style={-{Stealth[length=2.5mm,width=2mm]}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=black!60},
+  note/.style={font=\small\bfseries, text=black!80, align=left}
+]
+
+% Lanes
+\node[lane, fill=ingestblue!8, minimum width=0.95\linewidth, minimum height=28mm] (inglane) {};
+\node[lane, fill=querygreen!8, minimum width=0.95\linewidth, minimum height=32mm, below=9mm of inglane] (querylane) {};
+\node[note, anchor=west] at ([xshift=5mm]inglane.north west) {Continuous ingestion \& indexing (background)};
+\node[note, anchor=west] at ([xshift=5mm]querylane.north west) {Online query handling (interactive path)};
+
+% Ingestion lane nodes
+\node[box, fill=sourceorange!15, anchor=west] (sources) at ([xshift=7mm]inglane.west) {Sources\\\footnotesize (news, NGO,\\social, health)};
+\node[box, fill=processpurple!15, right=7mm of sources] (ingest) {Ingestion\\\footnotesize parse \& normalize};
+\node[box, fill=processpurple!15, right=7mm of ingest] (scrub) {Safety preprocessing\\\footnotesize PII/coord scrubbing};
+\node[box, fill=processpurple!15, right=7mm of scrub] (chunkembed) {Chunk \& embed\\\footnotesize batch GPU/CPU};
+\node[box, fill=storeviolet!15, right=7mm of chunkembed] (docstore) {Doc store\\\footnotesize text + metadata};
+\node[box, fill=storeviolet!15, right=7mm of docstore] (vec) {Vector index\\\footnotesize FAISS/HNSW};
+
+\draw[arrow] (sources) -- (ingest);
+\draw[arrow] (ingest) -- (scrub);
+\draw[arrow] (scrub) -- (chunkembed);
+\draw[arrow] (chunkembed) -- (docstore);
+\draw[arrow] (chunkembed) -- (vec);
+
+% Query lane nodes
+\node[box, fill=querygreen!15, anchor=west] (user) at ([xshift=7mm]querylane.west) {Journalist\\\footnotesize query/UI};
+\node[box, fill=querygreen!15, right=7mm of user] (gateway) {API gateway\\\footnotesize auth \& rate limits};
+\node[box, fill=querygreen!15, right=7mm of gateway] (controller) {Orchestrator\\\footnotesize agent controller};
+\node[box, fill=retrievered!15, right=7mm of controller] (retr) {Retriever\\\footnotesize ANN + filters};
+\node[box, fill=llmteal!15, right=7mm of retr] (llm) {LLM serving\\\footnotesize vLLM/TGI};
+\node[box, fill=agentcyan!15, right=7mm of llm] (agents) {Post-processing\\\footnotesize verify \& safety};
+\node[box, fill=querygreen!15, right=7mm of agents] (resp) {Answer\\\footnotesize citations + disclaimers};
+
+\draw[arrow] (user) -- (gateway);
+\draw[arrow] (gateway) -- (controller);
+\draw[arrow] (controller) -- (retr);
+\draw[arrow] (retr) -- (llm);
+\draw[arrow] (llm) -- (agents);
+\draw[arrow] (agents) -- (resp);
+
+% Retrieval dependency
+\draw[dashedarrow] (retr.north) .. controls +(0,10mm) and +(0,10mm) .. (vec.north);
+
+% Observability note
+\node[note, anchor=south east] at ([xshift=-2mm,yshift=2mm]querylane.south east)
+{Observability spans all components:\\
+OpenTelemetry traces + Prometheus metrics + audit logs.};
+
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{End-to-end \ishtar{} architecture demonstrates production-ready LLMOps integration. Background ingestion continuously updates a document store and vector index, ensuring freshness. Online query handling performs authenticated retrieval-augmented generation, followed by verification and safety post-processing, under end-to-end tracing and monitoring. This architecture illustrates how ingestion, retrieval, orchestration, and observability integrate into a complete production system.}
+\label{fig:ch12_ishtar_architecture_ch12}
+\end{figure}
+
+% ---------------------------------------------------------------------
+\section{Implementation steps}
+\label{sec:ishtar-implementation-ch12}
+
+This section provides a practitioner-oriented blueprint for building \ishtar{} end-to-end.
+The intent is not to prescribe a single vendor-specific stack, but to document the \emph{interfaces}, \emph{operational contracts}, and \emph{decision points} that make the system reliable in production.
+
+\subsection{Step 1: Platform and infrastructure}
+\label{sec:ishtar-step-infra}
+
+\textbf{Goal.} Provision a reproducible execution platform for GPU inference and data pipelines, with security and observability baked in from day one (Chapter~\ref{ch:infra}).
+
+\subsubsection{Cluster design}
+\ishtar{} runs on a Kubernetes-based microservices platform~\cite{k8s_architecture,k8s_components}.
+GPU nodes host LLM serving and (optionally) high-throughput embedding services; CPU nodes host ingestion, orchestration, reranking, and supporting services.
+A minimal but production-oriented cluster design includes:
+\begin{itemize}
+    \item \textbf{GPU node pool:} isolated via taints/tolerations; autoscaled separately from CPU pools.
+    \item \textbf{Network segmentation:} private subnets; egress controls for ingestion connectors; strict service-to-service policies where possible.
+    \item \textbf{Persistent storage:} object storage for documents and index snapshots; SSD-backed volumes for vector index persistence.
+    \item \textbf{Baseline observability:} OpenTelemetry collector, Prometheus, and Grafana installed before application rollout~\cite{prometheus,grafana,otel_spec}.
+\end{itemize}
+
+\noindent\textbf{Reference deployment (case-study configuration).}
+To make the discussion concrete, the \ishtar{} reference deployment used a dedicated GPU pool equivalent to \emph{eight NVIDIA A100 80GB GPUs} across two nodes, with a separate CPU pool for ingestion and orchestration.
+The primary interactive route served a 70B-class open model (e.g., \texttt{Llama-3.1-70B}) with tensor parallelism and mixed precision.
+In practice, memory headroom was managed with quantization on selected routes and with serving-runtime techniques such as continuous batching\index{batching!continuous} and paged KV-cache allocation (vLLM/PagedAttention\index{PagedAttention})~\cite{Kwon2023vLLM,tgi_docs}.
+These details matter operationally: they determine feasible batch sizes, tail latency behavior, and the degree to which bursty newsroom traffic can be absorbed without breaching SLOs (Chapter~\ref{ch:scaling}).
+
+\subsubsection{Infrastructure-as-code}
+All infrastructure is defined via IaC to ensure reproducibility, reviewability, and fast recovery~\cite{terraform-docs,terraform_recommended_practices}.
+The \emph{operational} objective is that a new region can be bootstrapped from source control with minimal manual steps.
+
+\begin{llmlistingbox}{Terraform module interface example}
+\label{lst:ch12_terraform_module}
+\begin{lstlisting}[style=springer]
+# Example (conceptual) Terraform module interface
+module "ishtar_cluster" {
+  source        = "./modules/k8s_cluster"
+  region        = "us-east-1"
+  cpu_node_size = "m7i.2xlarge"
+  gpu_node_size = "p4d.24xlarge"   # or equivalent
+  gpu_min       = 2
+  gpu_max       = 16
+  enable_oidc   = true             # enables workload identity / OIDC
+}
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsubsection{GPU scheduling and serving pods}
+GPU workloads request \texttt{nvidia.com/gpu} limits and are pinned to the GPU pool via node selectors and tolerations.
+Horizontal scaling is performed at the \emph{pod} level, while vertical scaling is performed by selecting the appropriate GPU type and memory headroom (Chapter~\ref{ch:scaling}).
+
+\begin{llmlistingbox}{Kubernetes Deployment configuration}
+\label{lst:ch12_k8s_deployment}
+\begin{lstlisting}[style=springer]
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ishtar-llm
+spec:
+  replicas: 2
+  template:
+    spec:
+      nodeSelector:
+        workload: gpu
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: llm
+        image: ghcr.io/ishtar/llm-serving:latest
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+        env:
+        - name: MODEL_ID
+          value: "llama-70b"
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Step 2: Data ingestion pipeline}
+\label{sec:ishtar-step-ingestion}
+
+\textbf{Goal.} Convert heterogeneous, noisy sources into trusted, normalized, retrieval-ready documents with consistent metadata and safety preprocessing.
+
+\subsubsection{Connector layer}
+Ingestion is implemented as a set of connectors and workers:
+\begin{itemize}
+    \item \textbf{Polling connectors} for RSS feeds and scheduled downloads (minutes-scale freshness).
+    \item \textbf{Streaming connectors} for event-driven sources (seconds-scale freshness where available).
+    \item \textbf{Manual ingestion} for journalist-provided documents (upload workflows with provenance metadata).
+\end{itemize}
+
+Each ingested artifact receives a stable document identifier and an immutable raw snapshot for auditability (important in journalism and governance).
+
+\subsubsection{Normalization, de-duplication, and metadata}
+Normalization produces a canonical representation: language tag, timestamp(s), source attribution, geography tags (when available), and a source-trust score.
+De-duplication is performed at two levels:
+\begin{enumerate}
+    \item \textbf{Exact duplicates:} hash-based (e.g., normalized text hash).
+    \item \textbf{Near duplicates:} similarity-based fingerprints; near duplicates are either collapsed or stored with explicit linkage.
+\end{enumerate}
+
+\subsubsection{Safety preprocessing at ingestion}
+In sensitive domains, the safest response is to prevent sensitive data from entering downstream indices whenever possible.
+\ishtar{} uses a \emph{defense-in-depth} approach:
+\begin{itemize}
+    \item rule-based redaction for explicit identifiers and coordinate patterns,
+    \item optional NER-based detection for person names in restricted categories,
+    \item source allowlisting (only vetted sources are indexed for general use).
+\end{itemize}
+
+\subsubsection{Chunking}
+Documents are chunked into passages sized for the target model context and retrieval granularity (Chapter~\ref{ch:rag}).
+A representative configuration is $\sim$300 tokens per chunk with overlap to preserve continuity.
+Chunk metadata includes parent document id, offset ranges, language, and timestamps.
+
+\subsection{Step 3: Knowledge base and vector index}
+\label{sec:ishtar-step-kb}
+
+\textbf{Goal.} Build a high-recall, low-latency retrieval layer with explicit versioning and rollback.
+
+\subsubsection{Embedding service}
+Embeddings are generated for each chunk and stored alongside metadata.
+Batching is essential for cost and throughput; GPU embedding is employed when it reduces unit cost, while CPU embedding is used for lower-volume pipelines.
+
+\subsubsection{Index selection and tuning}
+For \ishtar{}, a FAISS-based ANN\index{ANN|see{Approximate Nearest Neighbor}} index provides predictable latency at million-scale corpora~\cite{johnson2019billion}.
+We employ HNSW for efficient approximate search~\cite{Malkov2018HNSW}, with parameters tuned to balance recall and latency.
+A representative configuration:
+\begin{itemize}
+    \item \texttt{M} $\approx 32$--$48$ (graph connectivity),
+    \item \texttt{efConstruction} $\approx 200$--$400$ (build-time accuracy),
+    \item \texttt{efSearch} $\approx 80$--$120$ (query-time recall/latency trade).
+\end{itemize}
+
+\subsubsection{Metadata schema}
+Operational retrieval requires more than vector similarity. The index is paired with a metadata layer supporting:
+\begin{itemize}
+    \item source class (NGO, local news, international, social),
+    \item time range filters (``last 72 hours'', ``last 6 months''),
+    \item geography tags (region, city, coordinates when safe),
+    \item trust and verification state (vetted vs.\ provisional).
+\end{itemize}
+This enables \emph{policy-aware retrieval} (e.g., prioritizing highly trusted sources for critical claims).
+
+\subsubsection{Snapshots and rollback}
+The index is versioned as an artifact.
+Nightly snapshots (or snapshot-per-ingestion-batch) enable:
+\begin{itemize}
+    \item fast rollback if a bad ingestion batch pollutes the corpus,
+    \item reproducible evaluation (evaluate against a pinned index version),
+    \item forensic auditing (what did the system ``know'' at a given time).
+\end{itemize}
+
+\subsection{Step 4: Retrieval-Augmented Generation (RAG)}
+\label{sec:ishtar-step-rag}
+
+\textbf{Goal.} Ground the LLM in retrieved evidence and enforce a strict citation contract.
+
+\subsubsection{Retrieval and reranking}
+The query is embedded and used to retrieve a candidate set from the ANN index; candidates are filtered by metadata (e.g., recency) and optionally reranked.
+In crisis intelligence, recall\index{recall} is prioritized over precision\index{precision}: it is preferable to retrieve extra context than to omit a key report.
+
+\subsubsection{Context assembly}
+Retrieved chunks are assembled into a context pack:
+\begin{itemize}
+    \item chunks are ordered by a weighted score combining similarity, trust, and recency,
+    \item duplicate sources are collapsed where possible,
+    \item each chunk is assigned a stable citation id (e.g., \texttt{[S1]}, \texttt{[S2]}).
+\end{itemize}
+
+\subsubsection{Prompt contract and citation format}
+A \emph{prompt contract} is defined so downstream systems can reliably parse and evaluate outputs.
+In \ishtar{}, the model is required to:
+\begin{enumerate}
+    \item answer in a structured format (headline summary + bullet evidence + optional uncertainty),
+    \item attach citations to factual claims,
+    \item explicitly mark uncertainty when sources conflict or coverage is weak.
+\end{enumerate}
+
+\begin{llmlistingbox}{Ishtar prompt template}
+\label{lst:ch12_prompt_template}
+\begin{lstlisting}[style=springer]
+SYSTEM: You are Ishtar AI. Answer using ONLY the provided sources.
+- Cite sources using [S#] after each factual claim.
+- If sources conflict or evidence is weak, say so explicitly.
+- Never reveal sensitive personal data or precise coordinates.
+
+USER: {question}
+
+SOURCES:
+[S1] {chunk_1_text}
+[S2] {chunk_2_text}
+...
+\end{lstlisting}
+\end{llmlistingbox}
+
+This contract enables both automated evaluation (citation presence, source usage) and human verification (journalists can open [S\#]).
+
+\subsection{Step 5: Multi-agent orchestration}
+\label{sec:ishtar-step-agents}
+
+\textbf{Goal.} Improve reliability by decomposing work into specialized roles with explicit handoffs and checks (Chapter~\ref{ch:multiagent}).
+
+\subsubsection{Agent roles}
+A production-oriented configuration includes:
+\begin{itemize}
+    \item \textbf{Retrieval agent:} executes retrieval, filters, and reranking; produces the context pack.
+    \item \textbf{Synthesis agent:} generates the draft answer under the prompt contract.
+    \item \textbf{Verification agent:} checks claims against sources; edits or flags uncertainty.
+    \item \textbf{Safety agent:} applies content policies, redaction, and refusal logic.
+    \item \textbf{Translation agent (optional):} translates sources and/or outputs when needed.
+\end{itemize}
+
+\subsubsection{Controller pattern}
+The orchestrator is implemented as a state machine (or graph) that makes the pipeline explicit and observable.
+A simplified controller pseudocode:
+
+\begin{llmlistingbox}{Agent orchestration workflow}
+\label{lst:ch12_agent_orchestration}
+\begin{lstlisting}[style=springer]
+state = {query, user_context}
+
+ctx = RetrievalAgent(state.query)
+draft = SynthesisAgent(state.query, ctx)
+
+verified = VerificationAgent(draft, ctx)
+safe = SafetyAgent(verified)
+
+if safe.requires_translation:
+    safe = TranslationAgent(safe, target_lang=state.user_context.lang)
+
+return safe
+\end{lstlisting}
+\end{llmlistingbox}
+
+Two operational principles are enforced:
+\begin{enumerate}
+    \item \textbf{Every agent emits structured logs and trace spans} (so failures are attributable).
+    \item \textbf{Every agent validates its inputs/outputs} (schema checks, citation consistency).
+\end{enumerate}
+
+\subsubsection{Worked walkthrough: a single query trace}
+\label{sec:ishtar-query-trace}
+
+A useful way to validate end-to-end correctness is to ``walk'' a single query through the system while inspecting the trace waterfall (Chapter~\ref{ch:monitoring}).
+The following sequence reflects the \ishtar{} runtime path:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Ingestion updates the corpus.} A new bulletin arrives (e.g., an NGO field update). The ingestion worker normalizes it, applies redaction rules, chunks the text, computes embeddings, and commits the new chunk vectors to the current index version.
+    \item \textbf{The user submits a query.} A journalist asks a time-sensitive question (e.g., ``What is the current status of hospital capacity in \emph{X} and what sources support it?'').
+    \item \textbf{Authentication and routing.} The API gateway authenticates the user, attaches policy context (tenant, role, geography), rate-limits if necessary, and forwards the request with a unique trace id.
+    \item \textbf{Retrieval agent executes evidence search.} The retriever embeds the query, performs ANN search, applies metadata filters (recency/trust), and optionally reranks. The context pack is assembled with stable citation ids (\texttt{[S1]}, \texttt{[S2]}, \dots).
+    \item \textbf{Synthesis agent drafts the answer.} The LLM produces a structured response \emph{under the citation contract}. Streaming begins as soon as TTFT is reached.
+    \item \textbf{Verification agent checks claims.} The verifier confirms that major factual assertions are supported by the cited sources. Unsupported claims are removed or marked as uncertain; conflicting evidence is surfaced explicitly.
+    \item \textbf{Safety agent applies final controls.} The safety layer enforces refusal/redaction policies (e.g., no precise coordinates; no sensitive personal data) and adds disclaimers when evidence is incomplete.
+    \item \textbf{Response delivery and logging.} The final answer is returned with citations, and the trace is finalized with model/version, index/version, prompt template id, and per-agent token/cost attribution.
+\end{enumerate}
+
+This trace-centric walkthrough is not merely documentation: it becomes the basis for record--replay regression tests, incident diagnosis, and post-release attribution when quality or safety metrics drift.
+
+\subsubsection{Fallbacks and human escalation}
+When verification confidence is low, the system prefers conservative output: a partial answer with explicit uncertainty, or escalation to editorial review for high-impact use cases.
+This aligns with the responsible-deployment guidance in Chapter~\ref{ch:ethics}.
+
+\subsection{Step 6: CI/CD and evaluation gates}
+\label{sec:ishtar-step-cicd}
+
+\textbf{Goal.} Treat prompts, agents, retrieval configuration, and model artifacts as versioned, testable release units (Chapter~\ref{ch:cicd}).
+
+\subsubsection{What gets versioned}
+In \ishtar{}, the following are version-controlled and promoted through environments:
+\begin{itemize}
+    \item prompt templates and policy text,
+    \item retrieval parameters (chunk size, top-$k$, reranker thresholds, recency bias),
+    \item agent graphs and tool permissions,
+    \item model serving configuration (engine, quantization level, decoding settings),
+    \item index snapshots (pinned for offline evaluation).
+\end{itemize}
+
+\subsubsection{Release pipeline (conceptual)}
+A representative CI pipeline executes (i) unit tests, (ii) offline evaluation, (iii) staged rollout.
+Progressive delivery is implemented with canaries/blue-green strategies~\cite{argo_rollouts_overview,argo_rollouts_canary}.
+
+\begin{llmlistingbox}{CI/CD workflow configuration}
+\label{lst:ch12_cicd_workflow}
+\begin{lstlisting}[style=springer]
+name: ishtar-release
+on: [push]
+jobs:
+  test:
+    steps:
+      - run: pytest -q
+  eval:
+    steps:
+      - run: python eval/run_offline_eval.py --index_version v2025.12.01
+      - run: python eval/check_gates.py  # fails if metrics regress
+  deploy:
+    steps:
+      - run: kubectl apply -f k8s/rollout.yaml   # canary rollout
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsubsection{Evaluation metrics}
+Offline evaluation combines:
+\begin{itemize}
+    \item \textbf{grounded QA accuracy} on a vetted benchmark,
+    \item \textbf{retrieval recall} (e.g., Recall@5) for labeled queries,
+    \item \textbf{RAG quality metrics} (e.g., faithfulness/answer relevance via RAGAS)~\cite{ragas,ragas_eacl2024},
+    \item \textbf{safety regression suites} (prompt injection, sensitive-data requests, refusal correctness) aligned with OWASP LLM guidance~\cite{owasp_llm_top10}.
+\end{itemize}
+Online evaluation uses shadow traffic and post-deploy canaries, with automatic rollback if SLOs or quality gates regress.
+
+% ---------------------------------------------------------------------
+
+\subsection{Step 7: Observability and feedback loops}
+\label{sec:ishtar-step-observability}
+
+\textbf{Goal.} Make every answer attributable, measurable, and improvable in production by wiring together system telemetry and semantic quality signals (Chapter~\ref{ch:monitoring}).
+
+\subsubsection{Span taxonomy and trace fields}
+\ishtar{} adopts a stable span taxonomy so that traces remain queryable across versions:
+\begin{itemize}
+    \item \texttt{retriever.search}: index/version, \texttt{topK}, latency, retrieved doc ids, reranker scores.
+    \item \texttt{llm.call}: model/version, decoding parameters, TTFT, tokens/s, token counts.
+    \item \texttt{agent.<name>}: role, decision outputs, retries, schema validation results.
+    \item \texttt{guard.rail}: policy id, triggers (jailbreak/PII/toxicity), and action (block/sanitize/route).
+\end{itemize}
+These spans are exported via OpenTelemetry so that infra and application telemetry share a common backbone~\cite{otel_spec}.
+
+\subsubsection{Quality artifacts in logs}
+To support continuous evaluation, structured logs attach \emph{judgment artifacts} to each request:
+rubric scores (helpfulness, groundedness), verifier outcomes (pass/fail, uncertainty flags), and per-claim citation checks.
+In agentic flows, the controller also logs planner outputs (plans, tool selections) and coordination signals (agent turns per request) to detect runaway loops.
+
+\subsubsection{Closing the loop}
+Feedback enters the system through three channels:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Implicit signals:} abandonment rate, follow-up question rate, and repeated queries.
+    \item \textbf{Explicit signals:} user ratings and ``flag this answer'' annotations with a reason code.
+    \item \textbf{Audit sampling:} periodic human review of high-impact queries, used as an anchor set for calibrating automated evaluators.
+\end{enumerate}
+Selected signals are connected directly to controls: e.g., a spike in citation failures can automatically reduce \texttt{topK}, enable passage de-duplication, or trigger rollback to the last-known-good prompt bundle.
+
+% ---------------------------------------------------------------------
+\section{Operational practices}
+\label{sec:ishtar-ops}
+
+End-to-end correctness is necessary but insufficient; \ishtar{} must remain reliable under drift, load, and evolving user behavior.
+This section summarizes the operational practices that keep the system healthy in production.
+
+\subsection{Monitoring, SLOs, and incident response}
+\label{sec:ishtar-monitoring-ops}
+
+\textbf{Instrumentation.} Each request emits:
+\begin{itemize}
+    \item \textbf{traces} for stage latencies (retrieval, synthesis, verification, safety) via OpenTelemetry~\cite{otel_spec},
+    \item \textbf{metrics} for GPU utilization, TTFT, tokens/s, retrieval latency, error rates via Prometheus~\cite{prometheus},
+    \item \textbf{logs} for structured agent decisions and safety actions.
+\end{itemize}
+Dashboards are built in Grafana to visualize both system-level KPIs and semantic quality indicators~\cite{grafana}.
+
+\textbf{Alerting.} Alerts are tied to user-visible impact and operational risk (Chapter~\ref{ch:monitoring}):
+\begin{itemize}
+    \item retrieval latency and error spikes,
+    \item degraded TTFT or tokens/s (GPU saturation, queueing),
+    \item sudden drops in citation coverage or verification pass rate,
+    \item ingestion lag beyond freshness budgets.
+\end{itemize}
+
+\subsection{Change management for a socio-technical system}
+\label{sec:ishtar-change-mgmt}
+
+Operationally, \ishtar{} behaves like a \emph{socio-technical} system: user trust and editorial norms are as important as raw model accuracy.
+Accordingly:
+\begin{itemize}
+    \item prompt changes are staged with canaries and explicit regression gates,
+    \item ingestion-source changes require editorial review of trust impact,
+    \item high-risk changes (policy, tool permissions) require security review.
+\end{itemize}
+
+\subsection{Periodic retraining and embedding refresh}
+\label{sec:ishtar-retraining}
+
+RAG reduces dependence on model training cutoffs, but does not eliminate drift.
+\ishtar{} maintains an offline pipeline to periodically:
+\begin{itemize}
+    \item assess whether fine-tuning improves domain fidelity without bias amplification,
+    \item evaluate new embedding models for recall improvements,
+    \item re-index with backfilled embeddings while preserving index version traceability.
+\end{itemize}
+
+\subsection{Knowledge-base maintenance}
+\label{sec:ishtar-kb-maintenance}
+
+The knowledge base is actively curated:
+\begin{itemize}
+    \item sources can be added/removed based on quality and stability,
+    \item retention policies keep a ``hot'' window at high granularity, with older data summarized or moved to cold storage,
+    \item index rebuilds are scheduled off-peak to avoid retrieval contention.
+\end{itemize}
+
+% ---------------------------------------------------------------------
+\section{Ethical safeguards}
+\label{sec:ishtar-ethics}
+
+From inception, \ishtar{} treated responsible deployment as a core systems requirement, not a post hoc layer (Chapter~\ref{ch:ethics}).
+The safeguards below are implemented as concrete mechanisms.
+
+\begin{itemize}
+    \item \textbf{Multi-agent verification before delivery.}
+    \item \textbf{Bias audits on ingestion sources and outputs.}
+    \item \textbf{Automatic redaction/refusal for sensitive personal data.}
+\end{itemize}
+
+\subsection{Bias mitigation}
+Bias can enter through both base-model priors and skewed evidence distributions.
+Mitigations include:
+\begin{itemize}
+    \item \textbf{diverse evidence sourcing} (avoid single-narrative corpora),
+    \item \textbf{neutrality constraints} in the system prompt,
+    \item \textbf{output audits} using targeted probes and domain-expert review.
+\end{itemize}
+
+\subsection{Transparency and explainability}
+Citations are the primary explainability mechanism: users can trace claims to sources.
+Additionally, internal traces record which sources were retrieved, which agents modified the answer, and why, enabling post hoc audits.
+
+\subsection{Privacy and safety of information}
+Even with public sources, aggregation can be sensitive.
+Controls include:
+\begin{itemize}
+    \item preprocessing redaction (ingestion-time scrubbing),
+    \item encrypted storage and access-limited indices,
+    \item refusal policies for explicit requests for sensitive details (e.g., identities or precise coordinates).
+\end{itemize}
+
+\subsection{Hallucination and misinformation safeguards}
+RAG + verification constitute the primary anti-hallucination stack.
+Operationally, hallucination is treated as a defect: incidents trigger root-cause analysis (retrieval failure vs.\ prompt regression vs.\ data gap) and remediation.
+
+\subsection{Human-in-the-loop and editorial oversight}
+For high-impact outputs, journalists and editors remain final arbiters.
+The system is designed to support human judgment by surfacing evidence and uncertainty rather than suppressing it.
+
+% ---------------------------------------------------------------------
+\section{Performance outcomes}
+\label{sec:ishtar-perf}
+
+With the system fully implemented, we evaluate performance across latency, quality, and operational dimensions.
+Representative outcomes in the \ishtar{} deployment include:
+
+Table~\ref{tab:ch12_ishtar_outcomes} summarizes representative outcomes observed after full operationalization.
+These values are deployment-specific and should be interpreted as \emph{illustrative targets} rather than universal guarantees.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Production metrics validate that \ishtar{} meets its operational requirements. These metrics demonstrate that systematic LLMOps practices (RAG, evaluation gates, autoscaling, monitoring) deliver measurable improvements in latency, cost, reliability, and quality. The observed values provide benchmarks for similar deployments and illustrate the impact of operational discipline.}
+\label{tab:ch12_ishtar_metrics}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{46mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Metric} & \textbf{Observed} & \textbf{Notes} \\
+\midrule
+Indexed corpus size & $\sim$1.5M & Chunks/documents with versioned snapshots. \\
+Retriever latency & $<100$\,ms & ANN search + filtering; reranking on hot path when needed. \\
+Avg.\ end-to-end response time & $<5$\,s & Streaming enabled; inference dominates total time. \\
+p90 time-to-first-token (TTFT) & $<0.8$\,s & Typical interactive route; depends on prompt length and load. \\
+Cost per query & $\approx\$0.05$ & Includes retrieval + inference + verification overhead. \\
+Uptime (rolling 3 months) & 99.8\% & Redundancy + autoscaling + graceful degradation. \\
+User satisfaction & 4.3/5 & Journalist/editor survey. \\
+Hallucination rate & $\sim$5\% & Post-hoc review; $\sim$40\% lower vs.\ non-RAG baseline. \\
+Deployment cadence & $\sim$2/week & Evaluation-gated releases; no rollbacks in the measured window. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Latency and throughput}
+In a representative deployment, retrieval latency remains in the $\sim$50--100\,ms range for vector search plus reranking at million-scale indices, while LLM inference dominates end-to-end time.
+Optimized serving engines (vLLM/TGI) reduce TTFT\index{TTFT} and improve throughput\index{throughput} (Chapters~\ref{ch:performance} and~\ref{ch:scaling}).
+
+\subsection{Accuracy and usefulness}
+On expert-vetted benchmarks, a large majority of answers are fully supported by evidence.
+Verification flags a minority of answers for correction or explicit uncertainty; this trades slight latency for substantial trust gains.
+
+\subsection{Operational reliability and cost}
+With autoscaling and microservice isolation, availability targets are achievable even under bursty demand.
+Cost-per-query is tracked continuously and informs routing and capacity decisions; non-critical workloads downscale aggressively off-peak.
+
+% ---------------------------------------------------------------------
+\section{Lessons learned}
+\label{sec:ishtar-lessons}
+
+Implementing \ishtar{} end-to-end yielded lessons that generalize to other production LLM systems:
+
+\begin{itemize}
+    \item \textbf{Design for adaptability:} crisis contexts change rapidly; data and prompts must evolve safely.
+    \item \textbf{Observability is non-negotiable:} without traces and semantic metrics, failures cannot be debugged.
+    \item \textbf{Ethics must be architectural:} safety controls must be embedded, not bolted on.
+\end{itemize}
+
+\subsubsection{Data quality is paramount}
+RAG amplifies the impact of ingestion quality: noisy or duplicated data pollutes retrieval and degrades faithfulness.
+Early investment in cleaning, normalization, and source curation yields downstream gains.
+
+\subsubsection{Modular architecture enables parallel work}
+Clear interfaces (ingestion, retrieval, serving, agents) allow independent iteration and safer component swaps.
+
+\subsubsection{Prompts require governance}
+Minor prompt edits can cause major regressions (e.g., dropped citations).
+Treat prompts as code: version, test, canary, and rollback.
+
+\subsubsection{Monitoring and tracing are indispensable}
+Multi-stage systems demand fine-grained attribution: is latency caused by retrieval, inference queueing, or verification loops?
+
+\subsubsection{5.\ Agentic verification improves quality but increases complexity.}
+The benefit is substantial, but only if end-to-end tests cover inter-agent failure modes and citation consistency.
+
+\subsubsection{6.\ User interaction drives trust.}
+Citations, calibrated uncertainty, and consistent tone matter as much as raw correctness.
+
+\subsubsection{7.\ Continuous improvement is the default mode.}
+Deployment begins the iterative loop: feedback signals and audits should directly drive backlog prioritization.
+
+\subsubsection{8.\ Tech-stack choices are trade-offs.}
+FAISS offers speed with engineering overhead for metadata; managed vector DBs\index{vector database} trade cost for operational simplicity.
+Serving engines evolve quickly; modularity reduces lock-in.
+
+\subsubsection{9.\ Domain expertise is required.}
+Journalistic norms and domain review identify subtle failures (framing, missing context) that automated metrics miss.
+
+\subsubsection{10.\ Ethical vigilance is ongoing.}
+Policies and filters require continuous calibration to avoid both under- and over-blocking.
+
+\subsection{End-to-end checklist}
+\label{sec:ishtar-checklist}
+
+\ChecklistBox[End-to-End Checklist for Production LLM Systems (Ishtar-derived)]{
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}X@{}}
+\textbf{Checklist Item} & \textbf{Description} \\
+\midrule
+\textbf{Define Operational Contracts} & Output schema, citation rules, and uncertainty policy are explicit and testable. \\
+\textbf{Version Everything} & Version prompts, retrieval parameters, tool permissions, model configs, and index snapshots. \\
+\textbf{Instrument First} & Traces/metrics/logs exist before user launch; alerts map to user impact. \\
+\textbf{Prefer Recall in Retrieval} & Missing a critical source is worse than retrieving extra context (then rerank). \\
+\textbf{Make Safety Defense-in-Depth} & Implement ingestion scrubbing + output filtering + refusal logic + audits. \\
+\textbf{Gate Releases on Evaluation} & Use offline metrics + canary rollouts + rollback automation. \\
+\textbf{Plan for Bursty Demand} & Implement GPU autoscaling, caching/hot tiers, and priority scheduling for critical users. \\
+\textbf{Treat Hallucination as a Defect} & Root-cause via traces; fix via data, prompts, or retrieval tuning. \\
+\textbf{Embed Human Oversight} & Establish escalation paths for high-impact outputs and continuous domain review. \\
+\end{tabularx}
+}
+
+% ---------------------------------------------------------------------
+\section{Future directions}
+\label{sec:ishtar-future}
+
+While \ishtar{} represents a mature application of LLMOps concepts, several extensions are natural in high-stakes intelligence workflows:
+
+\begin{itemize}
+    \item \textbf{Multimodal inputs:} incorporate imagery and video analysis for satellite or on-the-ground evidence.
+    \item \textbf{Edge-friendly deployments:} partial offline operation in low-connectivity regions.
+    \item \textbf{Broader language coverage:} tighter integration with translation and multilingual reasoning models.
+\end{itemize}
+
+\subsubsection{1.\ Model upgrades and specialization.}
+As newer models emerge, the primary question becomes \emph{operational}: can upgrades be introduced with controlled risk?
+The answer depends on robust evaluation gates, compatibility tests, and staged rollout.
+
+\subsubsection{2.\ Enhanced retrieval (semantic + symbolic).}
+Hybrid retrieval that combines dense similarity with structured signals (metadata, entity linkage, and temporal reasoning) is a promising direction, especially for multi-hop questions.
+
+\subsubsection{3.\ More adaptive multi-agent planning.}
+A dynamic controller can choose tools and agent paths per query, potentially improving performance and quality for complex tasks.
+ReAct-style reasoning-and-acting patterns provide a research-grounded basis for such designs~\cite{react}.
+
+\subsubsection{4.\ Continual learning and feedback use.}
+User feedback can inform prompt refinement and, cautiously, fine-tuning cycles, provided governance prevents bias amplification and regressions.
+
+\subsubsection{5.\ Evaluation innovation.}
+RAG-specific evaluation (citation precision\index{precision!citation}, faithfulness\index{faithfulness}, and evidence coverage\index{evidence coverage}) should evolve from ad hoc audits to standardized, automated suites (e.g., RAGAS)~\cite{ragas,ragas_eacl2024}.
+
+\subsubsection{Conclusion.}
+The \ishtar{} case study demonstrates that reliable LLM applications require systems engineering: rigorous retrieval design, staged deployment, observability, and explicit governance.
+The primary contribution of LLMOps is not a new model architecture, but an operational discipline that turns fragile model behavior into dependable, auditable capabilities in production.
+
+\section*{Chapter Summary}
+\label{sec:ishtar-summary}
+
+\begin{itemize}
+    \item \ishtar{} demonstrates that high-stakes LLM applications require an end-to-end \emph{systems} approach: ingestion, retrieval, serving, and governance are inseparable.
+    \item Retrieval-augmented generation plus multi-agent verification can substantially reduce hallucinations and improve trust, provided that prompts and indices are versioned and evaluated as release artifacts.
+    \item Production reliability depends on explicit operational contracts (output schema, citation rules, uncertainty policy), CI/CD gates, and pervasive observability (traces/metrics/logs).
+    \item Responsible deployment is implemented through defense-in-depth: ingestion-time redaction, output filtering, refusal logic, auditing, and human oversight for high-impact workflows.
+\end{itemize}
+
+This concludes the \ishtar{} case study and the book's end-to-end arc: moving from LLM capability to dependable, auditable operation in production environments.
+
+\printbibliography[
+  heading=subbibliography,
+  segment=\therefsegment,
+  resetnumbers=true
+]

@@ -1,0 +1,1328 @@
+\chapter{Continuous Integration and Deployment for LLM Systems}
+\label{ch:cicd}
+\newrefsegment
+
+% ----------------------------
+% Chapter 4 — Abstract (online)
+% ----------------------------
+\abstract*{This chapter reframes CI/CD for LLM systems as continuous validation of behavior rather than only code automation. We present staged evaluation pipelines that combine fast pre-merge checks, post-merge regression suites, nightly adversarial testing, and canary/shadow deployments, with explicit gates for groundedness, safety, and performance. The chapter surveys modern evaluation techniques—golden and slice datasets, LLM-as-judge scoring with bias mitigations, RAG-specific faithfulness metrics, and statistical tests for regression control—then shows how these evaluations become promotion criteria. We detail deployment strategies (shadow, canary, blue–green, rollback) and emphasize bundling model weights, prompts/guardrails, and retrieval index snapshots into a single reversible release artifact. Finally, we connect CI/CD to observability: production traces are curated into replayable datasets that tighten the feedback loop between incidents and tests. Supply-chain integrity (provenance, signed artifacts, SBOMs) and secure cloud authentication practices are presented as prerequisites for trustworthy releases at scale.}
+
+\epigraph{\emph{"In LLMOps, CI/CD is not just about code—it's about continuously validating intelligence."}}{David Stroud}
+
+% --- Reader-visible abstract (PDF) ---
+\textbf{Abstract} This chapter reframes CI/CD for LLM systems as continuous validation of behavior rather than only code automation. We present staged evaluation pipelines that combine fast pre-merge checks, post-merge regression suites, nightly adversarial testing, and canary/shadow deployments, with explicit gates for groundedness, safety, and performance. The chapter surveys modern evaluation techniques—golden and slice datasets, LLM-as-judge scoring with bias mitigations, RAG-specific faithfulness metrics, and statistical tests for regression control—then shows how these evaluations become promotion criteria. We detail deployment strategies (shadow, canary, blue–green, rollback) and emphasize bundling model weights, prompts/guardrails, and retrieval index snapshots into a single reversible release artifact. Finally, we connect CI/CD to observability: production traces are curated into replayable datasets that tighten the feedback loop between incidents and tests. Supply-chain integrity (provenance, signed artifacts, SBOMs) and secure cloud authentication practices are presented as prerequisites for trustworthy releases at scale.
+
+\begin{tcolorbox}[
+  title={\textbf{Chapter Overview}},
+  colback=blue!5,
+  colframe=blue!40!black,
+  colbacktitle=blue!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm
+]
+\noindent\textbf{Chapter roadmap.}
+This chapter treats CI/CD for LLM systems as an end-to-end quality and risk-management workflow, not merely a build-and-deploy pipeline:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Continuous evaluation (including hallucination and groundedness checks)
+    \item Fine-tuning-aware workflows
+    \item Progressive deployment strategies (canary, blue-green, and rollback)
+    \item Observability practices and secure supply-chain controls
+    \item Structured prompt testing suitable for multi-agent systems
+\end{itemize}
+
+\medskip
+\noindent\textbf{Learning objectives.} After reading this chapter, you will be able to:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Design continuous evaluation pipelines for LLM systems
+    \item Implement progressive deployment strategies (canary, shadow, rollback)
+    \item Bundle model weights, prompts, and retrieval indices as versioned artifacts
+    \item Connect CI/CD to observability for feedback loops
+    \item Apply secure supply-chain practices for LLM releases
+\end{itemize}
+\end{tcolorbox}
+
+% ------------------------------------------------------------
+% Chapter-local numbered boxes for Listings
+% (Defined here to avoid preamble dependencies.)
+% ------------------------------------------------------------
+\makeatletter
+\@ifundefined{c@llmlisting}{%
+  \newcounter{llmlisting}[chapter]
+  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
+}{}
+\@ifundefined{llmlistingbox}{%
+  \newenvironment{llmlistingbox}[1]{%
+    \refstepcounter{llmlisting}%
+    \begin{tcolorbox}[
+      title={\textbf{Listing \thellmlisting: #1}},
+      colback=black!2,
+      colframe=black!50,
+      colbacktitle=black!12,
+      coltitle=black,
+      fonttitle=\bfseries,
+      boxrule=0.6pt,
+      arc=3pt,
+      left=3mm, right=3mm, top=2mm, bottom=4mm,
+      breakable,
+      after skip=6pt
+    ]
+  }{\end{tcolorbox}}%
+}{}
+\makeatother
+
+\section{Introduction}
+\label{sec:cicd-intro}
+Continuous Integration and Continuous Deployment (CI/CD) pipelines for Large Language Models (LLMs) inherit traditional DevOps rigor but introduce unique complexities due to non-determinism, model weight size, GPU/TPU requirements, and evolving behavior. This chapter explores cutting-edge practices from research and industry (2023--2025), including novel evaluation, fine-tuning-aware workflows, canary/rollback strategies, observability (LangSmith, LangFuse, LangGraph), structured prompt testing, and CI/CD for multi-agent LLM systems.
+
+\subsection{Opening Part II: Deployment Artifacts as Behavioral Contracts}
+\label{subsec:cicd-part2-opening}
+
+Part II focuses on delivery and production operations, beginning with CI/CD—the discipline that transforms infrastructure choices (Chapter~\ref{ch:infra}) into reliable, validated deployments. In traditional software systems, CI/CD validates code changes: compilation succeeds, tests pass, and deployments proceed. LLM systems introduce a critical distinction: \emph{deployment artifacts extend beyond code to include behavioral contracts}.
+
+Unlike traditional applications where code changes map directly to functional changes, LLM systems deploy artifacts that cause behavioral shifts:
+\begin{itemize}
+    \item \textbf{Prompt modifications} change how models interpret instructions, affecting output style, safety boundaries, and task performance
+    \item \textbf{Retrieval configuration updates} alter which knowledge is accessible, impacting factuality, citation coverage, and response relevance
+    \item \textbf{Agent graph changes} modify orchestration logic, affecting tool selection, multi-step reasoning, and failure handling
+    \item \textbf{Model updates} (fine-tuning or version upgrades) shift capabilities, biases, and failure modes
+\end{itemize}
+
+Each of these artifacts functions as a \emph{behavioral contract}: a specification of how the system should behave under given conditions. CI/CD gates must validate these contracts, not just verify syntax or compilation. A prompt change that passes syntax checks might still cause hallucinations or safety violations. A retrieval config update might improve accuracy on one domain while degrading performance on another. An agent graph modification might fix one failure mode while introducing new edge cases.
+
+This chapter shows how to build CI/CD pipelines that catch behavioral regressions—validating that prompts maintain safety boundaries, that retrieval configs preserve groundedness, and that agent graphs handle dependencies correctly. These validation gates connect directly to comprehensive testing practices covered in Chapter~\ref{ch:testing}, which provides deeper coverage of evaluation frameworks, robustness testing, and adversarial validation. Together, CI/CD gates and testing frameworks ensure that behavioral contracts are enforced before deployment and monitored after release.
+
+\section{Continuous Evaluation to Catch Regressions and Hallucinations}\index{evaluation!continuous}\index{regression testing}
+\label{sec:cicd-continuous-eval}
+A cornerstone of LLM CI/CD is integrating automated evaluation suites into the pipeline---not only to catch functional regressions, but to detect hallucinations, safety drift, and retrieval failures before they reach users. Because LLM behavior is stochastic and highly sensitive to prompts, retrieval context, and tool configuration, continuous evaluation must be designed as a staged, cost-aware loop rather than a single offline score \cite{helm2022}.
+
+\noindent\textbf{Design principles.} Effective continuous evaluation tends to follow a few recurring principles:
+
+\begin{table}[t]
+\centering
+\small
+\caption{Continuous evaluation principles enable reliable LLM deployments. Automated testing, staged evaluation, and feedback loops convert non-deterministic model behavior into measurable quality gates. These principles ensure that prompt changes, model updates, and retrieval modifications are validated before production release.}
+\label{tab:ch04_eval_design_principles}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{p{3.5cm}X}
+\toprule
+\rowcolor{gray!10}
+\textbf{Principle} & \textbf{Description} \\
+\midrule
+\textbf{Stage for speed vs.~coverage} & Run fast deterministic checks on every pull request, and reserve heavy suites for post-merge, nightly/batch, and canary/shadow stages. \\
+\textbf{Version the full behavior surface} & Treat prompts, retrieval snapshots, tool schemas, guardrails, judge prompts, and metric code as versioned artifacts. \\
+\textbf{Gate promotions with statistics} & Compare candidates to a baseline using paired tests (e.g., bootstrap for rubric scores; McNemar for binary safety flags) and pre-registered thresholds \cite{koehn2004,mcnemar1947}. \\
+\textbf{Close the loop from production} & Mine traces and failures into reusable CI datasets and ``hard'' slices, so that incidents become regression tests \cite{langsmith_eval,phoenix_rag,trulens}. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+To operationalize these principles, evaluation pipelines are typically organized into distinct stages, each with specific objectives, metrics, and tooling. Table~\ref{tab:ch04_eval_stages} summarizes the staged evaluation approach, showing how different evaluation suites run at different points in the CI/CD pipeline to balance speed, coverage, and cost.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Staged evaluation enables systematic quality assurance in LLM CI/CD pipelines. Each stage (unit tests, integration tests, canary deployment, shadow mode) runs distinct suites and gates, catching regressions at the earliest possible point. This staged approach reduces risk by validating changes incrementally before full production release. Objectives, metrics, and representative tools at each stage are shown.}
+\label{tab:ch04_eval_stages}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{p{2.6cm}YYY}
+\toprule
+\rowcolor{gray!10}
+\textbf{Stage} & \textbf{Primary Objectives} & \textbf{Metrics \& Checks} & \textbf{Representative Tools} \\
+\midrule
+Pre-merge (minutes) &
+Block regressions early; perform fast sanity checks; enforce format and safety guards &
+$\sim$50--200 deterministic samples; static regex guards (PII, prompt injection); schema/format checks &
+Promptfoo GitHub Action; lightweight LangSmith evaluators \\
+
+Post-merge on main (hours) &
+Medium-scale functional and safety validation; statistical gating vs.~baseline &
+1--5k examples; model-graded rubrics (helpfulness, groundedness); retrieval hit rate; toxicity/bias probes &
+LangSmith evaluators; MLflow LLM evals; custom CI runners \\
+
+Nightly/Batch (cost-aware) &
+Heavy adversarial evaluation; fairness and robustness probes; long-context stress tests &
+5k--20k examples; Arena-style prompts; fairness slices; agent tool-use; contradiction/NLI checks &
+Arize Phoenix; TruLens; RAGAS/ARES; adversarial red-team scripts \\
+
+Canary/Shadow (real traffic) &
+Production-facing evaluation; monitor slice-level drift and safety in situ &
+Live traffic subset; online model-graded evaluators; groundedness/faithfulness dashboards; latency/cost monitors &
+LangSmith prod evals; Phoenix dashboards; Evidently; NannyML drift detectors \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The staged evaluation approach creates a continuous loop that feeds production insights back into the development cycle. Fig.~\ref{fig:ch04_eval_stages_pipeline} illustrates this flow, showing how evaluation stages connect commit events to deployment gates, with feedback loops that surface production issues back to the repository for remediation.
+
+\vspace{1em} % adjust: 1em ~ one line of text, 2em more space
+
+% Requires in your preamble:
+% \usepackage{tikz}
+% \usetikzlibrary{arrows.meta,positioning,shapes,fit,calc}
+
+\begin{figure}[t]
+\centering
+% Temporarily increase maximum width to allow larger figure without scaling
+\renewcommand{\LLMFigMaxWidth}{1.8\linewidth}
+\begin{llmfigbox}
+\begin{tikzpicture}[
+  font=\normalsize,
+  node distance=24mm and 26mm,
+  stage/.style={rounded corners=6pt, draw=black!30, line width=0.8pt, align=center, 
+                minimum width=60mm, minimum height=42mm, inner sep=12pt, font=\normalsize},
+  note/.style={align=left, font=\normalsize},
+  callout/.style={rounded corners=5pt, inner sep=8pt, draw=black!20, line width=0.6pt},
+  >=Latex
+]
+
+% Color-coded stages - larger boxes with bigger text and clearer hierarchy
+\node[stage, fill=blue!20] (commit) {\normalsize\bfseries{/commit}\\\normalsize code, prompts, data diffs};
+\node[stage, fill=green!20, right=of commit] (pre) {\normalsize\bfseries{Pre-merge}\\\normalsize \(\sim\)50--200 det. cases\\guards \& format checks};
+\node[stage, fill=orange!20, right=of pre] (post) {\normalsize\bfseries{Post-merge}\\\normalsize 1--5k cases\\stat. gating vs. baseline};
+\node[stage, fill=purple!20, right=of post] (night) {\normalsize\bfseries{Nightly/Batch}\\\normalsize 5k--20k cases\\adv., fairness, long ctx};
+\node[stage, fill=red!20, right=of night] (canary) {\normalsize\bfseries{Canary/Shadow}\\\normalsize live slice\\drift, safety, SLOs};
+
+% Arrows forward - thicker and more prominent
+\draw[->, very thick, line width=2pt, draw=black!75] (commit) -- (pre);
+\draw[->, very thick, line width=2pt, draw=black!75] (pre) -- (post);
+\draw[->, very thick, line width=2pt, draw=black!75] (post) -- (night);
+\draw[->, very thick, line width=2pt, draw=black!75] (night) -- (canary);
+
+% Feedback section - larger and better positioned
+\node[note, right=10mm of canary, fill=yellow!18, callout, 
+      text width=50mm, align=left, anchor=west, font=\normalsize] (feedback) {%
+    \textbf{Feedback:}\\
+    \(\bullet\) failing slices\\
+    \(\bullet\) drift signals\\
+    \(\bullet\) safety incidents\\
+    \(\bullet\) latency/cost outliers};
+
+% Feedback loop - connects from canary to commit, passing near feedback
+\coordinate (looptop) at ($(canary.north)+(0,35mm)$);
+
+\draw[->, very thick, line width=2pt, draw=teal!70!black, dashed, dash pattern=on 4pt off 3pt]
+  (canary.east) -- ++(10mm,0)
+  |- (looptop)
+  -| (commit.north);
+
+% Baseline/bundle box under pre/post/night - no fill to ensure text visibility
+\node[draw=cyan!60, dashed, line width=1pt, fill=none, rounded corners=6pt, fit=(pre)(post)(night), 
+      inner sep=14pt, label={[note, below=8mm, font=\normalsize]south:\textbf{Artifacts:} versioned datasets, judges \& prompts; metric code; thresholds; HTML/JSON reports}] (bundle) {};
+
+% Callouts - larger text, better spacing, and clearer styling
+\node[note, above=12mm of pre, fill=yellow!18, callout, 
+      text width=55mm, align=center, font=\normalsize] {regex PII / inj.; schema};
+\node[note, above=12mm of post, fill=yellow!18, callout,
+      text width=60mm, align=center, font=\normalsize] {helpfulness, groundedness; McNemar, bootstrap};
+\node[note, above=12mm of night, fill=yellow!18, callout,
+      text width=65mm, align=center, font=\normalsize] {red-team, NLI contradictions, fairness slices};
+\node[note, above=12mm of canary, fill=yellow!18, callout,
+      text width=58mm, align=center, font=\normalsize] {online evals; SLO monitors; rollback};
+
+% Legend - larger and better spaced with clearer styling
+\node[stage, fill=gray!18, below=28mm of bundle, minimum width=80mm, minimum height=28mm, draw=black!30, line width=0.8pt] (legend) {\textbf{Legend}};
+\node[note, below=6mm of legend, text width=80mm, font=\normalsize, align=left] {
+  \(\triangleright\) Stages run in CI/CD\\
+  \(\blacktriangleright\) Metrics \& gates per stage\\
+  \(\circlearrowright\) Feedback to repo/baseline
+};
+
+\end{tikzpicture}
+\end{llmfigbox}
+\renewcommand{\LLMFigMaxWidth}{1.15\linewidth}
+\caption{Continuous evaluation creates a feedback loop that improves system quality over time. Each stage runs distinct suites and gates, validating changes incrementally; canary/shadow monitoring closes the loop by feeding drift, safety, and SLO signals back into the repository and baseline. This closed-loop approach converts production observations into regression tests, ensuring that failures become learning opportunities rather than recurring incidents.}
+\label{fig:ch04_eval_stages_pipeline}
+\end{figure}
+
+With this staged view in mind, the next section explains why continuous evaluation is non-negotiable and provides a detailed taxonomy of what to evaluate and how to engineer evaluation into an end-to-end LLM delivery pipeline.
+
+\section{Why Continuous Evaluation is Non-Negotiable}
+\label{sec:cicd-why-continuous-eval}
+Foundation models are inherently non-deterministic. They evolve rapidly across versions and are highly sensitive to prompt phrasing, contextual shifts, and retrieval quality. As such, evaluation cannot be treated as a one-off exercise but rather as a continuous, first-class component of the development lifecycle. Treating evaluation artifacts---datasets, judge models, metrics, thresholds, and generated reports---as continuous integration (CI) assets provides reproducibility, comparability, and auditability across model releases. Modern holistic evaluation frameworks stress not only breadth across capabilities, safety, and efficiency, but also methodological rigor. Without standardized evaluation conditions, it is too easy to fall into cherry-picking or benchmark gaming, which may give a misleading picture of system quality \cite{helm2022}. These evaluation practices form the foundation for CI/CD gates that catch behavioral regressions before deployment, complementing the comprehensive testing frameworks detailed in Chapter~\ref{ch:testing}.
+
+\subsection{Taxonomy: What to Evaluate and How}
+Evaluation must be multi-faceted. At the capability level, models are expected to perform well on core tasks such as question answering, summarization, code generation, reasoning, tool use, and agentic orchestration. Public evaluation suites like MT-Bench and Arena-Hard provide useful standardized probes, but these should be complemented with domain-specific evaluations aligned to the deployment context. It is important to note that model-graded evaluations such as MT-Bench correlate strongly with human preference but remain subject to known biases. They are best treated as scalable signals rather than as sole arbiters of quality \cite{zheng2023judge,arenaHard2024}.  
+
+Reliability is another dimension: models should demonstrate consistency across seeds, paraphrased inputs, and varied formatting, while maintaining predictable refusal and off-policy rates. Operational concerns such as latency stability and cost variance also belong here, since they impact user experience and business viability.  
+
+Equally critical is safety and security. Evaluation must systematically probe for toxicity, harmful biases, leakage of personally identifiable information, and susceptibility to adversarial manipulation such as prompt injection. Industry frameworks such as the OWASP LLM Top-10 and the NIST AI Risk Management Framework Generative AI profile provide useful guidance for structuring such tests \cite{owasp_llm,nist_genai_profile}.  
+
+Finally, models must be grounded: they should remain faithful to retrieved context in retrieval-augmented generation (RAG) settings or to trusted sources in closed-book scenarios. Measuring verifiability and attribution is therefore essential to prevent hallucination and maintain trust.
+
+\subsection{Model-Graded Evaluation (LLM-as-Judge): Strengths, Caveats, Mitigations}
+One promising development is the use of strong models (e.g., GPT-4 class) as ``judges.'' These model-graded evaluations approximate human ratings at scale by providing pairwise comparisons or rubric-based scores \cite{zheng2023judge}. While efficient, they are not without weaknesses. Studies show that model judges exhibit position bias, verbosity bias, and a tendency to reward surface polish over factual rigor \cite{chen2024humansJudge,positionBias2024}. To mitigate these effects, best practice is to randomize answer ordering, enforce symmetric prompting, and adopt blind judging protocols. Requiring structured rationales, as in G-Eval-style rubrics, further reduces spurious preference. Using multiple independent judges and analyzing disagreement provides another safeguard, while periodic calibration against human anchor sets helps track drift. For auditability, judge prompts, model versions, seeds, and rationales should be stored, and inter-rater reliability (e.g., Krippendorff's $\alpha$) should be reported.
+
+\subsection{Evaluating Groundedness and Hallucination in RAG Systems}
+In RAG systems, evaluation must specifically address groundedness. This requires operationalizing three dimensions: context relevance (did retrieval bring the right material?), answer relevance (does the response address the question?), and answer faithfulness (is the response supported by the retrieved evidence?). Emerging frameworks such as RAGAS and ARES formalize reference-free and reference-light metrics, while annotated corpora like RAGTruth enable supervised training of hallucination detectors \cite{ragas,ares,ragtruth}. A best practice is to combine these model-graded scores with retrieval metrics such as hit rate, MRR, or NDCG, and to monitor attribution fidelity through overlap of evidence spans and citations.
+
+\subsection{Adversarial and Metric-Based Checks in CI}
+Robust evaluation must go beyond general quality judgments to include adversarial and metric-based checks. For toxicity and bias, nightly suites should include datasets such as RealToxicityPrompts, CrowS-Pairs, and BBQ \cite{gehman2020realtoxicity,crowsPairs2020,bbq2022}. For security, evaluations should simulate attacks from the OWASP LLM Top-10, including prompt injection and insecure output handling, and incorporate red-team playbooks aligned with MITRE ATLAS patterns such as model extraction and evasion \cite{owasp_llm,mitre_atlas}. Grounding can be checked via retrieval coverage thresholds, compliance with citation requirements, and contradiction detection between answers and retrieved passages, often through natural language inference (NLI) classifiers.
+
+\subsection{Regression and Behavioral Drift Testing}
+Because foundation models evolve continuously, each new release must be treated as an A/B experiment against a locked baseline. Golden sets and slice sets (stratified by topic, user segment, or risk profile) allow regression detection at fine granularity. Statistical testing matters: binary outcomes can be compared with paired tests such as McNemar's \cite{mcnemar1947}, while continuous metrics like judge scores or ROUGE can be gated using paired bootstrap or approximate randomization tests \cite{koehn2004}. Establishing minimum detectable effect (MDE) thresholds and monitoring test flakiness across seeds helps ensure that observed improvements are meaningful and not noise. These regression testing practices align with the comprehensive evaluation frameworks covered in Chapter~\ref{ch:testing}, which provides deeper coverage of robustness testing, adversarial validation, and systematic quality assessment.
+
+\subsection{Engineering the Eval Pipeline (Best-Practice Blueprint)}
+\subsubsection{Eval harnesses and registries}
+To operationalize evaluation, many teams standardize on an ``eval harness'' that runs locally and in CI with identical configuration. OpenAI Evals provides an open-source framework and registry for evaluating LLMs and LLM-based systems, including prompt chains and tool-using agents \cite{openai_evals,openai_evals_cookbook}. Similarly, LangSmith supports dataset-driven evaluations across the application lifecycle (pre-deployment testing through production monitoring) \cite{langsmith_evaluation}. The key CI/CD practice is to make the harness deterministic in inputs (datasets, prompt versions, tool schemas) while allowing non-deterministic model sampling, then score outputs using calibrated rubrics and statistical thresholds.
+
+Engineering practices make evaluation sustainable. Data should be versioned and stored in systems like DVC or Lakehouse tables, including schema and license metadata. Retrieval indices should be snapshotted with configuration details. Judges should be pinned with explicit versions, prompts, and seeds, with rationales persisted for audit. Metrics should be implemented as code, tested, and tracked through tools such as MLflow or Evidently. Finally, reports should be published as CI artifacts with deltas by slice, error taxonomies, and links to failing examples.  
+
+Evaluation pipelines benefit from staging. Pre-merge checks should be fast (50--200 samples), deterministic, and include static guards such as prompt injection pattern detectors. Post-merge, medium-scale suites (1--5k examples) should run with rubric-based model judges, retrieval metrics, and safety probes. Nightly or batch jobs can then afford heavy evaluation, including fairness, long-context stress, and adversarial red-teaming. Canary deployments add a final safeguard by evaluating models on a small live-traffic slice with online evaluators such as LangSmith or Phoenix \cite{mlflow_llm_eval,langsmith_eval,phoenix_rag,trulens}.
+
+Listing~\ref{lst:ch04_eval_harness} shows a complete evaluation harness configuration that implements staged evaluation with deterministic inputs and statistical gates.
+
+\begin{llmlistingbox}{Evaluation harness configuration for staged CI/CD}
+\label{lst:ch04_eval_harness}
+\begin{lstlisting}[style=springer]
+# Evaluation Harness Configuration
+eval_version: "2.1.0"
+harness_id: "ishtar_comprehensive_eval"
+
+# Dataset configuration
+datasets:
+  golden_set:
+    path: "datasets/golden/ishtar_v1.0.jsonl"
+    version: "1.0.0"
+    size: 1000
+    slices:
+      - "domain:conflict_reports"
+      - "domain:ngo_bulletins"
+      - "risk_level:high_stakes"
+  
+  regression_set:
+    path: "datasets/regression/ishtar_regression_v2.0.jsonl"
+    version: "2.0.0"
+    size: 5000
+  
+  adversarial_set:
+    path: "datasets/adversarial/red_team_v1.2.jsonl"
+    version: "1.2.0"
+    size: 2000
+
+# Judge configuration
+judges:
+  groundedness_judge:
+    model: "gpt-4"
+    prompt_template: "prompts/judges/groundedness_v1.1.txt"
+    version: "1.1.0"
+    seed: 42
+    temperature: 0.0
+    num_judges: 2
+    tie_breaker: "gpt-4"
+  
+  helpfulness_judge:
+    model: "gpt-4"
+    prompt_template: "prompts/judges/helpfulness_v1.0.txt"
+    version: "1.0.0"
+    seed: 42
+    temperature: 0.0
+  
+  toxicity_detector:
+    model: "perspective_api"
+    version: "v1alpha1"
+    threshold: 0.20
+
+# Metric definitions
+metrics:
+  groundedness:
+    type: "llm_as_judge"
+    judge: "groundedness_judge"
+    aggregation: "mean"
+    threshold: 0.85
+    improvement_threshold: 0.02
+  
+  faithfulness:
+    type: "ragas"
+    metric: "faithfulness"
+    threshold: 0.80
+  
+  citation_coverage:
+    type: "custom"
+    script: "metrics/citation_coverage.py"
+    threshold: 0.90
+  
+  toxicity:
+    type: "detector"
+    detector: "toxicity_detector"
+    aggregation: "max"
+    threshold: 0.20
+    must_not_increase: true
+  
+  latency:
+    type: "system"
+    metric: "p95_ttft_ms"
+    threshold: 600
+
+# Statistical tests
+statistical_tests:
+  groundedness:
+    test: "paired_bootstrap"
+    confidence_level: 0.95
+    min_improvement: 0.5
+    require_ci_excludes_zero: true
+  
+  toxicity:
+    test: "mcnemar"
+    alpha: 0.05
+    require_no_increase: true
+
+# Staging configuration
+stages:
+  pre_merge:
+    datasets: ["golden_set"]
+    sample_size: 200
+    deterministic: true
+    static_guards:
+      - "prompt_injection_patterns"
+      - "pii_detection"
+      - "schema_validation"
+    timeout_minutes: 10
+  
+  post_merge:
+    datasets: ["golden_set", "regression_set"]
+    sample_size: 5000
+    judges: ["groundedness_judge", "helpfulness_judge"]
+    metrics: ["groundedness", "faithfulness", "citation_coverage"]
+    timeout_minutes: 60
+  
+  nightly:
+    datasets: ["golden_set", "regression_set", "adversarial_set"]
+    sample_size: 20000
+    judges: ["groundedness_judge", "helpfulness_judge", "toxicity_detector"]
+    metrics: ["groundedness", "faithfulness", "toxicity", "latency"]
+    timeout_minutes: 240
+
+# Reporting
+reporting:
+  format: "json"
+  include_slices: true
+  include_examples: true
+  publish_to: "s3://ishtar-evals/reports/"
+  artifact_name: "eval_report_{timestamp}.json"
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Cloud-Native Evaluation Services}
+Recognizing the operational burden, major cloud providers now offer integrated evaluation services. AWS Bedrock includes automatic RAG and model evaluations with human-in-the-loop options; Azure AI Studio provides Prompt Flow Evaluation integrated with monitoring; and Google Cloud offers Vertex AI GenAI Evaluation Service, supporting RAG and agent tool-use evaluation \cite{aws_bedrock_eval,azure_promptflow_eval,vertex_eval}. These services can be incorporated as CI steps or scheduled batch jobs, lowering integration costs for enterprise teams.
+
+\subsection{Operational Monitoring and Drift Response}
+Evaluation does not end at deployment. Continuous monitoring is necessary to detect input distribution shifts, slice-level safety incidents, and gradual degradation in groundedness or refusal rates. Drift detection libraries such as Evidently and NannyML can track changes in both inputs and outputs, triggering retraining or guardrail updates as thresholds are crossed \cite{evidently_llm_metrics,nannyml_drift}. For RAG pipelines, it is also important to periodically refresh retrieval indices and re-baseline golden sets.
+
+\subsection{Worked Example: CI Gate with Statistical Control}
+A concrete example illustrates how statistical gates work in practice. Suppose a CI system evaluates groundedness on a 1,000-example golden set using two independent model judges and a tie-breaker. A release candidate is accepted if mean groundedness improves by at least 0.5 points and the paired bootstrap 95\% confidence interval excludes zero. In parallel, toxicity must not increase: here, binary toxicity flags are compared with McNemar's test at $\alpha = 0.05$ \cite{mcnemar1947,koehn2004}. If results are borderline, the nightly suite of 5--10k examples is run before release proceeds. These CI gates implement the statistical rigor and evaluation practices detailed in Chapter~\ref{ch:testing}, ensuring that behavioral changes are validated before deployment.
+
+Listing~\ref{lst:ch04_ci_gate} implements the statistical gate logic described above, combining bootstrap confidence intervals and McNemar's test for comprehensive validation.
+
+\begin{llmlistingbox}{CI gate with statistical control}
+\label{lst:ch04_ci_gate}
+\begin{lstlisting}[language=Python, style=springer]
+#!/usr/bin/env python3
+"""
+CI gate implementation with statistical control for LLM evaluation.
+Implements paired bootstrap for continuous metrics and McNemar's test
+for binary safety metrics.
+"""
+
+import numpy as np
+from scipy import stats
+from typing import Tuple, List, Dict
+from dataclasses import dataclass
+
+@dataclass
+class GateResult:
+    """Result of a CI gate check"""
+    passed: bool
+    metric_name: str
+    baseline_mean: float
+    candidate_mean: float
+    improvement: float
+    confidence_interval: Tuple[float, float]
+    p_value: float
+    message: str
+
+def paired_bootstrap_test(
+    baseline_scores: List[float],
+    candidate_scores: List[float],
+    confidence_level: float = 0.95,
+    n_bootstrap: int = 10000,
+    min_improvement: float = 0.5
+) -> GateResult:
+    """
+    Paired bootstrap test for continuous metrics.
+    
+    Args:
+        baseline_scores: Scores from baseline version
+        candidate_scores: Scores from candidate version
+        confidence_level: Confidence level for CI
+        n_bootstrap: Number of bootstrap samples
+        min_improvement: Minimum improvement required
+    
+    Returns:
+        GateResult indicating whether gate passed
+    """
+    if len(baseline_scores) != len(candidate_scores):
+        raise ValueError("Baseline and candidate must have same length")
+    
+    n = len(baseline_scores)
+    differences = np.array(candidate_scores) - np.array(baseline_scores)
+    mean_diff = np.mean(differences)
+    
+    # Bootstrap sampling
+    bootstrap_means = []
+    for _ in range(n_bootstrap):
+        indices = np.random.choice(n, size=n, replace=True)
+        bootstrap_diff = np.mean(differences[indices])
+        bootstrap_means.append(bootstrap_diff)
+    
+    # Calculate confidence interval
+    alpha = 1 - confidence_level
+    lower_bound = np.percentile(bootstrap_means, 100 * alpha / 2)
+    upper_bound = np.percentile(bootstrap_means, 100 * (1 - alpha / 2))
+    
+    # Gate logic: CI must exclude zero AND improvement >= threshold
+    ci_excludes_zero = (lower_bound > 0) or (upper_bound < 0)
+    meets_improvement = mean_diff >= min_improvement
+    
+    passed = ci_excludes_zero and meets_improvement
+    
+    message = (
+        f"Mean improvement: {mean_diff:.3f} "
+        f"(CI: [{lower_bound:.3f}, {upper_bound:.3f}]). "
+        f"Required: {min_improvement:.3f}. "
+        f"CI excludes zero: {ci_excludes_zero}"
+    )
+    
+    return GateResult(
+        passed=passed,
+        metric_name="groundedness",
+        baseline_mean=np.mean(baseline_scores),
+        candidate_mean=np.mean(candidate_scores),
+        improvement=mean_diff,
+        confidence_interval=(lower_bound, upper_bound),
+        p_value=None,  # Bootstrap doesn't provide p-value
+        message=message
+    )
+
+def mcnemar_test(
+    baseline_flags: List[bool],
+    candidate_flags: List[bool],
+    alpha: float = 0.05
+) -> GateResult:
+    """
+    McNemar's test for binary metrics (e.g., toxicity flags).
+    
+    Args:
+        baseline_flags: Binary flags from baseline (True = violation)
+        candidate_flags: Binary flags from candidate
+        alpha: Significance level
+    
+    Returns:
+        GateResult indicating whether gate passed
+    """
+    if len(baseline_flags) != len(candidate_flags):
+        raise ValueError("Baseline and candidate must have same length")
+    
+    # Contingency table
+    both_negative = sum(
+        (not b) and (not c) 
+        for b, c in zip(baseline_flags, candidate_flags)
+    )
+    baseline_positive = sum(
+        b and (not c) 
+        for b, c in zip(baseline_flags, candidate_flags)
+    )
+    candidate_positive = sum(
+        (not b) and c 
+        for b, c in zip(baseline_flags, candidate_flags)
+    )
+    both_positive = sum(
+        b and c 
+        for b, c in zip(baseline_flags, candidate_flags)
+    )
+    
+    # McNemar's test (discordant pairs only)
+    contingency = [[both_negative, baseline_positive],
+                   [candidate_positive, both_positive]]
+    
+    # Calculate statistic
+    b = baseline_positive
+    c = candidate_positive
+    
+    if b + c == 0:
+        # No discordant pairs - no change
+        p_value = 1.0
+        passed = True
+    else:
+        # McNemar's chi-squared statistic
+        chi2 = ((b - c) ** 2) / (b + c)
+        p_value = 1 - stats.chi2.cdf(chi2, df=1)
+        
+        # Gate: must not increase (candidate_positive <= baseline_positive)
+        # AND p-value must be > alpha (not significantly worse)
+        passed = (candidate_positive <= baseline_positive) and (p_value > alpha)
+    
+    baseline_rate = sum(baseline_flags) / len(baseline_flags)
+    candidate_rate = sum(candidate_flags) / len(candidate_flags)
+    
+    message = (
+        f"Baseline violation rate: {baseline_rate:.3f}, "
+        f"Candidate: {candidate_rate:.3f}. "
+        f"McNemar p-value: {p_value:.4f}. "
+        f"Required: no increase (p > {alpha})"
+    )
+    
+    return GateResult(
+        passed=passed,
+        metric_name="toxicity",
+        baseline_mean=baseline_rate,
+        candidate_mean=candidate_rate,
+        improvement=baseline_rate - candidate_rate,
+        confidence_interval=None,
+        p_value=p_value,
+        message=message
+    )
+
+def evaluate_ci_gate(
+    groundedness_baseline: List[float],
+    groundedness_candidate: List[float],
+    toxicity_baseline: List[bool],
+    toxicity_candidate: List[bool]
+) -> Tuple[GateResult, GateResult]:
+    """
+    Evaluate both gates and return results.
+    
+    Returns:
+        Tuple of (groundedness_result, toxicity_result)
+    """
+    groundedness_result = paired_bootstrap_test(
+        groundedness_baseline,
+        groundedness_candidate,
+        min_improvement=0.5
+    )
+    
+    toxicity_result = mcnemar_test(
+        toxicity_baseline,
+        toxicity_candidate
+    )
+    
+    return groundedness_result, toxicity_result
+
+# Example usage
+if __name__ == "__main__":
+    # Simulated evaluation results
+    groundedness_baseline = [0.82, 0.85, 0.79, 0.88, ...]  # 1000 scores
+    groundedness_candidate = [0.87, 0.89, 0.84, 0.91, ...]  # 1000 scores
+    
+    toxicity_baseline = [False, False, True, False, ...]  # 1000 flags
+    toxicity_candidate = [False, False, False, False, ...]  # 1000 flags
+    
+    groundedness_result, toxicity_result = evaluate_ci_gate(
+        groundedness_baseline,
+        groundedness_candidate,
+        toxicity_baseline,
+        toxicity_candidate
+    )
+    
+    print(f"Groundedness gate: {'PASSED' if groundedness_result.passed else 'FAILED'}")
+    print(f"  {groundedness_result.message}")
+    
+    print(f"Toxicity gate: {'PASSED' if toxicity_result.passed else 'FAILED'}")
+    print(f"  {toxicity_result.message}")
+    
+    # Overall gate decision
+    overall_passed = groundedness_result.passed and toxicity_result.passed
+    print(f"\nOverall CI gate: {'PASSED' if overall_passed else 'FAILED'}")
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Cost Management}
+Evaluation is resource-intensive, and costs must be managed carefully. Retrievals and judge calls should be cached, and pairwise comparisons preferred over absolute scoring. Importance sampling can be used to focus on high-value slices while maintaining statistical power with smaller samples. Heavy evaluation suites are best run nightly or weekly, while pre-merge checks remain small and deterministic.
+
+\subsection{Documentation and Compliance}
+Finally, evaluation artifacts must be archived for governance. Where possible, datasets, judge prompts, seeds, and metric definitions should be assigned DOIs. Release notes should include a \emph{Change Impact} section summarizing differences from the baseline, the statistical tests applied, and any safety findings. Aligning evaluation plans with OWASP and NIST frameworks ensures defensibility in audits \cite{owasp_llm,nist_genai_profile}.
+
+\subsection{Tooling Landscape}
+A broad ecosystem of tools supports continuous evaluation. Open-source frameworks include OpenAI Evals, the EleutherAI LM Harness, HELM, RAGAS, TruLens, Arize Phoenix, promptfoo, and MLflow LLM evaluation. On the managed side, LangSmith provides evaluators integrated into LangChain pipelines. The choice depends on auditability needs, integration costs, and confidence in judge reliability \cite{openai_evals}.  
+
+\BestPracticeBox{Continuous evaluation is no longer optional---it is the backbone of responsible LLMOps. Staged evaluation pipelines, model-graded judges, retrieval-aware groundedness checks, and statistical gates collectively enable reliable, auditable, and safe releases. Model judges offer scalability, but their biases must be controlled and their outputs triangulated with human assessments. In sum, evaluations should be treated both as executable code and as governance evidence.}
+
+\section{Fine-Tuning-Aware Workflows}
+\label{sec:cicd-finetune}
+\subsection{Model and prompt promotion as first-class releases}
+Fine-tuning introduces additional release artifacts beyond code: training datasets, checkpoints, evaluation reports, and model registry metadata. A robust workflow treats each model version and its associated prompt/tool contract as a promoted unit. Model registries (e.g., MLflow Model Registry) support staged promotion (\emph{staging} $\rightarrow$ \emph{production}), version tags, and audit trails that integrate naturally with CI/CD gates \cite{mlflow_model_registry,mlflow_model_registry_workflow}.
+
+Fine-tuning offers a powerful pathway to adapt general-purpose large language models for domain-specific applications. By continuing the training process on curated datasets, organizations can substantially improve accuracy on specialized tasks such as legal document summarization, financial analysis, or infrastructure configuration. However, these gains do not come without risks: fine-tuned models are more prone to overfitting, brittle prompt behavior, and the phenomenon of catastrophic forgetting, where previously acquired general capabilities deteriorate.
+
+Best practices for fine-tuning therefore emphasize disciplined evaluation before, during, and after the tuning process. \textbf{Before/after benchmarking} is a first principle: the model should always be evaluated on representative domain datasets as well as on broader general-purpose benchmarks both prior to and following fine-tuning. This comparison provides empirical evidence of whether domain gains are offset by regressions elsewhere \cite{llyd_finetuning}. To reduce the chance of hidden overfitting, evaluations should include stress tests for prompt sensitivity, in which variations in phrasing or formatting are introduced to verify robustness across linguistic styles.
+
+Another critical safeguard is the inclusion of \textbf{catastrophic forgetting checks}. By running unrelated but general-purpose tasks alongside domain-specific tests in the continuous integration pipeline, teams can detect whether the model is retaining its broader reasoning, language understanding, or coding abilities. Maintaining a small, stable holdout set of standard NLP benchmarks for regression testing provides an anchor that prevents narrow specialization from eroding general utility.
+
+Prompt robustness evaluation extends beyond task prompts to system-level instructions and scaffolding prompts. System prompts often play an outsized role in shaping model behavior; testing multiple variants helps identify brittleness and improves resilience in production deployments. Relatedly, \textbf{general benchmark maintenance} ensures that fine-tuning does not inadvertently collapse performance on widely studied tasks such as summarization, QA, or reasoning---areas where end users may still expect strong performance even from a domain-specialized model.
+
+The overall workflow thus becomes a cycle of targeted adaptation balanced by systematic evaluation. Fine-tuning should not be treated as a one-off event but rather as an iterative process embedded within the CI/CD pipeline: data is curated, models are tuned with parameter-efficient methods when possible, evaluation suites are executed across multiple slices, and results are logged and compared against both domain and general baselines. This perspective reflects the growing consensus that fine-tuning is as much an operational discipline as it is a modeling technique, requiring careful instrumentation, governance, and continuous monitoring.
+
+\section{Deployment Strategies: Canary, Blue-Green, and Rollback}\index{deployment!strategy}\index{canary deployment}\index{blue-green deployment}\index{rollback}
+\label{sec:cicd-deploy-strategies}
+\subsection{Progressive Delivery Controllers for Kubernetes}
+For Kubernetes-native rollouts, progressive delivery controllers provide first-class primitives for canary and blue-green releases, traffic shifting, and automated analysis gates. Argo Rollouts is a widely used controller that extends standard \texttt{Deployment} behavior with canary and blue-green strategies, experiments, and metric-based promotion/rollback hooks \cite{argo_rollouts_overview,argo_rollouts_canary,argo_rollouts_bluegreen}. For LLM services, these controllers are particularly valuable because they can couple release progression to LLM-specific guardrails (e.g., eval pass rates, tool-call success, safety-trigger rates) rather than only CPU/memory health.
+
+Deploying LLMs requires staged risk mitigation:
+
+\begin{table}[t]
+\centering
+\small
+\caption{Staged risk mitigation reduces deployment risk through incremental validation. Different stages (pre-commit, pre-deploy, canary, full rollout) apply progressively stronger validation, catching issues before they affect all users. This staged approach enables teams to deploy confidently by validating changes at multiple checkpoints, reducing the blast radius of any regressions.}
+\label{tab:ch04_deployment_risk_mitigation}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{p{3.5cm}X}
+\toprule
+\rowcolor{gray!10}
+\textbf{Strategy} & \textbf{Description} \\
+\midrule
+\textbf{Shadow Testing} & Route queries to new models in parallel without exposing to users. \\
+\textbf{Canary Releases} & Expose only a fraction of traffic to new versions; monitor key KPIs (latency, hallucination rate). \\
+\textbf{Blue-Green Deployments} & Run old and new models in separate environments for easy switch-over. \\
+\textbf{Live A/B Testing} & Compare two versions with real traffic; analyze toxic output rates or factual accuracy. \\
+\textbf{Automated Rollback Triggers} & Revert to stable models if anomaly detection thresholds are exceeded. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+This ensures that high-risk LLM behavior can be contained and reversed rapidly \cite{rohan_llmops}.
+
+Listing~\ref{lst:ch04_deployment_strategy} shows an Argo Rollouts configuration implementing canary deployment with LLM-specific analysis gates.
+
+\begin{llmlistingbox}{Canary deployment configuration with LLM analysis gates}
+\label{lst:ch04_deployment_strategy}
+\begin{lstlisting}[style=springer]
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: ishtar-llm-inference
+  namespace: production
+spec:
+  replicas: 5
+  strategy:
+    canary:
+      # Canary traffic percentages
+      steps:
+      - setWeight: 1
+      - pause: {}
+      - setWeight: 5
+      - pause: {duration: 10m}
+      - setWeight: 10
+      - pause: {duration: 15m}
+      - setWeight: 25
+      - pause: {duration: 20m}
+      - setWeight: 50
+      - pause: {duration: 30m}
+      - setWeight: 100
+      
+      # Analysis configuration for LLM-specific metrics
+      analysis:
+        templates:
+        - templateName: llm-quality-analysis
+        args:
+        - name: service-name
+          value: ishtar-llm-inference-canary
+        - name: baseline-name
+          value: ishtar-llm-inference-stable
+        
+        startingStep: 2  # Start analysis at 5% traffic
+        
+        successCondition: |
+          result[0].groundedness.passed == true &&
+          result[0].toxicity.passed == true &&
+          result[0].latency.passed == true
+        
+        failureCondition: |
+          result[0].groundedness.passed == false ||
+          result[0].toxicity.passed == false ||
+          result[0].latency.passed == false
+        
+        metrics:
+        - name: groundedness
+          interval: 5m
+          count: 3
+          successCondition: result[0].mean >= 0.85
+          failureCondition: result[0].mean < 0.80
+          provider:
+            prometheus:
+              address: http://prometheus:9090
+              query: |
+                avg(
+                  ishtar_groundedness_score{
+                    service="ishtar-llm-inference-canary"
+                  }
+                )
+        
+        - name: toxicity
+          interval: 5m
+          count: 3
+          successCondition: result[0].rate <= 0.05
+          failureCondition: result[0].rate > 0.10
+          provider:
+            prometheus:
+              address: http://prometheus:9090
+              query: |
+                sum(
+                  rate(ishtar_toxicity_flags_total{
+                    service="ishtar-llm-inference-canary"
+                  }[5m])
+                ) /
+                sum(
+                  rate(ishtar_requests_total{
+                    service="ishtar-llm-inference-canary"
+                  }[5m])
+                )
+        
+        - name: latency
+          interval: 5m
+          count: 3
+          successCondition: result[0].p95 <= 600
+          failureCondition: result[0].p95 > 1000
+          provider:
+            prometheus:
+              address: http://prometheus:9090
+              query: |
+                histogram_quantile(0.95,
+                  sum(rate(ishtar_ttft_seconds_bucket{
+                    service="ishtar-llm-inference-canary"
+                  }[5m])) by (le)
+                ) * 1000
+  
+  selector:
+    matchLabels:
+      app: ishtar-llm
+      component: inference
+  
+  template:
+    metadata:
+      labels:
+        app: ishtar-llm
+        component: inference
+        version: v1.4.0
+    spec:
+      containers:
+      - name: inference-server
+        image: ishtar/llm-inference:v1.4.0
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+            memory: "40Gi"
+            cpu: "8"
+          limits:
+            nvidia.com/gpu: 1
+            memory: "45Gi"
+            cpu: "16"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: llm-quality-analysis
+  namespace: production
+spec:
+  metrics:
+  - name: groundedness
+    interval: 5m
+    count: 3
+    successCondition: result[0].mean >= 0.85
+    failureCondition: result[0].mean < 0.80
+    provider:
+      prometheus:
+        address: http://prometheus:9090
+        query: |
+          avg(
+            ishtar_groundedness_score{
+              service="{{args.service-name}}"
+            }
+          )
+  
+  - name: toxicity
+    interval: 5m
+    count: 3
+    successCondition: result[0].rate <= 0.05
+    failureCondition: result[0].rate > 0.10
+    provider:
+      prometheus:
+        address: http://prometheus:9090
+        query: |
+          sum(
+            rate(ishtar_toxicity_flags_total{
+              service="{{args.service-name}}"
+            }[5m])
+          ) /
+          sum(
+            rate(ishtar_requests_total{
+              service="{{args.service-name}}"
+            }[5m])
+          )
+  
+  - name: latency
+    interval: 5m
+    count: 3
+    successCondition: result[0].p95 <= 600
+    failureCondition: result[0].p95 > 1000
+    provider:
+      prometheus:
+        address: http://prometheus:9090
+        query: |
+          histogram_quantile(0.95,
+            sum(rate(ishtar_ttft_seconds_bucket{
+              service="{{args.service-name}}"
+            }[5m])) by (le)
+          ) * 1000
+\end{lstlisting}
+\end{llmlistingbox}
+
+\noindent\textbf{From patterns to practice.}
+Shadow testing (\emph{a.k.a.} traffic mirroring or dark launching) provides the lowest-risk starting point: production queries are duplicated to a candidate model, whose outputs are logged but never surfaced to users. For LLMs, shadowing must be \emph{side-effect safe}: tool invocations, database writes, or external API calls should be simulated or routed to sandboxes to avoid unintended actions. Shadow traffic is invaluable for catching domain-specific regressions, style drift, or retrieval mismatches before any user is affected, and it allows calibration of online evaluators (helpfulness, groundedness, safety) against real distributions \cite{mlflow_llm_eval,langsmith_eval,phoenix_rag,trulens}.
+
+\noindent\textbf{Canary releases} then introduce controlled exposure. Traffic is routed to the new model in small, sticky increments (e.g., 1\% $\rightarrow$ 5\% $\rightarrow$ 10\% $\rightarrow$ 25\%), where ``sticky'' means the same user/session consistently sees the same model to prevent cross-contamination of experience and to support valid inference. Canaries should be guarded by \emph{online SLOs/SLIs} tailored to LLM risks: p50/p95 latency, cost per 1K tokens, refusal rate, toxicity flags, and faithfulness/groundedness scores where RAG is used. Ramps proceed only when guardrails clear statistically meaningful thresholds (e.g., McNemar for binary safety events; bootstrap for continuous rubric scores), aligning deployment with the gating philosophy used in offline CI evaluation.
+
+\noindent\textbf{Blue--green deployments} separate infrastructure concerns from model quality concerns. Two identical stacks (\emph{blue} and \emph{green}) run in parallel; the inactive color is prepared with the new model, warmed caches, synchronized retrieval indices, and identical configuration. A single router switch promotes the candidate when ready, enabling near-instant rollback by flipping back to the prior color. For LLM systems, the \emph{retrieval layer} and \emph{prompt/guardrail config} must be versioned alongside the model so that a blue--green switch is truly reversible; otherwise, a silent change in the index, prompt template, or tool permissions can confound attribution of observed effects.
+
+\noindent\textbf{Live A/B testing} complements canaries by providing hypothesis-driven comparison between two versions under real traffic. For LLMs, A/B designs should control for population and query mix (e.g., stratified or cup-and-ball bucketing), log per-slice outcomes (domain, toxicity risk class, user segment), and avoid peeking without proper sequential correction. Outcome metrics should include both user-outcome proxies (conversation quality, task completion) and safety/groundedness signals. Where human labels are scarce, model-graded online evaluators can provide high-frequency signals, periodically calibrated against human anchor sets \cite{langsmith_eval,phoenix_rag,trulens}.
+
+\noindent\textbf{Automated rollback} closes the loop. Rollback policies should be explicit and testable: define anomaly detectors (e.g., CUSUM/EWMA on safety incidents; threshold rules on hallucination rate or refusal spikes), minimum sample sizes before triggering, and cool-down periods to avoid oscillation. Crucially, ``rollback'' must revert the \emph{entire bundle}: model weights, prompt templates, tool access policies, and retrieval index snapshot. Treating these as a single immutable artifact enables deterministic reversions and clean postmortems \cite{rohan_llmops}.
+
+\medskip
+\noindent\textbf{LLM-specific operational nuances.}
+Unlike conventional microservices, LLM behavior depends on a triad of artifacts---\emph{model}, \emph{prompt/guardrails}, and \emph{retrieval index}. Deployment pipelines should therefore (i) pre-warm context caches and embeddings to prevent latency and cost spikes from cold starts; (ii) synchronize index versions across blue/green and canary paths; (iii) log inputs/outputs with privacy-preserving hashing for replay and audit; and (iv) bound agent tool permissions more tightly on canary traffic than on baseline until safety confidence increases. Cost governance is first-class in LLM deployments; canaries often reveal token-amplifying failure modes (verbosity loops, unnecessary tool calls) that are invisible in offline tests.
+
+\begin{tcolorbox}[
+  title={\textbf{A Worked Rollout Playbook}},
+  colback=green!5,
+  colframe=green!40!black,
+  colbacktitle=green!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\begin{enumerate}[leftmargin=1.5em, itemsep=4pt, topsep=2pt]
+\item \textbf{Shadow:} Mirror 5--10\% of representative traffic to the candidate; disable real side effects; validate latency/cost curves and online evaluator distributions against baseline.  
+\item \textbf{Gate 0 (promotion to canary):} Require offline CI wins (e.g., faithfulness $\uparrow$ with 95\% CI excluding 0; toxicity not worse via McNemar) and shadow parity on latency/cost.  
+\item \textbf{Canary ramp:} Start at 1\% sticky traffic; advance only if p95 latency, refusal, toxicity, and groundedness stay within predefined bands relative to baseline for a minimum sample size (e.g., $N \ge 1{,}000$ turns per slice).  
+\item \textbf{Live A/B:} At 10--25\% traffic, run a pre-registered test plan with slice-level dashboards and online evaluators; stop for harm rate inflation or hallucination spikes beyond error budgets \cite{mlflow_llm_eval,langsmith_eval,phoenix_rag,trulens}.  
+\item \textbf{Blue--green cutover:} Promote the new color only after index/prompt parity checks and cache warm-up pass; keep the prior color hot for rapid rollback.  
+\item \textbf{Automated rollback drills:} Exercise kill-switches and artifact reversion in staging; verify that logs, alerts, and postmortem templates capture the full bundle needed for audit \cite{rohan_llmops}.
+\end{enumerate}
+\end{tcolorbox}
+
+\medskip
+\noindent\textbf{Common failure modes (and mitigations).}
+(1) \emph{Confounded attribution:} index or prompt drift explains effects; mitigate via artifact bundling and immutable snapshots.  
+(2) \emph{Non-sticky exposure:} users oscillate between versions, corrupting A/B inference; enforce sticky routing.  
+(3) \emph{Side-effect leakage in shadow:} simulated tools accidentally hit production; strictly sandbox or record--replay.  
+(4) \emph{Cost blow-ups:} verbosity or tool loops inflate tokens; add verbosity caps and tool budgets, monitor tokens/turn.  
+(5) \emph{Over-eager promotion:} peeking without correction; use sequential tests or fixed horizons before decisions.
+
+\medskip
+In summary, shadow, canary, blue--green, and automated rollback form a layered defense that localizes risk, supports statistically credible decisions, and preserves reversibility. Embedding LLM-specific observability and artifact versioning into these patterns turns progressive delivery into a practical safety system for generative applications \cite{rohan_llmops,mlflow_llm_eval,langsmith_eval,phoenix_rag,trulens}.
+
+\section{Observability and CI Tooling}
+\label{sec:cicd-observability-ci}
+\subsection{Supply-Chain Security, Provenance, and Trusted Releases}
+Because LLM systems ship not only application code but also prompts, orchestration graphs, model binaries, container images, and sometimes private retrieval indices, CI/CD must address software supply-chain integrity. A practical baseline is to adopt SLSA (Supply-chain Levels for Software Artifacts) to incrementally improve build integrity and provenance guarantees \cite{slsa_about,slsa_levels}. In containerized deployments, Sigstore\texttt{/}cosign can sign images and attach attestations (including SBOMs and in-toto predicates), enabling verification before promotion to production \cite{sigstore_cosign,cosign_attestations}. This is especially important for GPU images, where driver/toolkit drift and opaque base images can create reproducibility and security failures.
+
+\subsection{GitHub Actions Hardening and OIDC-Based Cloud Auth}
+When using GitHub Actions, security hardening should treat workflow definitions as production code: pin third-party actions, restrict token permissions, and apply least-privilege policies for runners and environments \cite{gha_secure_use,gha_security}. For cloud deployments, OpenID Connect (OIDC) allows workflows to authenticate to cloud providers without long-lived secrets, reducing credential leakage risk and simplifying rotation \cite{gha_oidc_concepts,gha_oidc_cloud}. In practice, OIDC pairs naturally with signed artifacts: only provenance-verified images and prompt packages are eligible for promotion.
+
+Modern observability platforms bridge CI/CD with runtime monitoring. They provide structured tracing, evaluation, and dataset replay that let teams turn production behavior into reproducible CI assets and defensible promotion gates.
+
+\begin{tcolorbox}[
+  title={\textbf{Observability Platforms for LLM CI/CD}},
+  colback=purple!5,
+  colframe=purple!40!black,
+  colbacktitle=purple!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\begin{itemize}[leftmargin=1.5em, itemsep=4pt, topsep=2pt]
+  \item \textbf{LangSmith:} Enterprise-grade debugging, tracing, prompt evaluation, and dataset replay for LLM apps.
+  \item \textbf{LangFuse:} Open-source tracing and monitoring for multi-step chains; supports curating edge-case datasets for CI.
+  \item \textbf{LangGraph:} Explicit graph-based agent orchestration with LangFuse/LangSmith integration for dependency testing.
+  \item \textbf{Other tools:} TruLens, Ragas, and PromptLayer provide prompt/version tracking, RAG-focused evaluation, and explainability metrics.
+\end{itemize}
+\end{tcolorbox}
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Observability tool selection determines debugging speed and incident response capability. Different tools specialize in different aspects: tracing (OpenTelemetry), prompt management (LangSmith), and evaluation (LangFuse). Choose based on existing infrastructure, team needs, and integration requirements.}
+  \label{tab:ch04_obs_tools}
+  \setlength{\tabcolsep}{6pt}
+  \renewcommand{\arraystretch}{1.3}
+  \rowcolors{2}{gray!5}{white}
+  \begin{tabularx}{0.95\linewidth}{l X}
+    \toprule
+    \rowcolor{gray!10}
+    \textbf{Tool} & \textbf{Purpose in CI/CD} \\
+    \midrule
+    LangSmith & Unified tracing and evaluation for LLM pipelines. \\
+    LangFuse  & Multi-step workflow logging; dataset curation for regression testing. \\
+    LangGraph & Graph-based orchestration with testable agent/node dependencies. \\
+    TruLens   & Evaluation and explainability metrics suitable for CI gates. \\
+    Ragas     & RAG-specific metrics (faithfulness, citation coverage, hallucination detection). \\
+    PromptLayer & Prompt version control, lineage, and rollback tracking. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsubsection{From traces to tests}
+Observability is not only for dashboards; it is a data product that fuels continuous evaluation. Traces, spans, and artifacts captured at runtime (prompts, tool calls, retrieved passages, model responses, costs, latencies) are the raw material for building the next iteration's CI datasets. In a mature workflow, failure modes discovered in production---hallucinations without citations, privacy-unsafe outputs, tool-call loops, or long-tail domains---are automatically mined into labeled \emph{edge-case sets} that feed nightly regressions and post--merge gates \cite{langsmith_eval,trulens,ragas,phoenix_rag,mlflow_llm_eval}.
+
+\subsubsection{The minimal reproducibility contract}
+For observability to be \emph{actionable} in CI, traces must carry enough structure to replay behavior deterministically in staging. A practical contract includes: (i) unique \texttt{request\_id}/\texttt{span\_id} with parent--child relationships; (ii) exact prompt templates with parameter values, system messages, and guardrail states; (iii) retrieval snapshots or stable document identifiers (index version, chunk IDs, scorer config); (iv) model identifiers and settings (model name/version, temperature/top-$p$, tools enabled); and (v) output plus judge/evaluator scores when available. With this contract, dataset-replay frameworks can reconstruct the full call graph for CI gates and compare deltas on quality, safety, latency, and cost \cite{langsmith_eval,mlflow_llm_eval}.
+
+\subsubsection{Dataset curation via observability}
+Modern platforms support two complementary flows. First, \emph{manual curation}: developers/analysts promote interesting traces into ``golden'' or ``slice'' sets (e.g., HIPAA-like prompts, financial-compliance requests, multi-hop questions). Second, \emph{automated mining}: rules and detectors (toxicity flags, contradiction/NLI checks, refusal spikes, token/cost anomalies) sample failing spans into labeled queues. These queues generate CI datasets stratified by risk class, domain, and user segment, maintaining representation of rare but high-severity behaviors. For RAG, mining also captures retrieval misses and low evidence-overlap cases so CI can gate on faithfulness and citation coverage \cite{ragas,phoenix_rag}.
+
+\subsubsection{Integrating with CI/CD}
+A practical pattern is \emph{dataset replay as a first-class CI step}. Post--merge, the pipeline replays a fixed batch of recent high-signal traces (e.g., the last 24--72 hours of failing slices) against both the baseline and the candidate, producing paired metrics and significance tests that mirror offline evaluation (bootstrap for continuous rubrics; McNemar for binary safety flags). Nightly, a larger replay spans curated and mined datasets to estimate power on low-incidence harms. Promotion rules tie directly to slice-level SLOs (e.g., hallucination rate not worse; groundedness $+0.5$ with 95\% CI excluding zero).
+
+\section{Structured Prompt Testing}
+\label{sec:cicd-structured-prompt-testing}
+\BestPracticeBox{Prompts are treated as first-class artifacts:
+\begin{itemize}[leftmargin=1.5em, itemsep=4pt, topsep=2pt]
+    \item \textbf{Prompt Version Control:} Store prompts in Git; update via PRs.
+    \item \textbf{Unit Tests:} Verify structural correctness (e.g., valid JSON output).
+    \item \textbf{Evaluation Suites:} Apply metrics (BLEU, ROUGE, cosine similarity) and LLM-as-judge assessments.
+    \item \textbf{Canary Prompts:} A/B test prompt variants before full rollout.
+    \item \textbf{Safety Testing:} Red-team prompts included in regression CI to test refusals and alignment.
+    \item \textbf{Chain Validation:} Multi-step chains are tested end-to-end, ensuring intermediate outputs match schema and dependencies.
+\end{itemize}}
+
+\noindent\textbf{From ``prompting'' to engineered artifacts.}
+As LLM applications mature, free-form prompt crafting gives way to disciplined software practice: prompts are templatized, parameterized, and \emph{versioned} exactly like code. Storing prompts in Git and updating them through pull requests enables code review, diffing, and traceability (who changed which instruction and why). Prompt diffs should be coupled to CI runs that replay representative datasets and report per-slice deltas so reviewers can evaluate impact rather than relying on intuition \cite{promptfoo,openai_evals,lm_harness,langsmith_eval,mlflow_llm_eval}. In this model, a prompt is not merely text but a contract governing structure (schemas), safety (guardrails), and performance (task metrics).
+
+Listing~\ref{lst:ch04_prompt_versioning} demonstrates a versioned prompt template structure with changelog, test suite references, and regression baseline tracking.
+
+\begin{llmlistingbox}{Versioned prompt template with changelog and test references}
+\label{lst:ch04_prompt_versioning}
+\begin{lstlisting}[style=springer]
+{
+  "prompt_id": "ishtar_event_synthesis",
+  "version": "1.4.0",
+  "semantic_version": {
+    "major": 1,
+    "minor": 4,
+    "patch": 0
+  },
+  
+  "metadata": {
+    "created": "2024-01-10T10:00:00Z",
+    "updated": "2024-01-15T14:30:00Z",
+    "author": "ishtar-team",
+    "reviewer": "alice.smith",
+    "pr_number": "1234",
+    "commit_sha": "abc123def456"
+  },
+  
+  "changelog": {
+    "1.4.0": {
+      "date": "2024-01-15",
+      "author": "ishtar-team",
+      "changes": [
+        "Enhanced citation format requirements",
+        "Added explicit neutrality guidelines",
+        "Improved few-shot examples for conflict reporting"
+      ],
+      "breaking": false,
+      "migration_notes": "None - backward compatible"
+    },
+    "1.3.0": {
+      "date": "2024-01-05",
+      "changes": [
+        "Added chain-of-thought structure",
+        "Updated system message tone"
+      ],
+      "breaking": false
+    }
+  },
+  
+  "template": {
+    "system_message": |
+      You are a conflict journalism assistant. Your role is to synthesize
+      information from multiple sources into accurate, neutral summaries.
+      Always cite sources using [Source: ID] format. Maintain journalistic
+      objectivity and avoid speculation. If information conflicts, note the
+      discrepancy and cite all relevant sources.
+    
+    "user_template": |
+      Analyze the following situation step by step:
+      
+      Sources:
+      {retrieved_documents}
+      
+      Question: {user_query}
+      
+      Think through this systematically:
+      1. What are the key facts from the sources?
+      2. What are the different perspectives or claims?
+      3. What are the implications?
+      4. What is the most reliable conclusion based on the evidence?
+    
+    "few_shot_examples": [
+      {
+        "user": "What happened in Region X yesterday?",
+        "assistant": |
+          Let me analyze the available sources:
+          
+          1. **Key facts:**
+             - Official sources [Source: OFF-001] report 2 incidents
+             - NGO sources [Source: NGO-042] report 3 incidents
+             - Both agree on location: northern villages
+          
+          2. **Different perspectives:**
+             - Timeline discrepancy: OFF-001 says 14:00-18:00,
+               NGO-042 says 13:30-19:00
+          
+          3. **Implications:**
+             - Core events confirmed by both sources
+             - Discrepancy suggests possible underreporting
+          
+          4. **Reliable conclusion:**
+             At least 2-3 incidents occurred in northern villages
+             between 13:30-19:00 [Source: OFF-001, Source: NGO-042].
+      }
+    ],
+    
+    "parameters": {
+      "temperature": 0.3,
+      "max_tokens": 800,
+      "top_p": 0.9,
+      "frequency_penalty": 0.1
+    },
+    
+    "output_schema": {
+      "type": "object",
+      "required": ["analysis", "citations"],
+      "properties": {
+        "analysis": {
+          "type": "string",
+          "description": "Synthesized analysis"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\[Source: [A-Z]{3}-\\d{3}\\]$"
+          }
+        }
+      }
+    }
+  },
+  
+  "safety_guardrails": {
+    "refusal_keywords": ["classified", "secret", "confidential"],
+    "citation_required": true,
+    "neutrality_required": true,
+    "max_length_tokens": 1000
+  },
+  
+  "test_suites": {
+    "unit_tests": "tests/prompts/ishtar_event_synthesis_unit_v1.4.yaml",
+    "regression_tests": "tests/prompts/ishtar_event_synthesis_regression_v1.4.yaml",
+    "safety_tests": "tests/prompts/ishtar_event_synthesis_safety_v1.4.yaml",
+    "integration_tests": "tests/prompts/ishtar_event_synthesis_integration_v1.4.yaml"
+  },
+  
+  "regression_baseline": {
+    "version": "1.3.0",
+    "metrics": {
+      "groundedness": 0.87,
+      "citation_coverage": 0.92,
+      "neutrality_score": 0.89
+    },
+    "test_results": "s3://ishtar-evals/baselines/v1.3.0/results.json"
+  },
+  
+  "deployment": {
+    "canary_percentage": 10,
+    "promotion_criteria": {
+      "groundedness": ">= 0.85",
+      "citation_coverage": ">= 0.90",
+      "toxicity_rate": "<= 0.05",
+      "latency_p95_ms": "<= 600"
+    }
+  }
+}
+\end{lstlisting}
+\end{llmlistingbox}
+
+\noindent\textbf{Unit tests for structure and contracts.}
+Before quality metrics, prompts must satisfy structural guarantees. Unit tests check that required placeholders are bound, that role messages are present in the intended order, and that outputs conform to declared schemas (e.g., valid JSON, enumerations, and field types). These tests often combine two layers: (i) \emph{syntactic} checks (template rendering, presence of safety disclaimers, tool-authorization clauses) and (ii) \emph{contract} checks (output validates against a JSON Schema or similar). Contract tests reduce surface for prompt injection and insecure output handling by forcing the model to emit constrained structures that downstream components can safely parse \cite{owasp_llm}. When schemas evolve, backward-compatibility tests protect consuming services and prevent ``silent breaks'' in multi-team environments.
+
+\noindent\textbf{Evaluation suites and judge assessments.}
+Once structure is guaranteed, prompts are scored on capability metrics. Classical text metrics (e.g., ROUGE, BLEU, cosine/embedding similarity) provide quick, repeatable signals but can underweight reasoning, factuality, or style conformance. LLM-as-judge evaluations complement these by scoring helpfulness, groundedness, and instruction adherence via rubric- or pairwise-based prompts \cite{zheng2023judge,helm2022}. Because judge models exhibit biases (position, verbosity, formatting), evaluation pipelines should randomize answer ordering, enforce symmetric prompting, and rely on multiple judges with disagreement analysis, promoting only when paired statistical tests indicate meaningful improvement (bootstrap for continuous scores; McNemar for binary pass/fail) \cite{koehn2004,mcnemar1947}. This preserves rigor while keeping evaluation scalable.
+
+\noindent\textbf{Canary prompts and progressive rollout.}
+Prompt changes can shift behavior as much as model changes. To de-risk, teams stage \emph{canary prompts}: a small fraction of traffic receives the variant template while the rest continues with the baseline. Routing should be sticky at the user or session level to maintain internal validity. Promotion is governed by pre-registered criteria: no degradation of safety (toxicity/refusal), groundedness for RAG flows, and acceptable latency/cost budgets. Online judge evaluators---calibrated against human anchor sets---provide fast feedback, while significance tests prevent premature promotion due to noise \cite{langsmith_eval,mlflow_llm_eval,trulens,phoenix_rag}.
+
+\noindent\textbf{Safety-first prompt testing.}
+Prompts encode policy just as much as they encode task instructions. Regression CI should therefore include red-team prompts probing refusal boundaries, jailbreak susceptibility, data exfiltration attempts, and social-bias triggers. Curated suites such as RealToxicityPrompts, CrowS-Pairs, and BBQ help quantify harm propensity and bias shifts across revisions, while OWASP LLM Top-10 and MITRE ATLAS patterns guide adversarial scenarios (prompt injection, insecure output handling, model evasion) \cite{gehman2020realtoxicity,crowsPairs2020,bbq2022,owasp_llm,mitre_atlas}. Safety budgets (maximum tolerated incident rates per slice) provide clear go/no-go gates tied to organizational risk tolerance.
+
+\noindent\textbf{Chain validation and dependency tests.}
+Modern LLM applications often involve multi-step chains or agent graphs. A prompt may be correct in isolation yet fail when its output feeds a subsequent tool or node. End-to-end tests therefore validate \emph{intermediate} outputs against schemas, assert pre/post-conditions on tool calls (e.g., no external write without classification approval), and perform record--replay of retrieval contexts to ensure reproducibility across runs. Dependency tests inject controlled faults (e.g., retrieval miss, tool timeout) to verify that the chain remains safe and degrades gracefully. Observability platforms can export failing traces into CI datasets, turning production incidents into regression tests for future prompt revisions \cite{langsmith_eval,mlflow_llm_eval,trulens,phoenix_rag}.
+
+\begin{tcolorbox}[
+  title={\textbf{A Worked Gating Recipe}},
+  colback=teal!5,
+  colframe=teal!40!black,
+  colbacktitle=teal!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\begin{enumerate}[leftmargin=1.5em, itemsep=4pt, topsep=2pt, label=(\roman*)]
+\item \textbf{Pre-merge:} run structural/unit tests (template render, JSON Schema validate), static guard checks (injection patterns, PII clauses), and 50--200 deterministic cases for smoke validation \cite{promptfoo}.  
+\item \textbf{Post-merge:} evaluate 1--5k examples with judge rubrics (helpfulness, groundedness) plus classical metrics; require paired bootstrap CIs that exclude zero for promotion \cite{koehn2004}.  
+\item \textbf{Nightly:} adversarial and fairness suites (toxicity/bias, jailbreaks), contradiction/NLI checks, and slice mining from production traces \cite{gehman2020realtoxicity,crowsPairs2020,bbq2022,phoenix_rag}.  
+\item \textbf{Canary:} ramp to 1--10\% sticky traffic with online evaluators; gate on safety incident budgets and latency/cost SLOs; roll back on breach \cite{langsmith_eval,mlflow_llm_eval}.  
+\end{enumerate}
+\end{tcolorbox}
+
+\noindent\textbf{Common failure modes (and mitigations).}
+(1) \emph{Unversioned prompt edits}: changes are irreproducible; enforce PRs and artifact snapshots.  
+(2) \emph{Structure-free outputs}: downstream parsing breaks or becomes injection-prone; adopt schema validation and constrained decoding; fail fast in CI \cite{owasp_llm}.  
+(3) \emph{Judge overfitting}: prompts tuned to please a single judge model; rotate judges and calibrate to human anchors \cite{zheng2023judge}.  
+(4) \emph{Non-sticky canaries}: users alternate between prompts; enforce sticky routing and adequate sample sizes for inference \cite{mcnemar1947}.  
+(5) \emph{Missing fault injection}: chains pass only in happy paths; add dependency tests and record--replay harnesses \cite{langsmith_eval,phoenix_rag}.  
+
+\medskip
+In sum, structured prompt testing elevates prompts from craft to engineering: versioned artifacts with unit and contract tests, evaluated by multi-metric suites and model judges, staged through canary rollouts, and hardened by safety and dependency checks. This approach makes prompt evolution auditable, reproducible, and safe at enterprise scale \cite{promptfoo,openai_evals,lm_harness,zheng2023judge,owasp_llm}.
+
+\subsection{CI/CD for Multi-Agent Systems}
+\label{sec:cicd-multi-agent}
+\begin{tcolorbox}[
+  title={\textbf{CI/CD Extensions for Multi-Agent Systems}},
+  colback=red!5,
+  colframe=red!40!black,
+  colbacktitle=red!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+Multi-agent systems require CI/CD extensions:
+\begin{itemize}[leftmargin=1.5em, itemsep=4pt, topsep=2pt]
+    \item \textbf{Workflow Tracing:} Trace interactions step-by-step (LangFuse traces reveal inter-agent failures).
+    \item \textbf{Dependency Checks:} Validate contracts (e.g., schema adherence) between agents.
+    \item \textbf{Golden Path Scenarios:} Test curated complex tasks requiring multiple cooperating agents.
+    \item \textbf{Modular Updates:} Roll out agent updates individually with regression tests on downstream agents.
+    \item \textbf{Performance and Cost Monitoring:} Guard against runaway loops, latency, or excessive token usage.
+\end{itemize}
+\end{tcolorbox}
+
+\noindent\textbf{Why multi-agent changes the CI/CD calculus.}
+When an application is decomposed into collaborating agents (planner, retriever, analyst, executor, verifier), the unit of correctness is the \emph{graph}, not an individual call. Each edge in that graph transmits contracts---schemas, pre/post-conditions, and safety guarantees---that must hold even as individual agents evolve. Consequently, CI/CD must include graph-aware testing, graph-level observability, and promotion gates that reason over end-to-end behavior rather than isolated prompts or models \cite{helm2022,langsmith_eval,phoenix_rag}.
+
+\noindent\textbf{Workflow tracing: from calls to paths.}
+Step-by-step tracing makes the hidden state of agent collaborations visible. A practical trace for CI should capture: (i) prompts and tool authorizations at each node; (ii) retrieved evidence and index versions for RAG nodes; (iii) decisions, branches, and retries; (iv) model identifiers and decoding parameters; and (v) per-step latency, tokens, and costs. With such traces, record--replay harnesses reproduce entire paths for regression and fault-injection tests (e.g., forcing retrieval misses, tool timeouts) and enable attribution of failures to the responsible node or edge \cite{langsmith_eval,phoenix_rag,trulens}. Traces harvested from production (via LangFuse/LangSmith) can be promoted into versioned CI datasets, closing the loop between runtime incidents and offline gates.
+
+\noindent\textbf{Dependency checks: assume--guarantee contracts.}
+Inter-agent interfaces should be validated with \emph{contract tests} that assert schema conformance (JSON Schema), value ranges, and semantic invariants (e.g., ``executor never receives unsafe shell commands''). For RAG subgraphs, contracts also include evidence linkage (IDs, spans) so downstream verifiers can check groundedness and flag contradictions using NLI-style checks \cite{ragas,phoenix_rag}. To prevent injection and insecure output handling across boundaries, static guards and structured decoding (function calling, constrained grammars) are enforced in CI, following OWASP LLM Top-10 guidance and adversarial playbooks inspired by MITRE ATLAS \cite{owasp_llm,mitre_atlas}.
+
+\noindent\textbf{Golden paths: complex, curated task scenarios.}
+Golden-path scenarios represent canonical end-to-end tasks (e.g., ``research $\rightarrow$ draft $\rightarrow$ cite $\rightarrow$ fact-check $\rightarrow$ publish'') with known success criteria, evidence sets, and safety constraints. They exercise long-horizon coordination, tool interleavings, and error recovery. In CI, golden paths provide stable anchors for statistical gating and ablation studies (e.g., disabling the verifier to quantify its contribution), while nightly suites rotate fresh, hard prompts to reduce overfitting \cite{helm2022}. Scoring combines judge rubrics (helpfulness, groundedness), retrieval metrics, and slice-specific safety rates, promoted only when paired tests show meaningful gains \cite{koehn2004,mcnemar1947}.
+
+\noindent\textbf{Modular updates with downstream guarantees.}
+Agents should be upgradable independently, but only behind \emph{interface compatibility tests}. A typical flow shadows a new planner while keeping executor/verifier fixed; CI replays recent traces to compare path choices, tool budgets, and safety outcomes against the baseline. Promotion requires: (i) no increase in incident rates on safety slices (McNemar on binary incidents), (ii) non-regression in groundedness (paired bootstrap CI excludes zero), and (iii) unchanged or improved latency/cost profiles for affected paths. If downstream regressions appear, CI refuses promotion even if the updated agent looks locally strong.
+
+\noindent\textbf{Performance and cost governance for graphs.}
+Multi-agent graphs risk \emph{runaway loops} (planner--retriever ping-pong), prompt verbosity cascades, and tool storms that inflate latency and spend. CI should enforce graph-level budgets: maximum steps per request, maximum cumulative tokens, and per-tool call ceilings. Online, error-budget style alerting (e.g., EWMA or CUSUM on loop rate, p95 latency, \$ per 1k tokens) triggers automated rollback or path gating. Observability should attribute costs to nodes and edges, so teams can identify the worst-offending interactions and re-tune prompts or introduce early-exit heuristics \cite{langsmith_eval,mlflow_llm_eval}.
+
+\begin{tcolorbox}[
+  title={\textbf{A Graph-Aware Gating Recipe (Worked Example)}},
+  colback=cyan!5,
+  colframe=cyan!40!black,
+  colbacktitle=cyan!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\begin{enumerate}[leftmargin=1.5em, itemsep=4pt, topsep=2pt, label=(\roman*)]
+\item \textbf{Record--replay dataset:} Materialize $N$ recent production traces that cover golden paths and risky slices (privacy, safety, long-context). Persist retrieval snapshots and tool outcomes.  
+\item \textbf{Node contracts:} Validate schema conformance and safety clauses on every edge; run adversarial inputs from OWASP/ATLAS playbooks on planner and executor boundaries \cite{owasp_llm,mitre_atlas}.  
+\item \textbf{Path metrics:} Compute per-path helpfulness and groundedness via model-graded rubrics, calibrated to human anchors; compute retrieval hit rate and citation coverage for RAG steps \cite{trulens,phoenix_rag,ragas}.  
+\item \textbf{Statistical gates:} Promote only if (a) path-level groundedness improves with a paired bootstrap 95\% CI excluding 0 and (b) safety incident rate is not worse (McNemar, $\alpha=0.05$), with (c) p95 latency and token budgets within SLOs \cite{koehn2004,mcnemar1947}.  
+\item \textbf{Canary by node:} Ramp a single agent (e.g., planner) on 1--10\% sticky traffic while holding others fixed; monitor loop rate and cost per resolved task.  
+\end{enumerate}
+\end{tcolorbox}
+
+\noindent\textbf{Common failure modes (and mitigations).}
+(1) \emph{Local fixes, global regressions}: a planner change improves single-step quality but increases loop depth; mitigate with path-level budgets and gates.  
+(2) \emph{Unenforced interfaces}: downstream agents receive free-form outputs; enforce JSON Schema and constrained decoding in CI.  
+(3) \emph{Attribution fog}: lack of graph-aware tracing hides the failing node; require structured spans and replay bundles \cite{langsmith_eval}.  
+(4) \emph{Adversarial gaps}: no targeted tests at agent boundaries; incorporate OWASP/ATLAS scenarios in nightly suites \cite{owasp_llm,mitre_atlas}.  
+(5) \emph{Canary contamination}: non-sticky routing mixes agents within a session; enforce stickiness at the user/session level for valid inference.
+
+\medskip
+In summary, multi-agent CI/CD elevates testing and monitoring from \emph{calls} to \emph{paths}. By combining graph-aware tracing, contract validation, curated golden paths, modular rollouts, and strict performance/cost governance, teams can evolve individual agents without sacrificing global correctness, safety, or efficiency \cite{langsmith_eval,phoenix_rag,trulens,owasp_llm,mitre_atlas}.
+
+
+\subsection{Practitioner Checklist: Production-Ready LLM CI/CD}
+\label{sec:cicd-checklist}
+The following checklist condenses the chapter into a concrete ``definition of done'' for LLM CI/CD. It is intended to be used during design reviews and release readiness reviews.
+
+\ChecklistBox[Practitioner Checklist: Production-Ready LLM CI/CD]{
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}X@{}}
+\textbf{Checklist Item} & \textbf{Description} \\
+\midrule
+\textbf{Release unit defined and versioned} & Prompt templates, model IDs (and fine-tune checkpoints where applicable), retrieval index snapshots, tool schemas, and safety policies are versioned and promotable together. \\
+\textbf{Staged evaluation implemented} & Pre-merge smoke suite, post-merge regression gates, nightly adversarial/fairness suite, and canary/shadow online evaluation (Table~\ref{tab:ch04_eval_stages}). \\
+\textbf{Safety and security probes included} & Prompt-injection/jailbreak, PII leakage, insecure output handling, and tool-abuse scenarios aligned with OWASP LLM Top-10 and NIST risk guidance \cite{owasp_llm,nist_genai_profile}. \\
+\textbf{Promotion is statistically justified} & Paired tests and confidence intervals are used for go/no-go decisions; results are reported by slice and include failing examples \cite{koehn2004,mcnemar1947}. \\
+\textbf{Progressive delivery and rollback are automated} & Canary/blue--green rollout with automated analysis hooks and clear rollback triggers \cite{argo_rollouts_overview,argo_rollouts_canary,argo_rollouts_bluegreen}. \\
+\textbf{Observability feeds CI} & Traces, retrieved contexts, and tool-call logs are captured with a replayable contract so production incidents become regression tests \cite{langsmith_eval,phoenix_rag,trulens}. \\
+\textbf{Supply-chain integrity is enforced} & Provenance and signing (SLSA; signed images and attestations) and secretless cloud auth (OIDC) are required before promotion \cite{slsa_about,slsa_levels,sigstore_cosign,cosign_attestations,gha_oidc_concepts,gha_oidc_cloud}. \\
+\textbf{Agent graphs are tested as graphs} & Contract tests on edges, golden-path scenarios, and graph-level budgets (steps, tokens, tool ceilings) are enforced for multi-agent systems. \\
+\end{tabularx}
+}
+
+\section*{Chapter Summary}
+CI/CD for LLM systems extends traditional pipelines with continuous evaluation, semantic quality gates, and security controls tailored to generative behavior. In addition to code tests, LLM CI enforces regression suites over prompts, retrieval behavior, tool-call contracts, and safety policies. Deployment strategies such as canary and blue-green releases benefit from progressive delivery controllers and automated analysis hooks. Finally, supply-chain provenance (SLSA, signed artifacts, SBOMs) and secure cloud authentication (OIDC) reduce operational risk as systems scale.
+
+\section{Conclusion}
+\label{sec:cicd-conclusion}
+CI/CD for LLMs fuses DevOps automation with ML-specific safeguards: evaluation gates, staged deployment, prompt regression tests, and multi-agent orchestration. With LangSmith, LangFuse, and LangGraph, pipelines achieve both visibility and robustness. Structured prompt pipelines and multi-agent testing extend reliability. By continuously validating not only code but model behavior, organizations maintain velocity without sacrificing trustworthiness.
+
+\printbibliography[
+  heading=subbibliography,
+  segment=\therefsegment,
+  resetnumbers=true
+]
+

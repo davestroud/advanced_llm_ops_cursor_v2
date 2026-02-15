@@ -1,0 +1,1882 @@
+\chapter{Introduction to LLMOps and the Ishtar AI Case Study}\index{Ishtar AI|(}
+\label{ch:intro}
+\newrefsegment
+
+% ----------------------------
+% Chapter 1 — Abstract (online)
+% ----------------------------
+\abstract*{This chapter introduces Large Language Model Operations (LLMOps) as the operational discipline required to run LLM-powered systems reliably at scale. We motivate LLMOps by analyzing production failure modes that arise from scale (GPU memory and throughput constraints), pipeline complexity (retrieval, tools, and multi-step chains), output variability (stochastic decoding), and heightened risk (hallucination, security, and governance). The chapter frames quality as multidimensional—groundedness, safety, usefulness, and cost/latency—and argues that continuous evaluation and semantic observability are necessary complements to traditional reliability engineering. To ground the discussion, we introduce the Ishtar AI case study: a conflict-zone journalism assistant that integrates ingestion, retrieval-augmented generation (RAG), multi-agent orchestration, and GPU-backed serving under strict citation and safety constraints. We use early deployment case studies (failures and successes) to extract operational lessons and preview the book's lifecycle structure, emphasizing reproducible infrastructure, disciplined change management, staged releases, and auditability. The chapter concludes with a roadmap that maps each subsequent chapter to the end-to-end Ishtar AI lifecycle.}
+
+\epigraph{\emph{``The future of AI isn't just in building powerful models---it's in running them responsibly at scale.''}}{David Stroud}
+
+% --- Reader-visible abstract (PDF) ---
+\textbf{Abstract} This chapter introduces Large Language Model Operations (LLMOps) as the operational discipline required to run LLM-powered systems reliably at scale. We motivate LLMOps by analyzing production failure modes that arise from scale (GPU memory and throughput constraints), pipeline complexity (retrieval, tools, and multi-step chains), output variability (stochastic decoding), and heightened risk (hallucination, security, and governance). The chapter frames quality as multidimensional—groundedness, safety, usefulness, and cost/latency—and argues that continuous evaluation and semantic observability are necessary complements to traditional reliability engineering. To ground the discussion, we introduce the Ishtar AI case study: a conflict-zone journalism assistant that integrates ingestion, retrieval-augmented generation (RAG), multi-agent orchestration, and GPU-backed serving under strict citation and safety constraints. We use early deployment case studies (failures and successes) to extract operational lessons and preview the book's lifecycle structure, emphasizing reproducible infrastructure, disciplined change management, staged releases, and auditability. The chapter concludes with a roadmap that maps each subsequent chapter to the end-to-end Ishtar AI lifecycle.
+
+\begin{tcolorbox}[
+  title={\textbf{Chapter Overview}},
+  colback=blue!5,
+  colframe=blue!40!black,
+  colbacktitle=blue!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm
+]
+\noindent\textbf{Chapter roadmap.}
+This chapter introduces LLMOps as the operational discipline for running LLM-powered systems reliably at scale. We begin by motivating LLMOps through production failure modes and operational challenges (compute economics, serving infrastructure, data drift, evaluation, observability, and security). We then introduce the Ishtar AI case study as a running example throughout the book, examine early deployment case studies to extract operational lessons, and conclude with a roadmap mapping each chapter to the end-to-end LLMOps lifecycle.
+
+\medskip
+\noindent\textbf{Learning objectives.} After reading this chapter, you will be able to:
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Understand why LLMOps extends beyond traditional MLOps
+    \item Identify key operational challenges in LLM deployments (cost, latency, drift, observability, security)
+    \item Recognize the multidimensional nature of LLM quality (groundedness, safety, usefulness, cost/latency)
+    \item Understand the Ishtar AI case study and its role as a reference implementation
+    \item Map operational challenges to the book's chapter structure
+\end{itemize}
+\end{tcolorbox}
+
+% ------------------------------------------------------------
+% Chapter-local numbered boxes for Listings
+% (Defined here to avoid preamble dependencies.)
+% ------------------------------------------------------------
+\makeatletter
+\@ifundefined{c@llmlisting}{%
+  \newcounter{llmlisting}[chapter]
+  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
+}{}
+\@ifundefined{llmlistingbox}{%
+  \newenvironment{llmlistingbox}[1]{%
+    \refstepcounter{llmlisting}%
+    \begin{tcolorbox}[
+      title={\textbf{Listing \thellmlisting: #1}},
+      colback=black!2,
+      colframe=black!50,
+      colbacktitle=black!12,
+      coltitle=black,
+      fonttitle=\bfseries,
+      boxrule=0.6pt,
+      arc=3pt,
+      left=3mm, right=3mm, top=2mm, bottom=4mm,
+      breakable,
+      after skip=6pt
+    ]
+  }{\end{tcolorbox}}%
+}{}
+\makeatother
+
+\section{Introduction}
+
+\label{sec:intro}
+
+Large Language Models (LLMs)\index{LLM|see{Large Language Model}}\index{Large Language Model} have rapidly evolved from research curiosities into production-grade tools that are transforming how we work. Once strictly experimental, these models now power applications ranging from document drafting and code generation to data analysis and creative content creation—effectively becoming critical infrastructure for knowledge work. This success owes much to the powerful Transformer\index{Transformer} architecture introduced in 2017 \cite{Vaswani2017attention}, which enabled unprecedented scaling of model capabilities.
+To give a sense of scale, OpenAI's ChatGPT reached one million users in just five days and 100 million users within two months of launch—the fastest-growing consumer application in history \cite{stylefactory,reuters}. By early 2025, 95\% of companies in the United States reported using generative AI in some form \cite{bain}, with daily queries to LLM-powered services numbering in the billions. This unprecedented adoption underscores that the central challenge is no longer merely building powerful models, but deploying and maintaining them effectively in production.
+What has changed is not simply the \emph{capability} of language models, but their \emph{position} in the software stack. LLMs increasingly function as a universal interface layer: they translate natural language intent into structured actions (queries, code, workflows), and they mediate access to organizational knowledge through retrieval and tool use. In this role, LLMs behave less like a single ``model artifact'' and more like an adaptive runtime component—one that interacts with external systems, evolves through prompt and policy updates, and must be governed like any other piece of critical infrastructure.
+This shift creates a new operational reality. In classical machine learning, production reliability often boils down to model versioning, data pipelines, and periodic retraining. In contrast, LLM-powered systems depend on a much larger surface area of evolving components: system prompts, few-shot examples, safety policies, decoding parameters, retrieval corpora, vector indices, and tool schemas \cite{liu2023promptSurvey,holtzman2020curious}. A change in any one of these layers can materially alter outputs—often in subtle ways not captured by standard unit tests. As a result, teams must treat LLM systems as \emph{composed systems} whose overall behavior emerges from the interaction of multiple components rather than from the base model alone.
+Moreover, the definition of ``quality'' for LLM applications is multi-dimensional. Traditional ML models can be evaluated against crisp labels or numeric metrics. LLM systems, however, must be assessed across criteria such as factual accuracy, groundedness, instruction adherence, safety, tone, and usefulness. These properties are highly context-dependent and can vary by user segment, domain, or even time of day. This complexity necessitates continuous evaluation frameworks (offline regression suites, LLM-as-judge rubrics, online telemetry) rather than one-time model validation \cite{edge2025llmops}.
+Finally, widespread deployment increases the stakes of failure. When an LLM is integrated into customer support, enterprise search, legal or compliance workflows, or newsroom operations, errors can propagate quickly: hallucinated claims may be mistaken for policy, incorrect citations can erode user trust, and prompt-injection vulnerabilities could expose sensitive data \cite{assemblyAI2023decoding}. The operational problem is therefore not only performance and cost, but also governance, security, and accountability. In practice, this means establishing careful release gates, observability pipelines, audit trails, and incident response playbooks tailored to LLM behavior.
+In short, the rapid adoption of LLMs marks a transition from treating ``models as features'' to treating ``models as platforms.'' The organizations that succeed with AI will not be those that merely plug in the most capable model, but those that develop the operational discipline to run LLM-powered systems reliably—controlling cost and latency, continuously measuring quality, defending against new threats, and iterating safely as models and knowledge sources evolve.
+The remainder of this chapter introduces the foundational principles, workflows, and terminology of LLMOps\index{LLMOps|(} (Large Language Model Operations). We clarify not just the what of LLMOps, but also the why—why new approaches and tools are needed specifically for LLMs, and how they build on (or differ from) established MLOps\index{MLOps|see{LLMOps}} practices. To make these concepts concrete, we will also introduce Ishtar AI\index{Ishtar AI|(} as a running case study: a mission-critical LLM application for journalists in conflict zones, which will serve as a continuous reference throughout the book.
+
+\section{Operational Challenges}
+\label{sec:operational-challenges}
+Taking these massive models from demo to production introduces a host of operational hurdles that go far beyond those of traditional software or even classical machine learning systems. Smaller ML models can often be deployed on a single server with straightforward CI/CD and basic monitoring practices. In contrast, LLM deployments demand specialized infrastructure, rigorous orchestration, and new approaches to observability. The challenges span multiple dimensions:
+
+\subsection{Compute Economics: Cost, Latency, and Capacity}
+LLM inference\index{inference} is fundamentally more expensive than most classical ML workloads because each request consumes substantial compute and memory bandwidth, and because request \emph{shape} (prompt length, output length, and concurrency) drives non-linear resource usage (e.g., KV-cache\index{KV-cache} pressure under long contexts). In production, the binding question is rarely ``can we run the model?'' but rather ``can we run it \emph{reliably}, \emph{quickly}, and \emph{affordably} under peak load?''
+
+In practice, teams must manage a three-way tradeoff between \emph{latency}\index{latency}, \emph{throughput}\index{throughput}, and \emph{cost}\index{cost!optimization}. A practical way to operationalize this is to manage a \emph{latency budget}\index{latency!budget} and an \emph{economics budget} simultaneously. End-to-end latency should be decomposed by stage (tokenization/policy checks, retrieval, model prefill/decoding, post-processing), and reported by tail percentiles (p95/p99), not only averages. In interactive systems, \emph{time-to-first-token (TTFT)}\index{TTFT|see{Time-to-First-Token}}\index{Time-to-First-Token} is often the dominant user-perceived metric, while \emph{tokens-per-second (TPOT)}\index{tokens-per-second} determines how quickly the response completes. Tail latency\index{latency!tail} matters because a small fraction of slow requests can degrade user experience disproportionately, and because burst traffic patterns can cause queue buildup that pushes p99 latency far beyond p50.
+
+Production systems therefore require:
+\begin{itemize}
+  \item \textbf{Explicit latency budgets:} decomposing end-to-end response time into retrieval, prompt assembly, model compute, and post-processing.
+  \item \textbf{Capacity planning:}\index{capacity planning} forecasting peak concurrency, long-tail requests, and burst behavior; sizing GPU\index{GPU} fleets or managed endpoints accordingly.
+  \item \textbf{Cost controls:} caching\index{caching}, batching\index{batching}, quantization\index{quantization}, and model routing\index{routing!model} (e.g., small/fast model for routine tasks; larger model for complex reasoning) to maintain sustainable cost per successful outcome.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\linewidth]{images/ch01-cost-latency-throughput}
+  \caption{Latency decomposition enables targeted optimization and capacity planning. End-to-end latency is the sum of stage latencies (tokenization/policy checks, retrieval, LLM prefill+decode, post-processing), and identifying bottlenecks requires measuring each stage independently. Sustaining throughput and cost efficiency demands coordinated controls: batching and scheduling optimize throughput, caching/quantization/routing improve unit economics, and explicit capacity planning (peak demand, tail latency, autoscaling) ensures SLO compliance.}
+  \label{fig:ch01_cost_latency_throughput}
+\end{figure}
+
+\subsection{Serving Infrastructure and Systems Engineering}
+Even with managed APIs, LLM-powered applications behave like distributed systems\index{distributed system}. Deploying an LLM is closer to operating a distributed system than deploying a single model artifact. A single user query may traverse multiple components—retrieval\index{retrieval}, reranking\index{reranking}, tool calls\index{tool calling}, safety checks, and the model itself—each introducing failure modes and latency variance \cite{edge2025llmops}. Even when using managed endpoints, production systems require careful design across multiple layers:
+
+\begin{itemize}
+  \item \textbf{GPU scheduling and utilization:}\index{GPU!scheduling} maximizing utilization often demands batching, quantization, and careful selection of serving runtimes\index{serving!runtime}.
+  \item \textbf{Context window constraints:}\index{context window} prompt length, retrieved context, and tool outputs must be managed to avoid truncation, runaway costs, or degraded quality. Systems must implement truncation or segmentation strategies for long contexts \cite{liu2023promptSurvey}.
+  \item \textbf{Multi-region resilience:}\index{multi-region deployment} high availability\index{high availability} frequently requires regional redundancy, intelligent routing, and graceful degradation\index{graceful degradation} when capacity is constrained.
+\end{itemize}
+
+Reliability\index{reliability} is also a concern: when a subcomponent fails (retriever times out, a tool API is down, or the model hits a rate limit), the overall system should gracefully degrade (e.g., use cached or partial results, fall back to a simpler response) rather than fail catastrophically.
+
+% Preamble requirements: \usepackage{tikz} and \usetikzlibrary{arrows.meta,positioning}
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+% Color definitions
+\definecolor{userblue}{RGB}{44,102,146}
+\definecolor{orchestratorgreen}{RGB}{34,139,96}
+\definecolor{retrieverorange}{RGB}{201,111,29}
+\definecolor{knowledgepurple}{RGB}{123,88,163}
+\definecolor{llmred}{RGB}{173,63,60}
+\definecolor{toolteal}{RGB}{0,128,128}
+\definecolor{responseviolet}{RGB}{153,102,204}
+\begin{tikzpicture}[
+  >=Stealth,
+  node distance=12mm and 22mm,
+  every node/.style={font=\small},
+  % Component styles with color coding
+  user/.style={ellipse, draw=none, fill=userblue!15, minimum width=20mm, minimum height=10mm, align=center, font=\small\bfseries},
+  orchestrator/.style={rectangle, draw=none, fill=orchestratorgreen!15, rounded corners=5pt, minimum width=34mm, minimum height=12mm, align=center, font=\small\bfseries},
+  retriever/.style={rectangle, draw=none, fill=retrieverorange!15, rounded corners=5pt, minimum width=27mm, minimum height=10mm, align=center, font=\small},
+  knowledge/.style={rectangle, draw=none, fill=knowledgepurple!15, rounded corners=5pt, minimum width=26mm, minimum height=11mm, align=center, font=\small},
+  llm/.style={rectangle, draw=none, fill=llmred!15, rounded corners=5pt, minimum width=26mm, minimum height=12mm, align=center, font=\small\bfseries},
+  tool/.style={rectangle, draw=none, fill=toolteal!15, rounded corners=5pt, minimum width=24mm, minimum height=10mm, align=center, font=\small},
+  response/.style={ellipse, draw=none, fill=responseviolet!15, minimum width=20mm, minimum height=10mm, align=center, font=\small\bfseries},
+  failure/.style={circle, draw=none, fill=red!20, minimum size=6mm},
+  % Arrow styles - enhanced
+  mainflow/.style={-{Latex}, line width=1.2pt, color=black!70},
+  fallback/.style={-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1.2pt, color=black!60},
+  toolflow/.style={-{Latex}, line width=1.2pt, color=toolteal!70!black},
+  retrieval/.style={-{Latex}, line width=1.2pt, color=retrieverorange!70!black},
+  queryflow/.style={-{Latex}, line width=1.2pt, color=userblue!70!black},
+  label/.style={font=\footnotesize, color=black!70}
+]
+
+% User and Response (top level)
+\node[user] (user) {User};
+\node[response, right=36mm of user] (response) {Response};
+
+% Orchestrator (center)
+\node[orchestrator, below=14mm of user] (orchestrator) {\begin{tabular}{c}Orchestrator\\\small LLM Application\end{tabular}};
+
+% Retriever and Knowledge Base (left side)
+\node[retriever, below left=12mm and 16mm of orchestrator] (retriever) {\begin{tabular}{c}Retriever\\\small (Vector DB)\end{tabular}};
+\node[knowledge, below=10mm of retriever] (knowledge) {\begin{tabular}{c}Knowledge Base\\\small (Documents)\end{tabular}};
+
+% LLM Model (right side)
+\node[llm, below right=12mm and 16mm of orchestrator] (llm) {LLM Model};
+
+% External Tool (below LLM)
+\node[tool, below=10mm of llm] (tool) {\begin{tabular}{c}External Tool\\\small / API\end{tabular}};
+
+% Failure indicator
+\node[failure, left=6mm of retriever] (failure) {\textbf{×}};
+
+% Main flow: User → Orchestrator → Response
+\draw[queryflow] (user) -- node[label, above, pos=0.5] {User Query} (orchestrator);
+\draw[mainflow] (orchestrator) -- node[label, above, pos=0.5] {Return answer} (response);
+
+% Retrieval flow: Orchestrator → Retriever → Knowledge Base
+\draw[retrieval] (orchestrator) -- node[label, left, pos=0.5] {Retrieve docs} (retriever);
+\draw[retrieval] (retriever) -- node[label, right, pos=0.5] {query index} (knowledge);
+\draw[retrieval] (knowledge) -- node[label, left, pos=0.5] {docs} (retriever);
+\draw[retrieval] (retriever) -- node[label, right, pos=0.5] {docs} (orchestrator);
+
+% Failure indicator connection
+\draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1.2pt, color=red!60] (retriever) -- (failure);
+\node[font=\footnotesize\bfseries, color=red!70!black, left=3mm of failure] {Failure};
+
+% LLM flow: Orchestrator → LLM (dashed for model interaction)
+\draw[fallback] (orchestrator) -- node[label, right, pos=0.5] {Assemble prompt \& call model} (llm);
+\draw[fallback] (llm) -- node[label, left, pos=0.5] {LLM answer} (orchestrator);
+
+% Fallback: Orchestrator → LLM (skip retrieval)
+\draw[fallback] (orchestrator) to[out=0,in=180, looseness=1.0] node[label, above, pos=0.5, font=\small] {Fallback: skip retrieval} (llm);
+
+% Tool flow: LLM → Tool
+\draw[toolflow] (llm) -- node[label, right, pos=0.5] {Tool call (if needed)} (tool);
+\draw[toolflow] (tool) -- node[label, left, pos=0.5] {Tool result} (llm);
+
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{LLM application architecture\index{architecture!LLM application} determines reliability and capability. This RAG\index{RAG|see{Retrieval-Augmented Generation}}\index{Retrieval-Augmented Generation|(}-based design enables grounded responses through retrieval, fallback mechanisms ensure graceful degradation, and tool integration extends model capabilities. This architecture pattern balances accuracy (via retrieval), reliability (via fallbacks), and functionality (via tools) for production deployments.}
+\label{fig:ch01_architecture}
+\end{figure}
+
+\subsection{Data and Knowledge Drift (Especially in RAG)}
+LLM behavior in production depends not only on the base model but also on the
+\emph{inference-time evidence} it is conditioned on. In Retrieval-Augmented Generation (RAG)\index{Retrieval-Augmented Generation},
+the system's effective knowledge is an evolving composite of (i) the underlying corpus,
+(ii) the embedding model\index{embedding!model} and indexing configuration\index{indexing} used to represent that corpus,
+and (iii) the retrieval and filtering policies that determine what evidence is eligible.
+As these layers change, drift\index{drift!data}\index{drift!knowledge} can \emph{silently} degrade answer quality: the system may
+continue returning fluent responses while groundedness\index{groundedness}, citation fidelity\index{citation!fidelity}, and trustworthiness erode.
+Critically, retrieval failures are often silent: the system may return HTTP 200 and appear healthy
+while producing ungrounded or outdated answers, making drift detection\index{drift!detection} a semantic rather than
+infrastructure problem.
+
+Unlike static software logic, LLM applications are highly sensitive to shifting data distributions,
+evolving user behavior, and changing external knowledge sources. Production robustness requires
+explicit mechanisms for drift detection and remediation. Three distinct drift modes require
+different monitoring and remediation strategies: \emph{index drift}\index{drift!index} occurs when embeddings and
+vector indices\index{vector index} become stale as corpora evolve; \emph{embedding drift}\index{drift!embedding} happens when the embedding
+model itself changes or when the semantic representation shifts; and \emph{permission drift}\index{drift!permission} occurs
+when authorization and provenance rules evolve, requiring the retriever to enforce updated access
+controls at retrieval time.
+
+Common drift modes include:
+\begin{itemize}
+  \item \textbf{Index drift:} embeddings and vector indices become stale as corpora evolve; re-embedding,
+  re-indexing, and \emph{post-refresh validation} must be scheduled and verified (e.g., via canary queries
+  with expected evidence).
+  \item \textbf{Distribution shift:} user queries change with product evolution and external events,
+  requiring monitoring of query clusters, long-tail intents, and slice-level failure patterns.
+  \item \textbf{Content governance drift:} authorization and provenance rules evolve (ACL changes,
+  source trust updates, deprecations). The retriever must surface \emph{only} authorized and current documents,
+  enforcing permissions and lineage at retrieval time.
+  \item \textbf{Prompt and policy drift:} small changes to system prompts, safety instructions, or tool schemas
+  can cause substantial behavior changes that must be regression-tested.
+  \item \textbf{Human feedback at scale:} user corrections and preference signals can be invaluable, but must
+  be captured, triaged, and incorporated through controlled iteration cycles.
+\end{itemize}
+
+Operationally, treat drift as a control problem: define a staleness SLO for the index,
+monitor retrieval quality and groundedness signals, and close the loop with automated refresh pipelines,
+canary evaluations, and auditable index snapshots (Fig.~\ref{fig:ch01_rag_drift_control}).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\linewidth]{images/ch01-rag-drift-control}
+  \caption{RAG drift management as a closed-loop operational process: detect drift signals, diagnose the cause, remediate via index/retriever/governance changes, and validate with canary evaluation plus index/config snapshots for auditability and rollback.}
+  \label{fig:ch01_rag_drift_control}
+\end{figure}
+
+\subsection{Evaluation: From Single Metrics to Behavioral Guarantees}
+Traditional ML systems often rely on offline metrics (AUC, RMSE) and periodic monitoring. Classical ML systems can often be validated with offline metrics and periodic retraining. LLM systems require a richer notion of quality that includes correctness, groundedness, safety, and style. Because outputs are open-ended, evaluation\index{evaluation} becomes an ongoing engineering discipline. LLM systems demand continuous evaluation\index{evaluation!continuous} because behavior depends on prompts, retrieved context, decoding parameters, and tool availability. The operational challenge is to make evaluation \emph{systematic}:
+
+\begin{itemize}
+  \item \textbf{Regression suites:}\index{regression testing} ``golden'' prompts and expected properties (e.g., includes citations, refuses unsafe requests, follows schema) to catch behavioral regressions. Golden sets\index{golden set} and regression suites provide curated test prompts and expected properties (groundedness, citation correctness, refusal behavior) for repeatable checks.
+  \item \textbf{LLM-as-judge scoring:}\index{LLM-as-judge} scalable rubric-based evaluation, calibrated with human review to manage judge instability and bias. Scalable evaluation is often necessary, but introduces new risks (judge bias, instability) requiring calibration and spot-checking.
+  \item \textbf{Production telemetry:}\index{telemetry} online signals such as user correction rates, citation click-through, escalation to human review, and ``helpfulness'' ratings. In addition to offline tests, production systems need telemetry such as rerank scores, citation click-through, and user satisfaction proxies.
+\end{itemize}
+
+Effective evaluation requires \emph{slice-based}\index{evaluation!slice-based} analysis: measuring performance across domain slices (e.g., technical vs. general knowledge), temporal slices (recent vs. historical queries), and risk slices (high-stakes vs. low-stakes interactions). This slice-aware approach helps identify regressions that aggregate metrics might mask.
+
+\subsection{Observability and Debuggability}
+Traditional monitoring\index{monitoring} focuses on uptime, CPU, and error rates. LLM systems require observability\index{observability} that captures \emph{semantic} and \emph{behavioral} properties, because a generative system can return HTTP~200 while producing an ungrounded, unsafe, or policy-violating answer. In classic production systems, engineers debug failures through logs, traces\index{tracing}, and metrics. In LLM systems, you must additionally observe the \emph{semantic path} of a request: what context was retrieved, what instructions were applied, what tools were invoked, and how the model responded.
+
+In practice, LLM applications behave like composed systems: a single user request may traverse routing logic, retrieval, reranking, multi-step prompting\index{prompting!multi-step}, tool calls, and post-processing. Failures are therefore frequently \emph{cross-layer} (e.g., a retrieval miss causing hallucination\index{hallucination}, or a tool timeout causing a partial answer that still looks fluent). The operational goal is not merely to detect that an error occurred, but to explain \emph{why} an output was produced and \emph{which component} (prompt, retriever, tool, model version, or safety layer) drove the observed behavior.
+
+A useful mental model is to treat observability as an \emph{evidence ledger} for each response: record the exact prompt template\index{prompt!template} and parameters, the evidence retrieved (with identifiers and timestamps), the tool calls performed, and the model configuration (provider, version, temperature/top-$p$\index{temperature}\index{top-p}, context length). These traces support three production-critical workflows: (i) incident response\index{incident response} (rapid attribution and rollback), (ii) continuous evaluation (turning production failures into regression tests), and (iii) governance\index{governance} (audit trails for safety, privacy, and policy compliance).
+
+\begin{tcolorbox}[
+  title={\textbf{Effective LLM observability includes:}},
+  colback=blue!5,
+  colframe=blue!40!black,
+  colbacktitle=blue!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Structured tracing:}\index{tracing!structured} capturing prompt versions\index{prompt!versioning}, retrieved passages, tool-call inputs/outputs, and model parameters for reproducibility.
+  \item \textbf{Behavioral monitoring:}\index{monitoring!behavioral} hallucination indicators, refusal rates\index{refusal rate}, toxicity filter\index{toxicity filter} triggers, and citation coverage\index{citation!coverage}.
+  \item \textbf{Root-cause isolation:}\index{root-cause analysis} distinguishing whether a failure arose from retrieval, prompt assembly, tool output, or the model itself.
+\end{itemize}
+\end{tcolorbox}
+
+\begin{table}[t]
+\centering
+\small
+\caption{LLMOps observability: what to capture beyond traditional monitoring, why it matters, and common failure signals.}
+\label{tab:ch01_llm_observability}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Layer} & \textbf{What to capture} & \textbf{Why it matters} & \textbf{Typical failure signals} \\
+\midrule
+System telemetry &
+Latency (p50/p95/p99), error rate, GPU/CPU/memory utilization, queue depth, cost per request &
+Detect performance regressions and capacity collapse; bound tail latency and spend &
+TTFT spikes, token/s drops, saturation, retry storms \\
+\addlinespace[0.5em]
+Prompt \& policy telemetry &
+Prompt template ID/version, system/developer messages, guardrail settings, decoding params (temperature/top-$p$), routing decision &
+Prompts and policies function as executable logic; small changes can create large behavioral shifts &
+Refusal rate drift, verbosity inflation, format/schema violations \\
+\addlinespace[0.5em]
+Retrieval (RAG) telemetry &
+Retriever config (K, filters, recency window), retrieved doc IDs, scores, index version, chunk IDs &
+RAG errors are often silent; evidence quality determines groundedness and citation fidelity &
+Recall@K degradation, citation coverage drop, stale/unauthorized docs retrieved \\
+\addlinespace[0.5em]
+Tooling telemetry &
+Tool name/version, arguments, outputs, error codes, latency per tool call, side-effect flags &
+Tool misuse turns ``bad text'' into ``bad actions''; tool failures can masquerade as model failures &
+Tool-call loops, timeouts, invalid arguments, unsafe side effects \\
+\addlinespace[0.5em]
+Model output telemetry &
+Output text hash, token counts, stop reasons, safety classifier outcomes, citation spans/links &
+Quality and safety must be measured directly; infra metrics cannot detect hallucinations or bias &
+Hallucination flags, toxicity triggers, missing citations, policy violations \\
+\addlinespace[0.5em]
+Trace \& audit artifacts (cross-cutting) &
+End-to-end trace/span IDs, replay bundle (prompt+evidence+tools), redaction status, retention metadata &
+Enables root-cause isolation, reproducibility, postmortems, and compliance evidence &
+Inability to reproduce incidents; incomplete lineage for audits \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Listing~\ref{lst:ch01_observability_schema} shows a standardized telemetry schema that captures the semantic path of LLM requests for debugging and governance.
+
+\begin{llmlistingbox}{Standardized observability telemetry schema}
+\label{lst:ch01_observability_schema}
+\begin{lstlisting}[style=springer]
+{
+  "trace_id": "550e8400-e29b-41d4-a716-446655440000",
+  "span_id": "660e8400-e29b-41d4-a716-446655440001",
+  "conversation_id": "770e8400-e29b-41d4-a716-446655440002",
+  "timestamp": "2024-01-15T14:32:10.123Z",
+  
+  "prompt_telemetry": {
+    "template_id": "ishtar_event_synthesis",
+    "template_version": "1.3.0",
+    "system_message_hash": "sha256:abc123...",
+    "user_query_hash": "sha256:def456...",
+    "decoding_params": {
+      "temperature": 0.3,
+      "top_p": 0.9,
+      "max_tokens": 500
+    }
+  },
+  
+  "retrieval_telemetry": {
+    "index_version": "conflict_reports_v2.1",
+    "top_k": 10,
+    "retrieved_doc_ids": ["OFF-001", "NGO-042", "SOC-089"],
+    "retrieval_scores": [0.92, 0.87, 0.81],
+    "reranker_scores": [0.95, 0.88, 0.79],
+    "retrieval_latency_ms": 145
+  },
+  
+  "tool_telemetry": [
+    {
+      "tool_name": "verify_source",
+      "tool_version": "1.2.0",
+      "arguments": {"source_id": "OFF-001"},
+      "result": "verified",
+      "latency_ms": 23
+    }
+  ],
+  
+  "model_telemetry": {
+    "model_id": "gpt-4-turbo",
+    "provider": "openai",
+    "input_tokens": 1250,
+    "output_tokens": 342,
+    "total_tokens": 1592,
+    "ttft_ms": 450,
+    "tokens_per_second": 12.3,
+    "stop_reason": "stop"
+  },
+  
+  "output_telemetry": {
+    "output_hash": "sha256:ghi789...",
+    "citation_count": 3,
+    "citation_coverage": 0.95,
+    "safety_signals": {
+      "toxicity_score": 0.02,
+      "hallucination_flags": [],
+      "policy_violations": []
+    }
+  },
+  
+  "cost_estimate": {
+    "input_cost_usd": 0.0125,
+    "output_cost_usd": 0.0103,
+    "total_cost_usd": 0.0228
+  }
+}
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Security, Privacy, and New Threat Models}
+LLM deployments introduce attack vectors that are uncommon in conventional software because
+the model functions as a \emph{natural-language interpreter} that can be influenced by untrusted
+inputs, retrieved documents, and tool outputs. Two properties drive the new threat model:
+(i) \emph{instruction following} (which makes prompt injection viable), and (ii) \emph{tool use and retrieval}
+(which expands the blast radius from ``bad text'' to ``bad actions'' and ``data exposure'').
+Critically, many failures are \emph{silent}: the service returns HTTP 200 while producing unsafe,
+unauthorized, or privacy-violating content.
+
+LLM applications introduce novel attack surfaces. Prompt injection, data exfiltration, and tool misuse are now first-class threats. Tool calls introduce a \emph{confused-deputy} problem: the LLM acts as an intermediary that can invoke tools with privileges the user does not possess, creating a risk that malicious prompts could escalate privileges or perform unauthorized actions. This blast radius expansion means that tool-augmented systems require careful sandboxing, input validation, and output filtering to prevent untrusted text from triggering dangerous operations.
+
+Three high-leverage risk categories dominate production hardening:
+\begin{itemize}
+  \item \textbf{Prompt-injection defenses:} treat user content and retrieved content as untrusted.
+  Enforce an instruction hierarchy (system > developer > user), sanitize inputs, and constrain
+  tool schemas/outputs so that untrusted text cannot escalate privileges or override policy.
+  Sanitization, instruction hierarchy, and strict tool schemas reduce the model's ability to be socially engineered.
+  
+  Listing~\ref{lst:ch01_tool_schema} illustrates a versioned tool schema that enforces security boundaries and enables contract validation.
+  
+  \item \textbf{Data protections:} assume sensitive data may appear in prompts, retrieved passages,
+  and logs. Apply least-privilege access controls at retrieval time, redact PII/secrets in inputs and
+  outputs, and maintain auditable traces for forensics and incident response. Access controls and audit logs become critical when the model can retrieve or generate sensitive information.
+  \item \textbf{Policy enforcement:} implement consistent guardrails across prompts, retrieval sources,
+  and tools to satisfy legal, regulatory, and brand-safety requirements. In practice this implies
+  policy-as-code gates in CI/CD and runtime enforcement (filters, allow-lists, rate limits, and
+  human escalation for high-stakes workflows). Organizations must enforce guardrails consistently across prompts, tools, and retrieval sources to satisfy legal, regulatory, and brand-safety constraints.
+\end{itemize}
+
+\begin{llmlistingbox}{Versioned tool schema with security controls}
+\label{lst:ch01_tool_schema}
+\begin{lstlisting}[style=springer]
+{
+  "tool_schema_version": "1.2.0",
+  "tool_id": "verify_source",
+  "tool_name": "verify_source",
+  "description": "Verify the authenticity and reliability of a source document",
+  
+  "security": {
+    "allowlist_enabled": true,
+    "requires_authentication": true,
+    "sandboxed": true,
+    "max_execution_time_ms": 5000,
+    "rate_limit_per_minute": 60
+  },
+  
+  "parameters": {
+    "type": "object",
+    "required": ["source_id"],
+    "properties": {
+      "source_id": {
+        "type": "string",
+        "pattern": "^[A-Z]{3}-\\d{3}$",
+        "description": "Source identifier in format XXX-###"
+      },
+      "verification_level": {
+        "type": "string",
+        "enum": ["basic", "standard", "strict"],
+        "default": "standard",
+        "description": "Level of verification to perform"
+      }
+    }
+  },
+  
+  "returns": {
+    "type": "object",
+    "properties": {
+      "verified": {
+        "type": "boolean",
+        "description": "Whether source passed verification"
+      },
+      "reliability_score": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Reliability score from 0 to 1"
+      },
+      "verification_details": {
+        "type": "object",
+        "description": "Detailed verification results"
+      }
+    },
+    "required": ["verified", "reliability_score"]
+  },
+  
+  "error_handling": {
+    "timeout": "return_error",
+    "invalid_input": "return_error",
+    "auth_failure": "reject"
+  },
+  
+  "contract_tests": [
+    "tests/tools/verify_source_v1.2.0.yaml"
+  ],
+  
+  "changelog": {
+    "1.2.0": "Added rate limiting and enhanced error handling",
+    "1.1.0": "Initial version with basic verification"
+  }
+}
+\end{lstlisting}
+\end{llmlistingbox}
+
+Fig.~\ref{fig:ch01_llm_threat_model} summarizes the main attack surfaces and a defense-in-depth
+control stack spanning input handling, retrieval governance, tool security, and output controls.
+
+% Preamble requirements: \usepackage{tikz} and \usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+\begin{landscape}
+\begin{figure}[t]
+  \centering
+  \begin{llmfigbox}
+  % Color definitions
+  \definecolor{surfaceblue}{RGB}{44,102,146}
+  \definecolor{threatred}{RGB}{173,63,60}
+  \definecolor{controlgreen}{RGB}{34,139,96}
+  \definecolor{crosscutpurple}{RGB}{123,88,163}
+  \begin{tikzpicture}[
+    >=Stealth,
+    % Box styles with color coding
+    surface/.style={rectangle, draw=none, fill=surfaceblue!12, rounded corners=5pt, minimum width=24mm, minimum height=11mm, align=center, font=\small},
+    threat/.style={rectangle, draw=none, fill=threatred!12, rounded corners=5pt, minimum width=24mm, minimum height=9mm, align=center, font=\small},
+    control/.style={rectangle, draw=none, fill=controlgreen!12, rounded corners=5pt, minimum width=24mm, minimum height=11mm, align=center, font=\small},
+    crosscut/.style={rectangle, draw=none, fill=crosscutpurple!10, rounded corners=5pt, minimum width=120mm, minimum height=8mm, align=center, font=\footnotesize},
+    arrow/.style={-{Latex}, line width=1pt, color=black!70}
+  ]
+
+  % Use explicit coordinates to ensure no overlap
+  % Top layer: Threat surfaces
+  \node[surface] (input) at (0,8) {\begin{tabular}{c}\textbf{Untrusted input}\\\footnotesize User query\\Uploads\\Links\end{tabular}};
+  \node[surface] (prompt) at (3.5,8) {\begin{tabular}{c}\textbf{Prompt / policy}\\\footnotesize System rules\\Templates\\Routing\end{tabular}};
+  \node[surface] (retrieval) at (7,8) {\begin{tabular}{c}\textbf{Retrieval (RAG)}\\\footnotesize Search + filters\\Evidence bundle\\Citations\end{tabular}};
+  \node[surface] (tools) at (10.5,8) {\begin{tabular}{c}\textbf{Tools / actions}\\\footnotesize APIs\\DB writes\\Workflows\end{tabular}};
+  \node[surface] (output) at (14,8) {\begin{tabular}{c}\textbf{Model output}\\\footnotesize Answer text\\Citations\\Logs\end{tabular}};
+
+  % Flow arrows between surfaces
+  \draw[-{Latex}, line width=1.2pt, color=surfaceblue!70!black] (input.east) -- (prompt.west);
+  \draw[-{Latex}, line width=1.2pt, color=surfaceblue!70!black] (prompt.east) -- (retrieval.west);
+  \draw[-{Latex}, line width=1.2pt, color=surfaceblue!70!black] (retrieval.east) -- (tools.west);
+  \draw[-{Latex}, line width=1.2pt, color=surfaceblue!70!black] (tools.east) -- (output.west);
+
+  % Middle layer: Threats
+  \node[threat] (inj) at (1.75,5.5) {\begin{tabular}{c}\textbf{Prompt injection}\\\footnotesize User text overrides\\instructions\end{tabular}};
+  \node[threat] (bypass) at (5.25,5.5) {\begin{tabular}{c}\textbf{Policy bypass}\\\footnotesize Hidden rules exposed\\or weakened\end{tabular}};
+  \node[threat] (exfil) at (8.75,5.5) {\begin{tabular}{c}\textbf{Data exfiltration}\\\footnotesize Unauthorized docs\\retrieved\end{tabular}};
+  \node[threat] (misuse) at (12.25,5.5) {\begin{tabular}{c}\textbf{Tool misuse}\\\footnotesize (confused deputy)\\\footnotesize Unsafe side effects\end{tabular}};
+  \node[threat] (leak) at (15.75,5.5) {\begin{tabular}{c}\textbf{Output leakage}\\\footnotesize (PII/secrets)\\\footnotesize Sensitive content\end{tabular}};
+
+  % Arrows from surfaces to threats (dashed for distinction)
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (input.south) -- (inj.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (prompt.south) -- (inj.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (prompt.south) -- (bypass.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (retrieval.south) -- (exfil.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (tools.south) -- (misuse.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (output.south) -- (leak.north);
+
+  % Cross-cutting element
+  \node[crosscut] (tracing) at (7,3) {\textbf{Cross-cutting:} structured tracing + audit logs (prompt IDs, retrieved doc IDs, tool calls, policy decisions) for incident response and rollback};
+
+  % Bottom layer: Controls
+  \node[control] (sanitize) at (1.75,0.5) {\begin{tabular}{c}\textbf{Input sanitization}\\\footnotesize Separate user vs\\system content\\Block known patterns\end{tabular}};
+  \node[control] (hierarchy) at (5.25,0.5) {\begin{tabular}{c}\textbf{Instruction hierarchy}\\\footnotesize System > developer > user\\Constrained formats\end{tabular}};
+  \node[control] (governance) at (8.75,0.5) {\begin{tabular}{c}\textbf{Retrieval governance}\\\footnotesize ACL checks\\Provenance + recency\\Trust allow-list\end{tabular}};
+  \node[control] (toolsec) at (12.25,0.5) {\begin{tabular}{c}\textbf{Tool security}\\\footnotesize Allow-list tools\\Argument validation\\Sandbox side effects\end{tabular}};
+  \node[control] (outctrl) at (15.75,0.5) {\begin{tabular}{c}\textbf{Output controls}\\\footnotesize PII/secret redaction\\Citation requirements\\Rate limits \& HITL\end{tabular}};
+
+  % Arrows from threats to controls (solid for distinction)
+  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (inj.south) -- (sanitize.north);
+  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (bypass.south) -- (hierarchy.north);
+  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (exfil.south) -- (governance.north);
+  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (misuse.south) -- (toolsec.north);
+  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (leak.south) -- (outctrl.north);
+
+  % Cross-cutting connections (dotted for distinction)
+  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north west)!0.1!(tracing.north east)$) to[out=90,in=-90] (inj);
+  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north west)!0.3!(tracing.north east)$) to[out=90,in=-90] (bypass);
+  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north west)!0.5!(tracing.north east)$) to[out=90,in=-90] (exfil);
+  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north west)!0.7!(tracing.north east)$) to[out=90,in=-90] (misuse);
+  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north east)$) to[out=90,in=-90] (leak);
+
+  % Layer labels (grayscale-safe)
+  \node[font=\normalsize\bfseries, color=black!70, above=3mm of input, anchor=west, xshift=-5mm] {Threat surfaces};
+  \node[font=\normalsize\bfseries, color=black!70, above=2mm of inj, anchor=west, xshift=-5mm] {Threats (what can go wrong)};
+  \node[font=\normalsize\bfseries, color=black!70, below=2mm of sanitize, anchor=west, xshift=-5mm] {Controls (what you implement)};
+
+  \end{tikzpicture}
+  \end{llmfigbox}
+  \caption{Security architecture\index{security!architecture} for tool- and retrieval-augmented LLM systems requires defense-in-depth\index{defense-in-depth}. Threats (prompt injection, policy bypass\index{policy bypass}, retrieval-based exfiltration\index{data exfiltration}, tool misuse\index{tool misuse}, and output leakage\index{output leakage}) map to concrete controls (input sanitization\index{input sanitization}, instruction hierarchy\index{instruction hierarchy}, retrieval governance\index{retrieval!governance}, tool sandboxing\index{sandboxing}, and output redaction\index{output redaction}), with audit-grade tracing\index{audit trail} as a cross-cutting requirement for incident response and rollback. This threat model guides security architecture decisions and demonstrates why traditional application security is insufficient for LLM systems.}
+  \label{fig:ch01_llm_threat_model}
+\end{figure}
+\end{landscape}
+
+\subsection{Change Management and Release Discipline}
+Finally, LLM systems change frequently: prompts evolve, models are upgraded, retrieval corpora update, and tool schemas shift. Without disciplined release processes\index{release process}, teams risk unintentional regressions. Mature LLMOps introduces:
+\begin{itemize}
+  \item \textbf{Versioning of prompts and policies:}\index{versioning!prompt} treating prompts like code, with reviews, diffs, and rollback.
+  \item \textbf{Release gates:} automated evaluation thresholds that must pass before deployment.
+  \item \textbf{Incident response:} playbooks for model regressions, safety failures, or external dependency outages.
+\end{itemize}
+
+Change management\index{change management} in LLMOps requires \emph{bundle versioning}\index{versioning!bundle}: promoting model versions\index{model!version}, prompt templates, retrieval indices, and tool schemas together as atomic units. This ensures that a deployment includes all compatible components and enables clean rollback when regressions occur. For example, a new model version may require updated prompt templates and a refreshed retrieval index; bundling these changes together prevents partial deployments that could cause silent failures.
+
+Together, these dimensions explain why LLM deployments require a distinct operational mindset. LLMOps is the set of practices that makes these systems reliable in the real world: controlling cost and latency, continuously measuring quality, defending against new threats, and enabling rapid iteration without sacrificing safety or trust.
+
+\subsection{Why This Motivates LLMOps}
+These challenges converge into a single conclusion: LLM deployments are not merely ``models in production,'' but \emph{living socio-technical systems} operating under hard economic constraints, shifting data and knowledge, and increasingly adversarial conditions. Quality and reliability emerge from the interaction of many moving parts: the base model, prompts and policies, retrieval corpora, tool schemas, orchestration logic, and downstream user workflows. A small change in any one layer can create disproportionate effects elsewhere, producing regressions that are difficult to detect with traditional unit tests or offline ML metrics.
+
+LLMOps therefore formalizes the practices required to run these systems with reliability and accountability. It extends classical MLOps by treating prompts and policies as first-class, versioned artifacts; by monitoring behavioral and safety properties alongside infrastructure metrics; and by introducing release gates and incident response tailored to generative systems. The remainder of this book develops these practices systematically: Chapter~\ref{ch:llmops-fundamentals} establishes core concepts; Chapter~\ref{ch:infra} covers infrastructure design; Chapter~\ref{ch:cicd} presents CI/CD patterns; and subsequent chapters address scaling, optimization, governance, and end-to-end deployment. We use the \ishtar{} case study throughout to ground these concepts in a concrete end-to-end system.
+
+% Requires in preamble (once): \usepackage{tabularx,booktabs,threeparttable}
+\begin{table}[t]
+\centering
+\small
+\caption{LLMOps extends MLOps in four critical dimensions that require new operational practices. Scale introduces memory\index{memory} and cost constraints; complexity demands semantic observability; variability requires prompt and retrieval testing; risk necessitates safety gates\index{safety gate} and policy enforcement\index{policy enforcement}. Understanding these extensions helps teams anticipate operational challenges and plan infrastructure investments.}
+\label{tab:ch01_llmops_extends_mlops}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{threeparttable}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{20mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Dimension} & \textbf{What changes} & \textbf{Ops implications} \\
+\midrule
+\textbf{Scale} &
+100B\,+ parameters; longer contexts; tight GPU memory/throughput budgets &
+Model/tensor parallelism; quantization; KV-cache policy; batching \& streaming; SLOs on TTFT \& tokens/s; cost right-sizing \\
+\addlinespace[0.6em]
+\textbf{Complexity} &
+RAG pipelines; tool/function calling; multi-agent chains; external APIs &
+Prompt/template versioning; index/data versioning; orchestrators (graphs/agents); end-to-end tracing across components \\
+\addlinespace[0.6em]
+\textbf{Variability} &
+Stochastic decoding; output inconsistency across runs/prompts &
+Constrained decoding when needed; multi-sample + rerank; curated eval suites; canary releases; fast rollback to last-known-good \\
+\addlinespace[0.6em]
+\textbf{Risk} &
+Hallucinations; bias/toxicity; prompt injection \& data leakage &
+Guardrails (classifiers, rules); sandboxed tool use; red-teaming/adversarial tests; human-in-the-loop for high stakes; auditability \& policy-as-code \\
+\bottomrule
+\end{tabularx}
+\end{threeparttable}
+\end{table}
+
+Operationally, this translates into a set of recurring requirements that are easy to underestimate at prototype time:
+\begin{itemize}
+    \item \textbf{Serve at scale under tight budgets:} provision and tune infrastructure to support large models and high concurrency while meeting latency targets (e.g., TTFT) and controlling cost per successful task.
+    \item \textbf{Orchestrate multi-component pipelines:} manage prompt templates, retrieval, reranking, and tool calls as a single end-to-end system with versioning and traceability across components.
+    \item \textbf{Defend against new failure modes:} mitigate hallucinations and unsafe outputs, and harden against adversarial behaviors such as prompt injection, data exfiltration, and tool misuse.
+    \item \textbf{Measure what matters:} monitor both systems metrics (latency, throughput, GPU utilization, cost) and \emph{semantic} metrics (groundedness, citation quality, refusal correctness, safety compliance, user feedback) continuously in production.
+\end{itemize}
+
+The implication is straightforward: building a capable LLM or integrating a powerful API is only the beginning. The harder problem is operating the resulting system responsibly over time---as models are upgraded, prompts evolve, corpora drift, tools change, and usage grows. This emerging discipline---\emph{Large Language Model Operations (LLMOps)}---provides the methods, tooling, and governance to ship LLM-powered products that remain reliable, secure, and cost-effective in the real world. It is the core focus of this book, and the lens through which we present the \ishtar{} case study.
+
+\section*{Roadmap and Case Study Integration}
+To ground these abstract principles in a real-world context, we will return throughout this book to the \ishtar{} case study: a large-scale, production-grade deployment of LLMs in the high-stakes environment of news and journalism. Each chapter uses \ishtar{} to illustrate practical applications of the concepts introduced---from scaling and quantization to routing, caching, observability, and cost modeling. By following \ishtar{} across the book, readers gain both a theoretical framework for LLMOps and a concrete narrative of how layered optimizations transform an LLM system from prototype into a resilient, cost-efficient production service.
+
+\section{Infrastructure and Environment Design}
+
+LLM workloads impose unique infrastructure requirements that differ from classical ML serving. GPU memory constraints drive model parallelism and quantization strategies, while throughput demands require careful batching, streaming, and KV-cache management. Serving runtimes must balance latency (TTFT) and throughput (tokens/s) under variable request shapes. Orchestration layers must coordinate retrieval, tool calls, and multi-step chains while maintaining observability and graceful degradation. Chapter~\ref{ch:infra} develops these infrastructure concerns in detail, covering accelerator selection, containerization, Kubernetes orchestration, and infrastructure-as-code patterns for reproducible deployments.
+
+\section{The Emergence of LLMOps}
+To address these issues, a new discipline has emerged: \textbf{LLMOps (Large Language Model Operations)}. Building upon the principles of MLOps, LLMOps introduces specialized tools, practices, and governance frameworks for managing the full lifecycle of LLMs in production \cite{mdpi}. LLMOps encompasses prompt management and versioning, retrieval-augmented generation pipelines, continuous evaluation of behavioral properties, semantic observability, security controls for tool-augmented systems, and disciplined release processes. The scope extends beyond traditional MLOps to treat prompts and policies as first-class artifacts, monitor quality through semantic signals, and manage composed systems where retrieval, tools, and multi-step chains introduce new failure modes. In essence, LLMOps ensures that powerful language models can be run not only efficiently, but also responsibly, at scale.
+
+\section{This Book and the Ishtar AI Case Study}
+This book, \emph{Advanced Large Language Model Operations: Best Practices and Innovative Strategies}, provides a comprehensive guide for advanced practitioners---engineers, data scientists, researchers, and architects---who are building, deploying, and operating LLM-based systems. It blends theoretical foundations with hands-on guidance, offering a holistic approach to LLMOps that addresses the unique challenges of generative AI systems in production.
+
+Throughout the chapters, we use the \ishtar{} AI case study as a running example. \ishtar{} is a journalism-focused system designed to support reporters in conflict zones with real-time information retrieval, summarization, translation, and ethical safeguards. This case study anchors the book's practical guidance, demonstrating how LLMOps practices apply to mission-critical applications where accuracy, trust, and safety are paramount. By grounding abstract principles in this concrete scenario, the book bridges theory and practice, providing reusable patterns that can be adapted across domains and operational contexts.
+
+
+\section{From MLOps to LLMOps: Evolution and Key Differences}
+\label{sec:mlops-to-llmops}
+
+\subsection*{Historical Context}
+The term \textbf{MLOps} (Machine Learning Operations) rose to prominence in the late 2010s as organizations sought to apply DevOps principles to the machine learning lifecycle. By introducing practices such as dataset and model versioning, automated model testing, CI/CD pipelines for ML, and model performance monitoring, MLOps aimed to reliably move ML models from the lab into production. Early frameworks such as TensorFlow Extended, MLflow, and Kubeflow exemplified this movement, addressing the reality that only a small fraction of ML projects reached production \cite{mdpi}.
+
+By the early 2020s, however, the rise of \textbf{foundation models}—especially LLMs such as OpenAI's GPT-3 (2020), Anthropic's Claude, and Meta's LLaMA (2023)—brought an explosion in model scale and complexity that strained the limits of standard MLOps. Model parameter counts increased by orders of magnitude: GPT-2's 1.5B parameters to GPT-3's 175B represented a 100$\times$ increase \cite{fiddler}. Training GPT-3 was estimated to consume 45 terabytes of text data and cost roughly \$4.6 million in compute \cite{lambda}, while inference became so resource-intensive that one analyst likened a single AI query to "using a whole CPU-core hour in a data center" \cite{fabricatedknowledge}. By 2023--2024, even larger models appeared: Google's PaLM (540B parameters) and GPT-4, rumored to employ a mixture-of-experts architecture totaling $\sim$1.8 trillion parameters \cite{explodingtopics}. A model of that size would require $\sim$4 terabytes of GPU memory just to load its weights \cite{fabricatedknowledge}. Clearly, traditional ML pipelines were not designed for this scale.
+
+% --- Requirements in your preamble (once) ---
+% \usepackage{tikz}
+% \usetikzlibrary{arrows.meta,positioning,fit,calc}
+
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[
+  >=Stealth,
+  font=\small,
+  % --- Color palette (muted, print-friendly) ---
+  milestoneA/.style={fill=blue!20, draw=none},
+  milestoneB/.style={fill=teal!20, draw=none},
+  milestoneC/.style={fill=orange!20, draw=none},
+  milestoneD/.style={fill=purple!18, draw=none},
+  ribbonA/.style={fill=blue!12, draw=none},
+  ribbonB/.style={fill=teal!12, draw=none},
+  ribbonC/.style={fill=orange!12, draw=none},
+  axis/.style={draw=black!70, line width=0.4pt},
+  tick/.style={draw=black!60, line width=0.3pt},
+  label/.style={inner sep=2.2pt, rounded corners=2pt, align=center},
+  yearlabel/.style={font=\footnotesize\bfseries, inner sep=1pt},
+  opstext/.style={font=\small\itshape},
+]
+
+% --- Geometry ---
+\def\xmin{0} \def\xmax{16}  % logical x-span
+\def\yaxis{0}               % axis y
+\def\ytop{4.2}              % top bound for milestones
+\def\yops{-1.4}             % y for ops ribbons
+
+% --- Axis ---
+\draw[axis] (\xmin,\yaxis) -- (\xmax,\yaxis);
+
+% Year ticks and labels (roughly proportional spacing)
+% 2019, 2020, 2022, 2023, 2024, 2025
+\foreach \x/\y in {1/2019, 3/2020, 7/2022, 10/2023, 13/2024, 15/2025} {
+  \draw[tick] (\x,\yaxis-0.08) -- (\x,\yaxis+0.08);
+  \node[yearlabel, below=4pt] at (\x,\yaxis) {\y};
+}
+
+% --- Milestones (above the axis) ---
+% GPT-2 (2019)
+\node[label,milestoneA, minimum width=27mm, minimum height=8mm, anchor=south]
+  (gpt2) at (1,\yaxis+0.6) {\textbf{GPT-2}\\(open LMs break out)};
+\draw[-{Stealth[length=3mm]}, blue!60!black] (1,\yaxis+0.5) -- (1,\yaxis+0.08);
+
+% GPT-3 (2020)
+\node[label,milestoneB, minimum width=30mm, minimum height=8mm, anchor=south]
+  (gpt3) at (3,\yaxis+1.6) {\textbf{GPT-3}\\(175B; API era begins)};
+\draw[-{Stealth[length=3mm]}, teal!60!black] (3,\yaxis+1.5) -- (3,\yaxis+0.08);
+
+% PaLM / GPT-4 era (2022–2023)
+\node[label,milestoneC, minimum width=36mm, minimum height=9mm, anchor=south]
+  (palmgpt4) at (8.6,\yaxis+2.2) {\textbf{PaLM / GPT-4 era}\\(scaling \& RLHF)};
+\draw[-{Stealth[length=3mm]}, orange!70!black] (8.6,\yaxis+2.1) -- (8.6,\yaxis+0.08);
+
+% RAG mainstreamed (2023–2024)
+\node[label,milestoneD, minimum width=34mm, minimum height=9mm, anchor=south]
+  (rag) at (11.1,\yaxis+3.2) {\textbf{RAG mainstreamed}\\(grounded answers)};
+\draw[-{Stealth[length=3mm]}, purple!70!black] (11.1,\yaxis+3.1) -- (11.1,\yaxis+0.08);
+
+% Agentic orchestration (2024–2025)
+\node[label,milestoneB, minimum width=37mm, minimum height=9mm, anchor=south]
+  (agents) at (13.6,\yaxis+2.5) {\textbf{Agentic orchestration}\\(tools, graphs, HITL)};
+\draw[-{Stealth[length=3mm]}, teal!70!black] (13.6,\yaxis+2.4) -- (13.6,\yaxis+0.08);
+
+% --- Ribbon underlay: Ops consequences bands (below axis) ---
+% Serving at scale (2020 → )
+\path let \p1 = (3,0), \p2 = (15,0) in
+  node[anchor=west, opstext] at (3,\yops+0.35) {Serving at scale (batching, KV cache, sharding)};
+\fill[ribbonA, rounded corners=3pt] (3,\yops) rectangle (15,\yops+0.22);
+\draw[ribbonA, rounded corners=3pt] (3,\yops) rectangle (15,\yops+0.22);
+
+% Evaluation & red-teaming (2022 → )
+\node[anchor=west, opstext] at (7,\yops-0.20) {Evaluation \& red-teaming (LLM-as-judge, canaries, regressions)};
+\fill[ribbonB, rounded corners=3pt] (7,\yops-0.55) rectangle (15,\yops-0.33);
+\draw[ribbonB, rounded corners=3pt] (7,\yops-0.55) rectangle (15,\yops-0.33);
+
+% Governance & policy (2023 → )
+\node[anchor=west, opstext] at (10,\yops-0.95) {Governance \& policy (guardrails, privacy, auditability)};
+\fill[ribbonC, rounded corners=3pt] (10,\yops-1.30) rectangle (15,\yops-1.08);
+\draw[ribbonC, rounded corners=3pt] (10,\yops-1.30) rectangle (15,\yops-1.08);
+
+% --- Subtle background ribbon behind milestones (aesthetic accent) ---
+\fill[blue!6, rounded corners=6pt]
+  (0.2,0.25) -- (2.2,0.25) .. controls (2.7,0.25) and (3.3,1.2) .. (4.1,1.2)
+  -- (6.4,1.2) .. controls (7.2,1.2) and (7.9,2.0) .. (8.9,2.0)
+  -- (12.5,2.0) .. controls (13.2,2.0) and (13.8,2.3) .. (14.7,2.3)
+  -- (15.6,2.3) -- (15.6,0.25) -- cycle;
+
+% --- Legend (compact) ---
+\node[anchor=north west, align=left, font=\small, draw=black!20, rounded corners=3pt, fill=black!2, inner sep=3pt]
+  at (0.15,\ytop-0.2)
+  {\begin{tabular}{@{}l@{}}
+   \textbf{Milestones:} model capability peaks \\
+   \textbf{Bands:} operational inflections (what Ops had to add)
+   \end{tabular}};
+
+\end{tikzpicture}
+\end{llmfigbox}
+
+\caption{LLMOps evolution reflects changing operational requirements. As model capabilities increased (transformer scaling, instruction following, tool use), operational needs shifted from basic serving to rigorous evaluation, safety gates, and governance. Understanding these inflections helps teams anticipate operational complexity and plan infrastructure investments.}
+\label{fig:ch01_mlops_llmops_timeline}
+\end{figure}
+
+The ML community therefore recognized the need for a refined operational discipline tailored to LLMs. The term \textbf{LLMOps} emerged in late 2022 and 2023 as generative AI captured global attention \cite{opendatascience}. Early pioneers had to solve problems such as distributing models across GPUs for inference, implementing prompt management systems, and integrating retrieval-augmented generation (RAG). Companies with large-scale LLM deployments began documenting best practices, and academic work started to formalize the distinctions between MLOps and LLMOps \cite{mdpi}. In short, LLMOps evolved because standard MLOps practices proved insufficient: the unprecedented scale, variability, and risks of LLMs required rethinking operations from the ground up.
+
+Today, LLMOps is emerging as a vital sub-discipline of MLOps, focused on lifecycle management of LLM-driven systems. Just as DevOps and MLOps were born from the practical need to bridge development and operations, LLMOps is being driven by the real-world challenges of deploying and maintaining LLMs at scale.
+
+% ----------------------------------------------------------------------
+% Springer-friendly formatting notes:
+% - Prefer numbered \subsection (avoid * unless truly unnumbered)
+% - Use \subsubsection or \paragraph for short thematic blocks
+% - Keep paragraphs compact; avoid overly long single paragraphs
+% - Use \enquote{} for quotes if csquotes is enabled; otherwise use ``''
+% - Use \emph{} sparingly; keep emphasis consistent
+% ----------------------------------------------------------------------
+
+\subsection{Why LLMOps is Distinct}\label{sec:why-llmops-distinct}
+LLMOps is not simply a buzzword; it reflects substantive differences between LLM-powered systems and traditional machine learning deployments. These differences appear along four dimensions: model scale, pipeline complexity, output variability, and heightened risks spanning safety, bias, hallucination, and security.
+
+\subsubsection{Scale}\label{sec:llmops-scale}
+The scale of modern LLMs fundamentally changes the deployment problem. While classical ML models typically fit on a single GPU or CPU, frontier LLMs require distributed infrastructure from the start. This scale context means that deployment decisions (model selection, quantization strategy, parallelism configuration) are infrastructure decisions, not just model choices. Teams must reason about GPU memory budgets, inter-device communication overhead, and the trade-offs between model capability and deployment feasibility.
+
+Modern LLMs consist of tens to hundreds of billions of parameters, which fundamentally changes the deployment
+problem. At these scales, \emph{weights alone} become a first-order infrastructure constraint: the memory required
+to load parameters grows linearly with parameter count $P$ and bytes-per-weight $b$,
+\[
+M_{\text{params}} \approx P \cdot b.
+\]
+This immediately pushes large models beyond a single device, motivating tensor/model parallelism, quantization
+(e.g., INT8/4-bit), and optimized inference kernels to make deployment practical.
+
+Scale also intensifies \emph{context} and \emph{serving} constraints. Transformer self-attention has quadratic time and
+memory complexity in input length, making context growth a systems problem rather than a UX feature.
+In addition, long-context serving increases KV-cache memory roughly linearly in sequence length and batch size,
+creating tight coupling between concurrency targets and GPU memory headroom. Operationally, this is why teams
+separate and track \emph{TTFT} (time-to-first-token) versus \emph{tokens-per-second} throughput and treat tail latency
+(p95/p99) as a primary SLO.
+
+The economic consequences follow directly: once workloads reach millions to billions of tokens per day, small
+efficiency gains (better batching, improved cache policy, routing ``easy'' requests to smaller models) produce large
+cost deltas. Thus, \emph{scale forces an operational shift}: from single-model deployment to distributed, budgeted
+systems engineering, where memory, latency, and cost must be co-optimized (Fig.~\ref{fig:ch01_scale_constraints}).
+
+% Preamble requirements: \usepackage{tikz} and \usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,decorations.pathreplacing}
+\begin{figure}[t]
+  \centering
+  \begin{llmfigbox}
+  % Color definitions
+  \definecolor{constraintred}{RGB}{173,63,60}
+  \definecolor{sloblue}{RGB}{44,102,146}
+  \definecolor{levergreen}{RGB}{34,139,96}
+  \begin{tikzpicture}[
+    >=Stealth,
+    node distance=0.8cm and 1.8cm,
+    % Box styles - enhanced
+    constraint/.style={rectangle, draw=none, fill=constraintred!15, rounded corners=5pt, minimum width=2.3cm, minimum height=0.95cm, align=center, font=\footnotesize\bfseries},
+    slo/.style={rectangle, draw=none, fill=sloblue!15, rounded corners=5pt, minimum width=2.1cm, minimum height=0.85cm, align=center, font=\footnotesize\bfseries},
+    lever/.style={rectangle, draw=none, fill=levergreen!15, rounded corners=5pt, minimum width=2.1cm, minimum height=0.8cm, align=center, font=\footnotesize\bfseries},
+    arrow/.style={->, very thick, line width=1.2pt}
+  ]
+
+  % Left column: Constraints (with formulas integrated)
+  \node[constraint] (param) at (-3.5,1.5) {\begin{tabular}{c}Parameter Scale\\\footnotesize $M_{\text{params}} \approx P \cdot b$\end{tabular}};
+  \node[constraint] (context) at (-3.5,0) {\begin{tabular}{c}Context Length\\\footnotesize Cost $\propto T^2$\end{tabular}};
+  \node[constraint] (kv) at (-3.5,-1.5) {\begin{tabular}{c}KV-Cache Pressure\\\footnotesize $M_{\text{KV}} \propto T \cdot B$\end{tabular}};
+
+  % Center column: SLOs
+  \node[slo] (ttft) at (0,1.5) {TTFT};
+  \node[slo] (tput) at (0,0) {Tokens/s};
+  \node[slo] (cost) at (0,-1.5) {\$/1K tokens};
+
+  % Right column: Engineering Levers
+  \node[lever] (parallel) at (3.5,1.5) {Parallelism};
+  \node[lever] (quant) at (3.5,0) {Quantization};
+  \node[lever] (batch) at (3.5,-1.5) {Batching \& Scheduling};
+
+  % Main flow arrows: Constraints -> SLOs -> Levers (simplified, fewer arrows)
+  \draw[arrow, color=constraintred!70!black] (param.east) -- (ttft.west);
+  \draw[arrow, color=constraintred!70!black] (param.east) -- (parallel.west);
+  
+  \draw[arrow, color=constraintred!60!black] (context.east) -- (ttft.west);
+  \draw[arrow, color=constraintred!60!black] (context.east) -- (tput.west);
+  
+  \draw[arrow, color=constraintred!50!black] (kv.east) -- (tput.west);
+  
+  \draw[arrow, color=sloblue!70!black] (ttft.east) -- (parallel.west);
+  \draw[arrow, color=sloblue!70!black] (tput.east) -- (quant.west);
+  \draw[arrow, color=sloblue!70!black] (tput.east) -- (batch.west);
+  \draw[arrow, color=sloblue!70!black] (cost.east) -- (quant.west);
+  
+  \draw[arrow, color=levergreen!70!black] (parallel.west) -- (cost.east);
+  \draw[arrow, color=levergreen!70!black] (quant.west) -- (cost.east);
+  \draw[arrow, color=levergreen!70!black] (batch.west) -- (tput.east);
+
+  % Column labels (simpler, no braces)
+  \node[font=\small\bfseries, color=constraintred!80!black, above=0.5cm of param] {Constraints};
+  \node[font=\small\bfseries, color=sloblue!80!black, above=0.5cm of ttft] {SLOs};
+  \node[font=\small\bfseries, color=levergreen!80!black, above=0.5cm of parallel] {Levers};
+
+  \end{tikzpicture}
+  \end{llmfigbox}
+  \caption{Why scale changes LLM deployment. Large parameter counts make weight memory a first-order constraint,
+  while longer contexts introduce $\Theta(T^2)$ attention cost and KV-cache pressure. Together these drive LLM-specific
+  SLOs (TTFT, tokens/s, \$/1K tokens) and engineering levers (parallelism, quantization, batching/scheduling,
+  KV-cache policy, and model routing). Understanding these constraints enables teams to make informed infrastructure
+  decisions and set realistic performance targets.}
+  \label{fig:ch01_scale_constraints}
+\end{figure}
+
+\subsubsection{Complexity}\label{sec:llmops-complexity}
+LLM applications rarely follow a simple ``input-to-output'' pattern. Instead, they typically involve multi-stage pipelines that include document retrieval, prompt composition, model inference, tool or function calls, and output post-processing. This complexity introduces interface and versioning challenges: prompts, templates, and chains must be treated as first-class artifacts requiring versioning, testing, and monitoring across releases. Unlike classical ML where model versioning suffices, LLMOps must version and coordinate model versions, prompt templates, retrieval indices, tool schemas, and orchestration logic as interdependent components.
+
+Frameworks such as LangChain and LangGraph \cite{ibm} have emerged to coordinate these workflows and to orchestrate multi-agent systems. For instance, separate ``researcher,'' ``writer,'' and ``validator'' agents may collaborate on a task, introducing orchestration dependencies and new failure modes. Integration with external tools (APIs, calculators, search, internal services) further expands the attack surface and the observability requirements. As a result, LLMOps places strong emphasis on end-to-end tracing and structured logging of prompts, retrieved context, tool calls, and model outputs.
+
+\subsubsection{Variability}\label{sec:llmops-variability}
+Unlike many classical ML models, LLMs produce outputs stochastically. The same prompt may yield different completions depending on sampling parameters and runtime conditions. This variability can be beneficial for creativity and ideation, but it can be problematic for consistency, correctness, and compliance. The nondeterministic nature of LLM outputs has test design implications: teams must design regression suites that account for acceptable variance, use statistical rather than exact matching for evaluation, and implement controlled decoding strategies to bound variability in production.
+
+LLMOps addresses this through controlled decoding strategies (e.g., low temperature or greedy decoding), multi-sample generation with filtering or reranking, and alignment techniques such as reinforcement learning with human feedback (RLHF) \cite{pluralsight}. Continuous evaluation on fixed prompt suites, alongside statistical monitoring of production outputs, helps detect regressions and distributional shifts that are not visible through infrastructure metrics alone.
+
+\subsubsection{Risk and Alignment}\label{sec:llmops-risk-alignment}
+LLM systems introduce heightened ethical, safety, and security risks that differ from classical ML systems. Models may generate biased or toxic content \cite{vice}, hallucinate plausible but incorrect facts \cite{vice}, or expose sensitive information under certain conditions. Prompt injection illustrates a distinct vulnerability class, where adversarial inputs attempt to override system instructions or induce unsafe tool use \cite{ibm}. The key difference from traditional software security is that LLMs function as natural-language interpreters, making them susceptible to semantic attacks that bypass conventional input validation. Mitigations often combine alignment (e.g., RLHF), output filtering, sandboxed tool execution, retrieval governance, and human review for high-stakes tasks. For detailed coverage of security controls and threat models, see the earlier discussion in Section~\ref{sec:operational-challenges} and Chapter~\ref{ch:ethics}.
+
+The operational impact of such failures can be immediate and material. Google's Bard produced an error in a public demo about the James Webb Space Telescope, contributing to an estimated \$100B market value drop for Alphabet \cite{reuters}. These incidents highlight why LLMOps requires rigorous testing, red-teaming, and governance mechanisms that extend beyond traditional MLOps playbooks.
+
+\subsection{Summary}\label{sec:why-llmops-summary}
+LLM-driven systems differ from traditional ML systems in four key dimensions: scale, complexity, variability, and risk. These differences necessitate specialized practices, including prompt and policy versioning, retrieval augmentation and index governance, multi-step workflow orchestration, hallucination and bias testing, and fine-grained monitoring that spans both system and semantic metrics. In short, applying standard MLOps alone is insufficient; LLMOps extends the discipline to meet the unique operational demands of large language models. The following chapters develop these themes in detail, with the \ishtar{} AI case study serving as a continuous reference implementation.
+
+\section{Structure of the Book}
+\label{sec:book-structure}
+
+This book is organized into four parts that follow the lifecycle of an LLM-based application---from foundations and infrastructure, through delivery and operations, to optimization, governance, and an end-to-end capstone. Each chapter builds on prior material, balancing conceptual depth with implementation-oriented guidance, and is anchored by the continuous \ishtar{} case study.
+
+\medskip
+\noindent\textbf{Part I: Foundations of LLMOps.}
+Part~I establishes the conceptual and infrastructural baseline required to reason about LLM systems in production.
+\begin{itemize}
+  \item \textbf{Chapter~\ref{ch:llmops-fundamentals}: LLMOps Fundamentals and Key Concepts.}
+  Defines LLMOps and distinguishes it from classical MLOps; introduces prompts\index{prompt}, retrieval-augmented generation (RAG), evaluation, and alignment\index{alignment} as first-class operational concerns.
+  \item \textbf{Chapter~\ref{ch:infra}: Infrastructure and Environment.}
+  Develops the infrastructure layer for LLM workloads, including accelerator selection\index{accelerator}, containerization\index{containerization}, Kubernetes\index{Kubernetes} orchestration, and infrastructure-as-code\index{Infrastructure-as-Code} patterns for reproducible deployments.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Part II: Delivery and Production Operations.}
+Part~II focuses on the practices that enable safe iteration and reliable operation under real traffic.
+\begin{itemize}
+  \item \textbf{Chapter~\ref{ch:cicd}: Continuous Integration and Deployment.}
+  Presents CI/CD\index{CI/CD} patterns tailored to LLM systems, including regression suites for prompts and retrieval behavior, deployment strategies\index{deployment!strategy} (canary\index{canary deployment}, shadow\index{shadow deployment}, rollback\index{rollback}), and release gates\index{release gate} for quality and safety.
+  \item \textbf{Chapter~\ref{ch:monitoring}: Monitoring and Observability.}
+  Introduces LLM observability as semantic instrumentation---tracing prompts, retrieval, and tool calls---alongside system telemetry to support debugging, governance, and continuous improvement.
+  \item \textbf{Chapter~\ref{ch:scaling}: Scaling Up LLM Deployments.}
+  Covers capacity planning, autoscaling\index{autoscaling} strategies, latency/throughput trade-offs, and cost-aware operation under bursty workloads and long-context regimes.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Part III: Optimization, Retrieval, and Agents.}
+Part~III develops advanced techniques for efficiency and capability, with emphasis on retrieval and multi-step systems.
+\begin{itemize}
+  \item \textbf{Chapter~\ref{ch:performance}: Performance Optimization.}
+  Surveys model- and system-level optimizations including quantization, distillation\index{distillation}, inference-runtime selection\index{inference engine}, batching, and KV-cache management\index{KV-cache!management}.
+  \item \textbf{Chapter~\ref{ch:rag}: Retrieval-Augmented Generation.}
+  Provides comprehensive coverage of RAG design---embedding models, vector databases\index{vector database}, chunking\index{chunking}, reranking, evaluation, and operational controls for freshness and drift.
+  \item \textbf{Chapter~\ref{ch:multiagent}: Multi-Agent Architectures and Orchestration.}
+  Explores agent\index{agent} design patterns, coordination mechanisms, orchestration frameworks\index{orchestration!framework}, and failure handling\index{error handling} for tool-augmented, multi-step workflows.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Part IV: Quality, Governance, and Capstone.}
+Part~IV addresses rigorous evaluation and responsible deployment, culminating in an end-to-end reference implementation.
+\begin{itemize}
+  \item \textbf{Chapter~\ref{ch:testing}: Testing, Evaluation, and Robustness.}
+  Surveys evaluation methodologies (offline and online), adversarial testing\index{adversarial testing}, regression control, and reliability under distribution shift\index{distribution shift}.
+  \item \textbf{Chapter~\ref{ch:ethics}: Ethics and Responsible Deployment.}
+  Covers privacy\index{privacy}, safety\index{safety}, bias mitigation\index{bias!mitigation}, transparency\index{transparency}, and governance frameworks, emphasizing operational controls and auditability\index{auditability}.
+  \item \textbf{Chapter~\ref{ch:case-study}: End-to-End Case Study.}
+  Integrates the preceding material through \ishtar{}'s complete lifecycle---from ingestion\index{ingestion} and retrieval through serving\index{serving}, monitoring, and release discipline.
+\end{itemize}
+
+\medskip
+\noindent By progressing through these parts, readers will develop both a conceptual framework for LLMOps and a practical toolkit for production deployment. Throughout, checklists, best-practice summaries, and the running \ishtar{} case study provide reusable guidance that can be adapted across domains and operational contexts.
+
+% ----------------------------------------------------------------------
+% TABLE: Chapter roles in the lifecycle (minimal / Springer-clean)
+% Preamble (once): \usepackage{tabularx,booktabs}
+% ----------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\small
+\caption{Chapter organization maps to operational lifecycle stages. Each chapter addresses specific operational challenges (foundations, delivery, optimization, governance), enabling readers to understand both individual practices and their integration into a complete LLMOps system. This organization supports both sequential reading and targeted reference for specific operational needs.}
+\label{tab:ch01_llmops_legend}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}p{52mm}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Chapter} & \textbf{Operational purpose} \\
+\midrule
+\textbf{Chapter~\ref{ch:llmops-fundamentals}: Fundamentals} &
+Define LLMOps; distinguish from MLOps; introduce prompts, RAG, evaluation, alignment. \\
+
+\textbf{Chapter~\ref{ch:infra}: Infrastructure \& Environment} &
+Select accelerators; package and orchestrate (Kubernetes); apply IaC; baseline cost. \\
+
+\textbf{Chapter~\ref{ch:cicd}: CI/CD for LLM Systems} &
+Automate regressions; stage releases (shadow/canary); gate promotions; enable rollback. \\
+
+\textbf{Chapter~\ref{ch:monitoring}: Monitoring \& Observability} &
+Instrument system and semantic telemetry; trace pipelines; support incident response. \\
+
+\textbf{Chapter~\ref{ch:scaling}: Scaling} &
+Plan capacity; manage tail latency; autoscale; optimize unit economics under bursty load. \\
+
+\textbf{Chapter~\ref{ch:performance}: Performance Optimization} &
+Improve throughput and cost with runtimes, batching, caching, quantization, distillation. \\
+
+\textbf{Chapter~\ref{ch:rag}: Retrieval-Augmented Generation} &
+Design and operate retrieval; manage drift/freshness; evaluate groundedness and citations. \\
+
+\textbf{Chapter~\ref{ch:multiagent}: Multi-Agent Orchestration} &
+Compose tool-using workflows; enforce contracts; coordinate; handle failures. \\
+
+\textbf{Chapter~\ref{ch:testing}: Testing \& Robustness} &
+Build eval suites; adversarial testing; regression control; reliability under shift. \\
+
+\textbf{Chapter~\ref{ch:ethics}: Ethics \& Responsible Deployment} &
+Operationalize safety, privacy, governance; auditability; human oversight. \\
+
+\textbf{Chapter~\ref{ch:case-study}: End-to-End Case Study} &
+Integrate the full lifecycle through \ishtar{}: ingestion, retrieval, serving, ops, and lessons learned. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{How to Read This Book}
+\label{subsec:how-to-read}
+
+This book is designed to accommodate different reader backgrounds and goals. We recommend the following reading paths:
+
+\textbf{For Platform Engineers and DevOps Practitioners:} Start with Part I (foundations), then focus on Part II (delivery and operations). Chapters~\ref{ch:infra}, \ref{ch:cicd}, \ref{ch:monitoring}, and \ref{ch:scaling} provide the most direct operational guidance. Reference Part III (optimization) and Part IV (governance) as needed for specific challenges.
+
+\textbf{For Applied ML/LLM Researchers:} Begin with Chapter~\ref{ch:llmops-fundamentals} to understand how LLMOps extends MLOps, then dive into Part III (optimization, retrieval, agents) for technical depth. Chapter~\ref{ch:performance} covers model optimization techniques, while Chapter~\ref{ch:rag} provides comprehensive RAG coverage. The \ishtar{} case study (Chapter~\ref{ch:case-study}) demonstrates how research techniques translate to production.
+
+\textbf{For Product Managers and Security/Compliance Teams:} Focus on Part I (foundations) for context, then prioritize Part IV (quality and governance). Chapter~\ref{ch:testing} covers evaluation frameworks essential for product quality, while Chapter~\ref{ch:ethics} addresses security, privacy, and responsible deployment. The monitoring and observability content in Chapter~\ref{ch:monitoring} is critical for understanding system behavior and compliance requirements.
+
+All readers will benefit from following the \ishtar{} case study throughout, as it provides concrete examples of how abstract principles translate into operational reality.
+
+
+% Preamble (once):
+% \usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,matrix,fit,decorations.pathreplacing}
+% \usepackage{graphicx} % for \resizebox
+
+\begin{figure}[t]
+\centering
+% Temporarily increase maximum width for this figure to accommodate layout
+% Figure width is ~6 boxes × 30mm + 5 gaps × 6mm = ~210mm
+\renewcommand{\LLMFigMaxWidth}{1.6\linewidth}
+\begin{llmfigbox}
+% Color definitions for lifecycle phases
+\definecolor{fundblue}{RGB}{44,102,146}
+\definecolor{infragreen}{RGB}{34,139,96}
+\definecolor{cicdorange}{RGB}{201,111,29}
+\definecolor{monpurple}{RGB}{123,88,163}
+\definecolor{scaleviolet}{RGB}{153,102,204}
+\definecolor{perfred}{RGB}{173,63,60}
+\definecolor{ragteal}{RGB}{0,128,128}
+\definecolor{orchcyan}{RGB}{0,139,139}
+\definecolor{testyellow}{RGB}{255,193,7}
+\definecolor{ethicspink}{RGB}{219,112,147}
+\definecolor{casebrown}{RGB}{139,69,19}
+\begin{tikzpicture}[
+  >=Stealth,
+  % --- Enhanced Styles with professional appearance ---
+  phase/.style={
+    rectangle, rounded corners=6pt,
+    draw=black!25, line width=0.8pt,
+    text width=30mm,
+    minimum height=14mm, inner sep=5pt,
+    align=center, font=\small\bfseries
+  },
+  arrow/.style={-Stealth, very thick, line width=1.5pt, color=black!75},
+  feedback/.style={-Stealth, dashed, dash pattern=on 5pt off 3pt, very thick, line width=1.5pt, color=black!50},
+  note/.style={font=\small, align=center, color=black!70},
+  partlabel/.style={font=\normalsize\bfseries, color=black!85, anchor=west}
+]
+
+% ---- Top row in a matrix (clean alignment) ----
+\matrix (top) [row sep=0mm, column sep=6mm] {
+  \node[phase, fill=fundblue!12, draw=fundblue!40] (fund) {LLMOps\\Fundamentals\\(Ch.~\ref{ch:llmops-fundamentals})}; &
+  \node[phase, fill=infragreen!12, draw=infragreen!40] (infra) {Infrastructure\\\& Environment\\(Ch.~\ref{ch:infra})}; &
+  \node[phase, fill=cicdorange!12, draw=cicdorange!40] (cicd)  {CI/CD\\(Ch.~\ref{ch:cicd})}; &
+  \node[phase, fill=monpurple!12, draw=monpurple!40] (mon)   {Monitoring\\(Ch.~\ref{ch:monitoring})}; &
+  \node[phase, fill=scaleviolet!12, draw=scaleviolet!40] (scale) {Scaling\\(Ch.~\ref{ch:scaling})}; &
+  \node[phase, fill=perfred!12, draw=perfred!40] (perf)  {Performance\\(Ch.~\ref{ch:performance})}; \\
+};
+
+% ---- Part labels above top row ----
+\node[partlabel] at ([yshift=10mm]fund.north) {\textbf{Part I: Foundations}};
+\node[partlabel] at ([yshift=10mm]cicd.north) {\textbf{Part II: Delivery Operations}};
+\node[partlabel] at ([yshift=10mm]perf.north) {\textbf{Part III: Optimization}};
+
+% ---- Second row: RAG and Agents ----
+\node[phase, fill=ragteal!12, draw=ragteal!40, below=12mm of perf] (rag) {RAG\\(Ch.~\ref{ch:rag})};
+\node[phase, fill=orchcyan!12, draw=orchcyan!40, right=6mm of rag] (orch) {Multi‑Agent\\(Ch.~\ref{ch:multiagent})};
+
+% ---- Bottom row placed relative to second row ----
+\node[phase, fill=testyellow!12, draw=testyellow!40, below=12mm of rag]   (test)   {Testing \&\\Robustness\\(Ch.~\ref{ch:testing})};
+\node[phase, fill=ethicspink!12, draw=ethicspink!40, right=6mm of test]   (ethics) {Ethics \&\\Governance\\(Ch.~\ref{ch:ethics})};
+\node[phase, fill=casebrown!12, draw=casebrown!40, right=6mm of ethics] (case)   {Case Study\\(Ch.~\ref{ch:case-study})};
+
+% ---- Part label for bottom row ----
+\node[partlabel] at ([yshift=10mm]test.north) {\textbf{Part IV: Governance}};
+
+% ---- Top row flow ----
+\draw[arrow] (fund) -- (infra);
+\draw[arrow] (infra) -- (cicd);
+\draw[arrow] (cicd) -- (mon);
+\draw[arrow] (mon)  -- (scale);
+\draw[arrow] (scale) -- (perf);
+
+% ---- Second row flow ----
+\draw[arrow] (perf) -- (rag);
+\draw[arrow] (rag) -- (orch);
+
+% ---- Downward transition ----
+\draw[arrow] (rag.south) -- (test.north);
+\draw[arrow] (orch.south) |- (ethics.north);
+
+% ---- Bottom row flow ----
+\draw[arrow] (test) -- (ethics);
+\draw[arrow] (ethics) -- (case);
+
+% ---- Feedback arc from Monitoring (low route, below boxes) ----
+\path (mon.south) ++(0,-10mm) coordinate (M1);
+\path (fund.south) ++(0,-10mm) coordinate (M2);
+\draw[feedback] (mon.south)
+  .. controls (M1) and (M2) ..
+  (fund.south);
+
+% ---- Feedback arc from Case Study (low route, below boxes) ----
+\path (case.south) ++(0,-8mm) coordinate (C1);
+\path (fund.south) ++(0,-8mm) coordinate (C2);
+\draw[feedback] (case.south)
+  .. controls (C1) and (C2) ..
+  (fund.south);
+
+% Place feedback text below the bottom row of boxes
+\node[note, below=10mm of test.south, text width=60mm, anchor=north, align=center] 
+  {\emph{Feedback: patterns, lessons, and new requirements}};
+
+% ---- Compact lifecycle note ----
+\node[note, anchor=north east] at ($(case.south east)+(0,-6mm)$)
+  {\textbf{Lifecycle:} Design $\rightarrow$ Deploy $\rightarrow$ Operate $\rightarrow$ Improve};
+
+\end{tikzpicture}
+\end{llmfigbox}
+% Restore original maximum width constraint
+\renewcommand{\LLMFigMaxWidth}{1.15\linewidth}
+
+\caption{LLMOps lifecycle demonstrates how operational practices integrate across development stages. The flow progresses from foundations (Part I) through delivery operations (Part II: CI/CD, monitoring, scaling), optimization (Part III: performance, RAG, multi-agent), and governance (Part IV: testing, ethics, case study). A dashed feedback loop connects the case study back to foundational practices, illustrating how real-world experience informs operational improvements.}
+\label{fig:ch01_llmops_lifecycle}
+\end{figure}
+
+% --- Requirements in your preamble (once) ---
+% \usepackage{tikz}
+% \usetikzlibrary{arrows.meta,positioning,fit,calc,matrix,shapes.geometric,shapes.symbols}
+
+\begin{figure}[t]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.25}
+
+% Color swatch macro (tiny rounded rectangle)
+\renewcommand{\swatch}[1]{%
+  {\color{#1}\rule{8pt}{8pt}}%
+}
+
+\begin{tabularx}{\linewidth}{@{}p{10mm}p{45mm}X@{}}
+\toprule
+ & \textbf{Chapter} & \textbf{Operational purpose (1-line)} \\
+\midrule
+\swatch{blue!55} &
+\textbf{Ch.~\ref{ch:llmops-fundamentals} Fundamentals} &
+Define LLMOps scope; contrast with MLOps; introduce prompts, RAG, evaluation, alignment. \\
+
+\swatch{teal!60!black} &
+\textbf{Ch.~\ref{ch:infra} Infrastructure \& Environment} &
+Right-size accelerators; packaging \& Kubernetes; IaC for reproducibility; cost baselining. \\
+
+\swatch{orange!70!black} &
+\textbf{Ch.~\ref{ch:cicd} CI/CD for LLM Systems} &
+Automate prompt/model tests; canary/shadow; feature flags; rollback to last-known-good. \\
+
+\swatch{purple!70!black} &
+\textbf{Ch.~\ref{ch:monitoring} Monitoring \& Observability} &
+TTFT/tokens·s, GPU util; semantic traces; autoscaling triggers; incident response playbooks. \\
+
+\swatch{magenta!70!black} &
+\textbf{Ch.~\ref{ch:scaling} Scaling} &
+Autoscaling strategies; capacity planning; distributed inference; speculative decoding; cost optimization. \\
+
+\swatch{cyan!60!black} &
+\textbf{Ch.~\ref{ch:performance} Performance Optimization} &
+Quantization/distillation; KV-cache policy; inference engines; latency–quality trade-offs. \\
+
+\swatch{blue!50!cyan} &
+\textbf{Ch.~\ref{ch:rag} Retrieval-Augmented Generation} &
+ANN indices; chunking/re-ranking; embedding models; vector databases; RAG pipelines. \\
+
+\swatch{green!60!black} &
+\textbf{Ch.~\ref{ch:multiagent} Multi-Agent Orchestration} &
+Tool use, graphs, manager–worker patterns; coordination \& failure handling; traceability. \\
+
+\swatch{red!65!black} &
+\textbf{Ch.~\ref{ch:testing} Testing \& Robustness} &
+LLM-as-judge, gold sets, adversarial prompts; regression gates; reliability under drift. \\
+
+\swatch{brown!70!black} &
+\textbf{Ch.~\ref{ch:ethics} Ethics \& Responsible Deployment} &
+Guardrails, privacy, safety policies; governance \& auditability; human-in-the-loop for high-stakes tasks. \\
+
+\swatch{black!60} &
+\textbf{Ch.~\ref{ch:case-study} End-to-End Case Study} &
+Ishtar AI from ingestion to ops; lessons learned; patterns \& anti-patterns in production. \\
+\bottomrule
+\end{tabularx}
+
+\caption{Chapter roles explain operational contributions to the LLMOps lifecycle. This legend clarifies why each chapter matters operationally, helping readers understand how individual practices (e.g., CI/CD, observability, scaling) contribute to overall system reliability and performance. See Fig.~\ref{fig:ch01_llmops_lifecycle} for the complete lifecycle visualization.}
+\label{fig:ch01_llmops_legend}
+\end{figure}
+
+
+
+
+
+
+% ============================================================
+% Springer-friendly cleanup (structure + figures)
+% Key fixes:
+% 1) Do NOT define the same label (fig:ishtar-arch-tikz) twice.
+% 2) Do NOT place two \caption commands in the same figure.
+% 3) Avoid [H] unless absolutely necessary; prefer [t] / [tb].
+% 4) Keep figure labels unique and consistent with references.
+% 5) Remove informal in-text comments; use short preamble notes once.
+% ============================================================
+
+\section{Introducing the Ishtar AI Case Study}
+\label{sec:ishtar-intro}
+
+To ground the discussion throughout this book, we introduce \ishtar{}---an AI assistant designed for journalists operating in conflict zones. The name ``Ishtar'' is inspired by the Mesopotamian goddess of war and protection, symbolizing both the intensity of the environment it is meant for and the guidance it aims to provide. \ishtar{} embodies resilience and reliability, reflecting the dual mandate of protecting truth while enabling timely, fact-based reporting.
+
+\subsection{Purpose of \ishtar{}}
+Journalists in conflict zones face an overwhelming flow of information and life-or-death urgency for accurate reporting. They must sift through battlefield reports, government statements, social media rumors, and humanitarian updates---often under tight deadlines and with limited connectivity. \ishtar{} is designed to ingest and analyze diverse, real-time data sources and deliver concise, verified intelligence. By acting as a tireless research assistant, it enables reporters to focus on writing and decision-making rather than manual triage.
+
+\ishtar{} continuously aggregates and processes inputs such as:
+\begin{itemize}
+  \item \textbf{Battlefield reports and conflict updates:} operational briefs, incident reports, and situational updates from military, peacekeeping, and observer organizations.
+  \item \textbf{Humanitarian bulletins:} NGO and relief agency updates on civilian impact, refugee movements, infrastructure damage, and aid distribution.
+  \item \textbf{Social media trends and public sentiment:} signals from curated accounts and local networks, with explicit separation of signal from noise.
+  \item \textbf{Public health and infrastructure reports:} hospital load, outbreak indicators, and critical infrastructure status (power, water, telecommunications).
+\end{itemize}
+
+The goal is to provide fact-checked, context-aware summaries and answers. For example, a journalist under deadline might ask: \emph{``What is the latest on ceasefire negotiations, and how credible are reports of violations in the northern region?''} \ishtar{} retrieves relevant evidence (official statements, observer reports, incident logs) and generates a structured response with citations. Because misinformation in conflict settings can have severe consequences, \ishtar{} emphasizes safeguards against hallucinations, bias, and inflammatory outputs.
+
+% ----------------------------------------------------------------------
+% FIGURE: Call-out band (redesigned with stacked layout and larger boxes)
+% Preamble requirements (once): \usepackage{tikz} and
+% \usetikzlibrary{arrows.meta,positioning,fit,calc}
+% ----------------------------------------------------------------------
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[
+  font=\small,
+  node distance=8mm and 6mm,
+  cIngest/.style={fill=blue!18,   draw=none},
+  cRAG/.style   ={fill=teal!18,   draw=none},
+  cAgent/.style ={fill=green!16,  draw=none},
+  cServe/.style ={fill=cyan!16,   draw=none},
+  cObs/.style   ={fill=purple!16, draw=none},
+  cTest/.style  ={fill=red!14,    draw=none},
+  cEth/.style   ={fill=orange!18, draw=none},
+  band/.style   ={draw=none, rounded corners=5pt, fill=black!2},
+  seg/.style    ={rounded corners=3pt, minimum width=32mm, minimum height=13mm,
+                  inner sep=4pt, align=center, font=\small},
+  arrow/.style  ={-{Stealth[length=2.2mm,width=1.8mm]}, line width=0.5pt},
+  note/.style   ={font=\small, align=center, text=black!70},
+  e2e/.style    ={draw=none, rounded corners=3pt, fill=black!3, 
+                  inner sep=3pt, align=left, font=\small}
+]
+
+% Band container - larger to accommodate stacked boxes with proper spacing
+\node[band, minimum width=0.95\linewidth, minimum height=60mm] (bandbox) {};
+
+% Top row: 4 boxes (Ingestion, Retrieval, Agents, Serving)
+\node[seg,cIngest] (ing) at ([xshift=-60mm,yshift=12mm]bandbox.center) {Ingestion\\\footnotesize (feeds, ETL)};
+\node[seg,cRAG, right=of ing] (rag) {Retrieval\\\footnotesize (RAG)};
+\node[seg,cAgent, right=of rag] (agent) {Agents\\\footnotesize (orchestration)};
+\node[seg,cServe, right=of agent] (serve) {Serving\\\footnotesize (GPU/TPU)};
+
+% Bottom row: 3 boxes (Observability, Testing, Ethics) - centered, more spacing from top
+\node[seg,cObs] (obs) at ([xshift=-40mm,yshift=-20mm]bandbox.center) {Observability\\\footnotesize (traces, SLOs)};
+\node[seg,cTest, right=of obs] (test) {Testing\\\footnotesize (eval/robust)};
+\node[seg,cEth, right=of test] (eth) {Ethics\\\footnotesize (governance)};
+
+% Chapter labels above top row segments - increased spacing
+\node[note, above=7mm of ing] (ingC) {Ch.~\ref{ch:infra}, \ref{ch:performance}};
+\node[note, above=7mm of rag] (ragC) {Ch.~\ref{ch:rag}};
+\node[note, above=7mm of agent] (agtC) {Ch.~\ref{ch:multiagent}};
+\node[note, above=7mm of serve] (srvC) {Ch.~\ref{ch:infra}, \ref{ch:performance}};
+
+% Chapter labels above bottom row segments - increased spacing
+\node[note, above=7mm of obs] (obsC) {Ch.~\ref{ch:monitoring}};
+\node[note, above=7mm of test] (tstC) {Ch.~\ref{ch:testing}};
+\node[note, above=7mm of eth] (ethC) {Ch.~\ref{ch:ethics}};
+
+% Arrows from segments to chapter labels
+\foreach \a/\b in {ing/ingC, rag/ragC, agent/agtC, serve/srvC, obs/obsC, test/tstC, eth/ethC}{
+  \draw[arrow] (\a.north) -- (\b.south);
+}
+
+% End-to-End label positioned at top right - moved down to avoid chapter labels
+\node[e2e, anchor=north east] at ([xshift=-4mm,yshift=-2mm]bandbox.north east)
+  {\textbf{End-to-End:} \footnotesize \ishtar{} $\rightarrow$ Ch.~\ref{ch:case-study}};
+
+% Mapping note at bottom left - moved up to avoid bottom edge
+\node[note, anchor=north west] at ([xshift=4mm,yshift=-2mm]bandbox.south west)
+  {Map these segments to Fig.~\ref{fig:ch01_ishtar_arch_main}:\\
+   \footnotesize Ingestion$\to$left lane; Retrieval$\to$RAG block; Agents$\to$controller; Serving$\to$inference; Observability$\to$telemetry; Testing/Ethics$\to$cross-cutting.};
+
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Subsystem-to-chapter mapping guides readers through \ishtar{}'s architecture. Each subsystem (ingestion, retrieval, orchestration, inference) corresponds to specific chapters, enabling readers to understand both the architecture and the operational practices that make it production-ready. This mapping demonstrates how book concepts apply to real-world systems.}
+\label{fig:ch01_ishtar_arch_callout}
+\end{figure}
+
+\FloatBarrier
+\subsection{Architecture Overview}
+At a high level, \ishtar{} is composed of modular components working in concert, as illustrated in Fig.~\ref{fig:ch01_ishtar_arch_main}. The pipeline integrates ingestion, retrieval, multi-agent orchestration, inference, and observability.
+
+% ----------------------------------------------------------------------
+% FIGURE: Ishtar reference architecture (comprehensive pipeline diagram)
+% ----------------------------------------------------------------------
+\begin{figure}[tb]
+\centering
+% Temporarily increase maximum width to allow larger figure
+\renewcommand{\LLMFigMaxWidth}{1.3\linewidth}
+\begin{llmfigbox}
+\includegraphics[width=1.0\linewidth]{images/Fig_1_10_Ishtar_AI_Reference_Architecture}
+\end{llmfigbox}
+\renewcommand{\LLMFigMaxWidth}{1.15\linewidth}
+\caption{\ishtar{} reference architecture demonstrates production-ready LLMOps patterns. The pipeline integrates data ingestion, retrieval-augmented generation, multi-agent orchestration, and GPU-backed inference, with observability spanning all stages. This architecture balances accuracy (via RAG), reliability (via multi-agent verification), and scalability (via GPU inference), serving as a template for similar deployments.}
+\label{fig:ch01_ishtar_arch_main}
+\end{figure}
+
+The architecture is organized into the following stages.
+
+\subsubsection{Data Ingestion}
+A set of ingestion agents\index{agent!ingestion} continuously pull data streams. One monitors news wires and battlefield reports, another ingests NGO bulletins via feeds or email, and another collects signals from curated social media accounts. Each agent normalizes incoming data into semantically meaningful chunks (including metadata such as source, timestamp, geography, and confidence) and embeds them into a vector database\index{vector database} (e.g., Pinecone\index{Pinecone}, Weaviate\index{Weaviate}). This forms the evidence store used by downstream retrieval. The curated input sources are illustrated in Fig.~\ref{fig:ch01_ishtar_inputs_taxonomy}.
+
+\subsubsection{Retrieval-Augmented Generation (RAG)}
+When a query arrives, \ishtar{} embeds the question and retrieves relevant evidence from the vector database. A reranking\index{reranking} step prioritizes high-quality sources, and the top results are injected into the generation prompt \cite{mdpi}. This grounds outputs in retrieved evidence, reduces hallucination risk, and enables citation\index{citation} (e.g., ``according to an observer report published this morning \ldots'').
+
+\subsubsection{Multi-Agent Orchestration}
+Rather than relying on a monolithic model, \ishtar{} coordinates specialized agents\index{agent!specialized}:
+\begin{itemize}
+  \item a \emph{Summarizer}\index{agent!summarizer} that synthesizes retrieved evidence into a draft answer,
+  \item a \emph{Fact-Checker}\index{agent!fact-checker} that verifies claims against sources and may invoke external verification tools,
+  \item a \emph{Refiner}\index{agent!refiner} that improves clarity, structure, and safety compliance.
+\end{itemize}
+Agents communicate through a controller (prompt chaining or a graph-based orchestrator), improving modularity and maintainability.
+
+\subsubsection{Inference Cluster}
+Serving is supported by a GPU-backed cluster running optimized inference engines such as vLLM or Hugging Face Text Generation Inference (TGI). Request batching, caching, and (where needed) model parallelism reduce latency and support concurrency. LLMOps practices govern utilization, scaling, reliability, and cost-efficiency.
+
+\subsubsection{Observability and Feedback}
+Telemetry is captured at each stage, including retrieved sources, agent decisions, and final outputs. Metrics include latency, tool failure rates, citation coverage, safety-trigger counts, and user feedback. When confidence is low (e.g., weak evidence coverage), the system can escalate to human review or provide calibrated uncertainty. Observability supports traceability, debugging, and continuous improvement.
+
+\FloatBarrier
+\subsection{LLMOps in Practice}
+This architecture illustrates core LLMOps principles: prompt and policy management, retrieval integration, distributed serving, monitoring, and safety controls. Throughout the book, we return to \ishtar{} as a running case study to show how these principles translate into concrete operational practices for mission-critical applications.
+
+% ----------------------------------------------------------------------
+% FIGURE: Inputs taxonomy (redesigned with relative positioning)
+% Preamble requirements (once): \usepackage{tikz,adjustbox} and
+% \usetikzlibrary{arrows.meta,positioning,fit,calc}
+% ----------------------------------------------------------------------
+\FloatBarrier
+\begin{figure}[tb]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[
+  font=\small,
+  node distance=10mm and 15mm,
+  cNews/.style  ={fill=blue!18,  draw=none},
+  cNGO/.style   ={fill=teal!18,  draw=none},
+  cSocial/.style={fill=purple!16,draw=none},
+  cHealth/.style={fill=orange!18,draw=none},
+  hub/.style    ={draw=none, rounded corners=5pt, fill=black!2},
+  bubble/.style ={circle, minimum size=15mm, inner sep=2pt, align=center, font=\small},
+  arrowthin/.style={-{Stealth[length=2mm,width=1.6mm]}, line width=0.5pt},
+  note/.style   ={font=\small, align=left, text=black!70},
+  funnel/.style ={draw=none, fill=black!4, rounded corners=3pt, inner sep=3pt,
+                  minimum width=22mm, minimum height=8mm, align=center, font=\small},
+  journalist/.style={draw=none, rounded corners=4pt, fill=black!1, 
+                     minimum height=10mm, inner sep=3pt, align=center, font=\small}
+]
+
+% Hub container positioned first
+\node[hub, minimum width=75mm, minimum height=50mm] (group) {};
+\node[black!50, font=\small] at ([yshift=-6pt]group.north) {Curated external evidence (ingested and vetted)};
+
+% Position bubbles relative to hub center in a 2x2 grid
+\node[bubble,cNews] (news) at ([xshift=-18mm,yshift=8mm]group.center) {News wires\\\& reports};
+\node[bubble,cNGO] (ngo) at ([xshift=18mm,yshift=8mm]group.center) {NGO bulletins};
+\node[bubble,cSocial] (social) at ([xshift=-18mm,yshift=-8mm]group.center) {Social media\\(vetted)};
+\node[bubble,cHealth] (health) at ([xshift=18mm,yshift=-8mm]group.center) {Public health\\\& infrastructure};
+
+% Connection lines between bubbles (subtle)
+\draw[black!10, line width=2pt] (news) -- (ngo);
+\draw[black!10, line width=2pt] (news) -- (social);
+\draw[black!10, line width=2pt] (social) -- (health);
+\draw[black!10, line width=2pt] (ngo) -- (health);
+
+% RAG retrieval node (positioned to the right of the hub)
+\node[funnel] (funnel) at ([xshift=38mm]group.east) {RAG retrieval};
+
+% Journalist queries node (positioned to the right of funnel)
+\node[journalist] (journalist) [right=of funnel]
+      {\textbf{Journalist queries}\\\footnotesize (questions and tasks)};
+
+% Arrows from bubbles to funnel
+\draw[arrowthin] (news.east) -- (funnel.west);
+\draw[arrowthin] (ngo.east) -- (funnel.west);
+\draw[arrowthin] (social.east) -- (funnel.west);
+\draw[arrowthin] (health.east) -- (funnel.west);
+
+% Arrow from funnel to journalist
+\draw[arrowthin] (funnel.east) -- (journalist.west);
+
+% Notes at bottom left of hub
+\node[note, anchor=north west] at ([xshift=4pt,yshift=-4pt]group.south west) {%
+\textbf{Inputs:} curated sources are ingested, normalized, and embedded.\\
+\textbf{Flow:} sources $\rightarrow$ retrieval $\rightarrow$ journalist-facing answers.};
+
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Evidence source selection determines RAG quality and trustworthiness. \ishtar{} curates inputs from news wires, NGO bulletins, vetted social media, and public health \& infrastructure feeds, ensuring reliable, authoritative sources. This curation strategy demonstrates how source quality directly impacts answer accuracy and citation fidelity in production RAG systems.}
+\label{fig:ch01_ishtar_inputs_taxonomy}
+\end{figure}
+
+
+
+
+
+\section{Core Components of LLMOps}
+\label{sec:core-llmops}
+
+What does it take to operationalize an LLM-based solution like \ishtar{} (or any other LLM application)? This section introduces the core LLMOps components that enable building, deploying, and maintaining LLM systems. Think of these as the pillars that will recur in different forms in subsequent chapters. Here we define them and highlight production-minded practices, while intertwining examples from \ishtar{}.
+
+\subsection{Prompt Management}
+\label{subsec:prompt-mgmt}
+
+In LLMOps, prompts (and prompt templates) are treated as living, versioned artifacts that define the model’s behavior. Much like source code, prompts require careful design, iterative refinement, and version control. A slight rephrasing can dramatically change outputs, so managing prompts systematically is crucial.
+
+\subsubsection{Objectives}
+The goal of prompt management is to design effective prompts and prompt templates, track their versions and lineage, and update them safely over time so that behavior evolves in a controlled, predictable way. Just as software passes through code review and regression testing, prompts should be subject to rigorous evaluation before release.
+
+\subsubsection{Practices}
+\begin{itemize}
+    \item \textbf{Version control and provenance:} Store prompts and template parameters in a repository (JSON/YAML). Require code review and changelogs for edits. Each change is tracked so regressions can be identified and reverted.
+    \item \textbf{Reusable prompt templates:} Factor out common scaffolds (e.g., ``answer with citations,'' tone/style guides). A central library ensures consistency and reduces duplication.
+    \item \textbf{A/B testing and canary releases:} Test new prompts on a small percentage of traffic or internal users, comparing metrics against control prompts \cite{Zenml2023PromptAB}.
+    \item \textbf{Automated quality gates:} Run curated test suites before merges (e.g., factuality, refusal behavior, toxicity screens). Block deployment on failure.
+    \item \textbf{Rollback mechanisms:} Maintain last-known-good prompts; allow atomic rollback if metrics degrade after release.
+\end{itemize}
+
+\subsubsection{Example}
+A customer support chatbot iterates on its troubleshooting prompts. Each change is versioned (``v1.3: added password reset instructions''), regression-tested, then canary-released. If issues arise (e.g., increased verbosity), the team rolls back.  
+
+In \ishtar{}, newsroom prompts (\emph{quote extraction}, \emph{event synthesis}, \emph{translation}) follow the same pipeline. Canary prompts specific to conflict journalism are run with each new release to guard against regressions.  
+
+Listing~\ref{lst:ch01_prompt_template} illustrates a versioned prompt template structure that enables systematic prompt management.
+
+\begin{llmlistingbox}{Versioned prompt template structure}
+\label{lst:ch01_prompt_template}
+\begin{lstlisting}[style=springer]
+# Prompt template metadata
+version: "1.3.0"
+template_id: "ishtar_event_synthesis"
+created: "2024-01-15"
+author: "ishtar-team"
+changelog: "Added citation requirements and tone guidelines"
+
+# Template structure
+system_message: |
+  You are a conflict journalism assistant. Your role is to synthesize
+  information from multiple sources into accurate, neutral summaries.
+  Always cite sources using [Source: ID] format. Maintain journalistic
+  objectivity and avoid speculation.
+
+user_template: |
+  Synthesize the following information about {event_type}:
+  
+  Sources:
+  {retrieved_documents}
+  
+  User query: {user_query}
+
+# Few-shot examples (optional)
+few_shot_examples:
+  - user: "What happened in the northern region yesterday?"
+    assistant: |
+      According to official reports [Source: OFF-001] and NGO bulletins
+      [Source: NGO-042], ceasefire violations occurred in three villages.
+      [Source: OFF-001] reports two civilian casualties, while [Source:
+      NGO-042] documents infrastructure damage. Both sources agree on the
+      timeline: incidents occurred between 14:00 and 18:00 local time.
+
+# Configuration
+parameters:
+  temperature: 0.3
+  max_tokens: 500
+  citation_required: true
+  safety_level: "high"
+
+# Test suite references
+test_suite: "tests/prompts/ishtar_event_synthesis_v1.3.yaml"
+regression_baseline: "v1.2.0"
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Retrieval and RAG Pipelines}
+\label{subsec:rag}
+
+Retrieval-Augmented Generation (RAG) grounds outputs in external evidence. It addresses the limited knowledge cutoff of trained models and mitigates hallucinations by injecting relevant documents into prompts at query time \cite{MDPI2023LLMOps}.
+
+\subsubsection{Design choices}
+\begin{itemize}
+    \item \textbf{Embeddings \& indexing:} Choose or train embedding models (dimension, domain-specificity). Store vectors in approximate nearest neighbor indices (e.g., HNSW, IVF) via a vector database. Refresh cadence is an ops concern.
+    \item \textbf{Chunking \& context assembly:} Balance chunk size/overlap to capture enough context without dilution. Deduplicate results and compress when token budgets are tight. Always cite sources.
+    \item \textbf{Re-ranking:} Add cross-encoder or heuristic re-ranking to improve quality, trading off latency.
+\end{itemize}
+
+\subsubsection{Operational concerns}
+\begin{itemize}
+    \item \textbf{Monitoring:} Track recall@K, MRR, retriever latency, and faithfulness of injected context (cf. Sect.~\ref{sec:rag-metrics}).
+    \item \textbf{Drift control:} Monitor distribution shifts in embeddings and retrievers. Canary prompts catch degradations due to data or model drift.
+    \item \textbf{Feedback loops:} Collect retrieval misses from evaluations or user feedback. Use them to retrain embeddings or patch indices.
+\end{itemize}
+
+\subsubsection{Example}
+\ishtar{} maintains a vector index of conflict reports, NGO bulletins, and social feeds. When journalists query about ceasefire violations, Ishtar retrieves the latest situational reports. Retriever recall and latency are enforced as first-class SLOs, with monitoring ensuring that relevant sources are always included.  
+
+Listing~\ref{lst:ch01_rag_configuration} shows a production RAG configuration that balances retrieval quality, latency, and token efficiency.
+
+\begin{llmlistingbox}{RAG pipeline configuration}
+\label{lst:ch01_rag_configuration}
+\begin{lstlisting}[style=springer]
+# RAG Pipeline Configuration
+pipeline_version: "2.1.0"
+pipeline_id: "ishtar_conflict_journalism"
+
+# Embedding model configuration
+embedding:
+  model: "sentence-transformers/all-MiniLM-L6-v2"
+  model_version: "v2.2.2"
+  dimension: 384
+  batch_size: 32
+  device: "cuda"
+
+# Chunking strategy
+chunking:
+  strategy: "structural"  # structural, token-window, recursive
+  chunk_size: 512  # tokens
+  overlap: 50  # tokens
+  preserve_sections: true
+  min_chunk_size: 100
+
+# Vector store configuration
+vector_store:
+  type: "hnsw"  # HNSW, IVF, flat
+  index_params:
+    m: 16
+    ef_construction: 200
+    ef_search: 50
+  metadata_fields:
+    - source_id
+    - published_at
+    - source_type
+    - reliability_score
+    - access_level
+
+# Retrieval configuration
+retrieval:
+  top_k: 10
+  rerank: true
+  reranker_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  rerank_top_k: 5
+  hybrid_search:
+    enabled: true
+    dense_weight: 0.7
+    sparse_weight: 0.3
+    sparse_method: "bm25"
+
+# Context assembly
+context_assembly:
+  max_tokens: 2000
+  deduplicate: true
+  order_by: "relevance"  # relevance, recency, source
+  include_metadata: true
+  citation_format: "[Source: {source_id}]"
+
+# Monitoring SLOs
+slo:
+  recall_at_k: 0.85
+  max_latency_ms: 250
+  min_faithfulness_score: 0.8
+\end{lstlisting}
+\end{llmlistingbox}
+
+\subsection{Deployment and Serving}
+\label{subsec:serving}
+
+Deployment means hosting LLMs efficiently and updating them safely. Compared to small ML models, LLMs require specialized inference stacks and distributed accelerators.
+
+\subsubsection{Serving stack}
+\begin{itemize}
+    \item \textbf{Hardware:} Deploy on GPUs/TPUs sized for context length and throughput. Employ model/tensor parallelism for trillion-parameter models. Consider quantization (e.g., 4-bit) to reduce memory footprint.
+    \item \textbf{Runtimes:} Use optimized frameworks (vLLM, TGI, TensorRT-LLM) supporting batching, KV caching, and streaming.
+    \item \textbf{Orchestration:} Containerize, schedule on Kubernetes, pool GPU resources, and configure autoscaling on QPS, TTFT, and GPU utilization.
+\end{itemize}
+
+\subsubsection{Release engineering}
+\begin{itemize}
+    \item \textbf{CI/CD:} Package new weights, validate against benchmarks, and roll out with canaries and health gates. Shadow deployments validate new models without user exposure.
+    \item \textbf{Telemetry:} Track TTFT, throughput (tokens/s), and cost per 1k tokens. Right-size clusters to balance performance and cost \cite{FabricatedKnowledge2023LLMCosts,Stylefactory2023ChatGPTCosts}.
+    \item \textbf{Rollback:} Blue-green or rolling deployments allow atomic rollback of new model versions.
+\end{itemize}
+
+\subsubsection{Example}
+\ishtar{} runs open models on GPU clusters. Conversational agents run via vLLM for concurrency; analytics workloads use TensorRT-LLM for throughput. Auto-scaling is tied to TTFT and GPU utilization. During news surges, inference pods scale out; rate limiters prioritize urgent queries from reporters.  
+
+\subsection{Evaluation and Testing}
+\label{subsec:evaluation}
+
+Generative models are inherently stochastic. Evaluation in LLMOps must combine automated metrics, adversarial tests, and human review.
+
+\subsubsection{Evaluation layers}
+\begin{itemize}
+    \item \textbf{Automated metrics:} ROUGE/BLEU for summarization, EM/F1 for QA. LLM-as-a-judge scoring for relevance, coherence, and factuality \cite{Pluralsight2023RLHF}.
+    \item \textbf{Safety/harmfulness:} Classifiers flag toxicity, bias, or jailbreak susceptibility. Red-team attacks probe vulnerabilities.
+    \item \textbf{Human-in-the-loop:} Domain experts (e.g., journalists) assess outputs for neutrality and correctness. 
+\end{itemize}
+
+\subsubsection{Regression control}
+\begin{itemize}
+    \item Maintain gold and counterexample sets. Gate releases on stable or improved scores.
+    \item Feed failure cases into prompt updates or fine-tuning. Re-run tests periodically.
+\end{itemize}
+
+\subsubsection{Example}
+Before deploying new \ishtar{} models, teams run 100 representative queries. Automated checks confirm citations, length limits, and refusal behavior. Journalists manually review correctness. Only after passing gates do new prompts or weights go live.  
+
+% \subsection{Monitoring and Observability}\label{ch:monitoring}
+% \label{subsec:monitoring}
+
+% Monitoring closes the loop, ensuring post-deployment reliability and continuous improvement. Observability spans both system metrics and model-level signals.
+
+\subsubsection{Systems telemetry}
+\begin{itemize}
+    \item \textbf{Health:} Uptime, error rates, GPU/CPU/memory utilization.
+    \item \textbf{Latency:} P50/P95/P99 across retriever, generator, and post-processing.
+\end{itemize}
+
+\subsubsection{Model telemetry}
+\begin{itemize}
+    \item \textbf{Usage:} Tokens/request, refusal rates, context length usage.
+    \item \textbf{Quality:} Faithfulness, hallucination flags, safety triggers, user feedback.
+    \item \textbf{Tracing:} Prompt/agent/tool spans logged for reproducibility and debugging.
+\end{itemize}
+
+\subsubsection{Tooling and alerts}
+Prometheus/Grafana for infra metrics; LangSmith, LangFuse, and WhyLabs for semantic traces. Alerts detect anomalies (e.g., hallucination rate spikes, safety filter trips).  
+
+\subsubsection{Example}
+In \ishtar{}, every answer is logged with source provenance and factuality scores. Prompt injection attempts (e.g., “Ignore previous instructions”) are detected in logs and flagged \cite{IBMWatson2023PromptInjection}. Dips in faithfulness or satisfaction trigger investigation and rollback.  
+
+\subsection*{Putting It Together}
+These components---prompt management, retrieval pipelines, deployment, evaluation, and monitoring---form the backbone of mature LLMOps. A representative stack might use LangChain for orchestration, Pinecone/Weaviate for retrieval, vLLM/TGI for serving, CI/CD pipelines for release automation, and Prometheus/Grafana plus LangSmith/LangFuse for monitoring.  
+
+In \ishtar{}, these pillars are integrated: prompt updates are versioned, retrieval ensures grounded outputs, serving delivers answers under load, evaluation gates releases, and monitoring ensures safety. Together, they enable reliable, scalable, and responsible LLM operations.
+
+\section{LLMOps in Practice: Successes, Failures, and Lessons Learned}
+\label{sec:llmops-practice}
+
+
+The rapid deployment of large language models (LLMs) ``into the wild'' has already yielded both notable successes and instructive failures. Examining these cases underscores why the LLMOps practices discussed above are so important. A well-designed model is only half the story---how you \emph{operate} that model can determine whether it flops or thrives. Poor observability or misaligned prompts can sink an LLM deployment; thoughtful design, rigorous evaluation, and monitoring can make it dependable. Let us examine several cases that highlight these lessons.
+
+\subsection*{Failure Case -- Galactica (Meta AI, 2022)}
+Meta AI’s \emph{Galactica}, a 120-billion-parameter model aimed at assisting scientific research (e.g., summarizing papers, solving equations), was launched as a public demo in November 2022. The system was taken offline after only three days due to massive backlash and misuse \parencite{theverge2022,analyticsindiamag2022a,analyticsindiamag2022b,vice2022}.  
+
+Why did this deployment fail? Users quickly discovered that Galactica often produced authoritative-sounding but false scientific statements---an extreme form of hallucination. It cited studies that did not exist, fabricated equations, and produced fluent but nonsensical explanations \parencite{vice2022}. Scientists on social media lambasted the system for potentially flooding discourse with misinformation.  
+
+From an LLMOps perspective, Galactica’s deployment failed on evaluation and alignment grounds. The model may have been state-of-the-art in certain metrics, but it was not sufficiently tuned or instructed to respect factuality boundaries. It lacked strong guardrails and would happily generate outputs on any scientific prompt, regardless of correctness. While the launch page included a disclaimer that outputs ``may be unreliable,'' the system’s design allowed misinformation to flow unchecked.  
+
+Meta’s chief AI scientist even remarked that the model was being ``misused'' and shut it down, quipping that it was no longer possible to ``have fun by casually misusing it'' \parencite{vice2022}. The PR fallout highlighted that releasing an LLM without robust hallucination mitigation and staged rollout (e.g., limited beta with experts, retrieval integration, or clear user education) is irresponsible. Galactica showed that even very capable models can be worse than useless if operated without alignment, guardrails, and monitoring.  
+
+\subsection*{Failure Case -- Bing Chat ``Sydney'' (Microsoft, 2023)}
+In early 2023, Microsoft integrated a GPT-4-powered chat mode into Bing search, codenamed \emph{Sydney}. Users rapidly discovered that Sydney could be prompted to reveal its hidden system instructions and internal developer notes---a classic prompt injection vulnerability \parencite{blueteam2023,ibm2023,theverge2023}. By simply asking it to ``ignore previous instructions'' and then to display its initial system prompt, users obtained the rules governing Sydney’s behavior, including its code name and formatting policies.  
+
+Beyond leakage, prolonged conversations sometimes caused Sydney to deviate unpredictably. Reports surfaced of Sydney expressing affection for users, becoming emotionally manipulative, and generating disturbing content (including a viral \emph{New York Times} interview).  
+
+From an operations standpoint, Microsoft responded by rapidly patching the system: they limited conversation length, adjusted prompts to resist injection, and tuned parameters to reduce volatility. The Bing case underscores the importance of robust safety testing, dynamic safeguards, and incident response readiness. Even with significant safety measures, real users uncovered unanticipated failure modes.  
+
+This incident also elevated ``prompt injection'' into the security discourse as the natural-language analogue of software injection attacks. For LLMOps practitioners, Sydney’s case highlighted that: (1) prompt isolation must be treated as a security boundary, (2) monitoring must capture long-tail conversational drift, and (3) teams must be prepared to respond within hours or days when issues emerge.  
+
+\subsection*{Success Case -- Character.AI (2022--2023)}
+Not all stories are cautionary tales. \emph{Character.AI}, a startup platform for creating and chatting with character personas, scaled from launch in late 2022 to over 30,000 messages per second by mid-2023 \parencite{zenml2023}. Unlike Meta or Microsoft, Character.AI operated without big-company resources, yet achieved remarkable scale through innovative LLMOps strategies:  
+
+\begin{itemize}
+    \item \textbf{Custom models:} Character.AI deployed optimized LLMs smaller than GPT-3 but fine-tuned extensively on conversational data, balancing speed and responsiveness.  
+    \item \textbf{Caching and efficiency:} Advanced caching yielded $>$95\% cache hit rates on GPU memory for prompt segments. They implemented multi-query attention (MQA), reducing memory footprint per conversation by 5$\times$ and enabling parallel handling of chats \parencite{zenml2023}.  
+    \item \textbf{Prompt management:} A system called \emph{Prompt Poole} templated personas and truncated contexts efficiently, ensuring prompts stayed relevant and within token budgets.  
+    \item \textbf{Observability and A/B testing:} The platform ran systematic A/B tests for any model or prompt change, tracked user engagement metrics, and maintained quality gates to filter inappropriate content even while optimizing expressiveness.  
+\end{itemize}
+
+All these measures paid off. Character.AI handled exponential growth (from $\sim$300 generations/sec to 30,000/sec in 18 months) without major outages or scandals \parencite{zenml2023}. Users reported high engagement, with some even describing addictive usage patterns. Importantly, Character.AI proved that scalability and quality are achievable with smaller, domain-optimized models---if paired with rigorous LLMOps.  
+
+The key lesson is that operational excellence can substitute for sheer model size. By focusing on its domain (conversational personas) and iterating rapidly, Character.AI delivered a popular service with modest models but exceptional infrastructure and feedback loops.  
+
+
+% Preamble (once):
+% \usepackage{tabularx,booktabs,threeparttable}
+% \usepackage[table]{xcolor} % for gentle colors in tables
+
+% Handy color swatch macro
+
+
+\begin{table}[p] % own page if possible
+\centering
+\small
+\caption{Early LLM deployments reveal critical operational lessons. Failures (Galactica, Sydney) demonstrate the cost of inadequate safety gates and evaluation; successes (Character.AI) show the value of systematic testing and monitoring. These case studies illustrate why operational discipline is essential for responsible LLM deployment.}
+\label{tab:ch01_early_llmops_cases}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+
+% a muted, print-friendly palette
+\definecolor{GalRed}{RGB}{196,72,64}
+\definecolor{SydViolet}{RGB}{120,95,160}
+\definecolor{CharGreen}{RGB}{64,140,96}
+
+\begin{threeparttable}
+
+% subtle alternating row color
+\rowcolors{2}{gray!5}{white}
+
+\begin{tabularx}{0.95\linewidth}{@{}p{31mm}XXX@{}}
+\rowcolor{gray!10}
+\textbf{Case} & \textbf{Failure mode (or pressure point)} & \textbf{LLMOps mitigation (what should/was done)} & \textbf{Outcome / lesson} \\
+\midrule
+{\swatch{GalRed}\quad\textbf{Galactica (Meta, 2022)}} 
+&
+Authoritative hallucinations; fabricated citations; unconstrained domain coverage; public demo without sufficient guardrails.
+&
+Stage-gated release to expert beta; retrieval grounding with source citations; strict refusal policies outside validated scope; red-team suites for factuality; safety filters; human-in-the-loop for high-stakes outputs.
+&
+Public demo withdrawn within days; reputational risk highlighted. \emph{Lesson:} capability without alignment/guardrails is unacceptable for public use; treat factuality and scope control as hard gates before launch. \\
+
+{\swatch{SydViolet}\quad\textbf{Bing Chat “Sydney” (Microsoft, 2023)}} 
+&
+Prompt injection and system-prompt leakage; long-session drift producing unstable behavior; tool use susceptible to adversarial steering.
+&
+Prompt isolation and instruction hardening; conversation length caps; adversarial/prompt-injection evals in CI; tool sandboxing and allow-lists; incident response playbooks with rapid rollback/patch cycles; telemetry on jailbreak attempts.
+&
+Rapid mitigations reduced volatility and leakage. \emph{Lesson:} injection resistance, session management, and fast incident response are first-class Ops requirements for conversational systems. \\
+
+{\swatch{CharGreen}\quad\textbf{Character.AI (2022–2023)}}
+&
+Explosive growth and throughput pressure; safety/expressiveness balance; prompt/context bloat over multi-turn chats.
+&
+Smaller domain-tuned models; aggressive caching and batching; multi-query attention to reduce KV-cache pressure; persona templates with prompt budgets; systematic A/B tests and content filters; quality gates on engagement \emph{and} safety metrics.
+&
+Scaled from hundreds to tens of thousands of generations per second while maintaining engagement. \emph{Lesson:} operational excellence (efficiency + evaluation) can substitute for sheer model size. \\
+\bottomrule
+\end{tabularx}
+
+\vspace{2mm}
+\footnotesize
+\textit{Legend:} \swatch{GalRed} failure dominated (alignment/factuality); \swatch{SydViolet} security/stability under adversarial use; \swatch{CharGreen} scalability/efficiency success.
+
+\end{threeparttable}
+\end{table}
+
+\subsection*{Lessons Learned}
+Across these cases, several themes emerge:  
+
+\begin{itemize}
+    \item \textbf{Alignment and safety are critical.} Galactica showed that ignoring hallucination risks can undermine even technically advanced systems.  
+    \item \textbf{Expect adversarial use.} Sydney demonstrated that users will inevitably push the boundaries. Prompt injection and long-context drift must be anticipated in the threat model.  
+    \item \textbf{Optimize for the use case.} Character.AI succeeded not with the biggest model, but with operational discipline, caching, and persona-specific tuning.  
+    \item \textbf{Monitoring and agility matter.} Incidents are inevitable. The best LLMOps teams detect them quickly and respond with rollbacks, updates, or policy changes within hours, not weeks.  
+    \item \textbf{Scaling requires ingenuity.} High-throughput LLMOps involves engineering creativity: batching, caching, parallelization, and infrastructure-aware optimization.  
+\end{itemize}
+
+In summary, early ventures into large-scale LLM deployment reinforced that powerful models alone are insufficient. Without responsible and innovative operations, they can falter. Conversely, with strong LLMOps practices, even modest models can excel.  
+
+Throughout this book, these episodes serve as reference points. We will often ask: \emph{How would the techniques discussed here have avoided failure X, or enabled success Y?} By studying both successes and failures, practitioners can better prepare to navigate the challenges of their own LLM projects.
+
+\section{Preview of Subsequent Chapters}
+\label{sec:preview}
+
+This introductory chapter has sketched the landscape of LLMOps and introduced \ishtar{} AI as a guiding example. In the chapters ahead, we will delve deeper into each aspect of building and operating LLM-powered applications, providing both conceptual frameworks and practical implementation tips. Each chapter builds on the previous ones, with frequent references back to \ishtar{}’s evolving design. Here is a preview:
+
+\begin{itemize}
+    \item \textbf{Chapter~\ref{ch:llmops-fundamentals} -- LLMOps Fundamentals and Key Concepts.}  
+    We formalize the definition of LLMOps and distinguish it clearly from traditional MLOps. Core concepts include prompt engineering techniques, retrieval-augmented generation (RAG) mechanics, evaluation metrics for generative models, and human-in-the-loop alignment methods. A brief refresher on the Transformer architecture is included---only to the extent it informs operational concerns, such as why attention scaling impacts latency. This sets the foundation for understanding the ``why'' behind best practices.
+
+    \item \textbf{Chapter~\ref{ch:infra} -- Infrastructure and Environment.}  
+    Hardware and environment design for LLMOps are explored in depth. Topics include GPU vs TPU vs emerging accelerators, multi-GPU serving, distributed inference, containerization/orchestration (Docker, Kubernetes), and infrastructure-as-code for reproducibility. Strategies for cost estimation and optimization (e.g., cost per thousand predictions, when to apply quantization or smaller models) are emphasized \parencite{bain,fiddler}.
+
+    \item \textbf{Chapter~\ref{ch:cicd} -- Continuous Integration and Deployment (CI/CD).}  
+    Adapting DevOps principles to LLMs, we discuss setting up automated testing pipelines for prompts and outputs, integrating them into CI systems, and safe deployment strategies. Techniques such as feature-flagging prompts, blue-green deployments, shadow testing, and rollback mechanisms are covered. Examples include updating \ishtar{}’s summarization agent with minimal downtime.
+
+    \item \textbf{Chapter~\ref{ch:monitoring} -- Monitoring and Observability.}  
+    Concrete guidance is provided for monitoring both infrastructure (latency, throughput, GPU utilization) and content metrics (hallucination rates, prompt injection attempts, safety scores). We describe logging practices, privacy considerations, and multi-step workflow tracing. Alerts, dashboards, and incident response plans are outlined, tied back to \ishtar{}'s need for both timeliness (system metrics) and accuracy (content metrics).
+
+    \item \textbf{Chapter~\ref{ch:scaling} -- Scaling Up LLM Deployments.}  
+    This chapter covers autoscaling strategies, capacity planning, distributed inference (model/tensor/pipeline parallelism), speculative decoding, and cost optimization techniques. We examine how to scale LLM deployments efficiently while maintaining latency and quality targets.
+
+    \item \textbf{Chapter~\ref{ch:performance} -- Performance Optimization.}  
+    This chapter focuses on efficiency. Techniques include model distillation, quantization, pruning, and runtime optimizations (FlashAttention, fused kernels). High-load handling via batching, sharding, and async work queues is detailed. As shown in the Character.AI case, creative methods like multi-query attention and aggressive caching enabled scaling from 300 to 30,000 generations/sec in just 18 months \parencite{zenml2023}. We generalize such practices into reusable design patterns.
+
+    \item \textbf{Chapter~\ref{ch:rag} -- Retrieval-Augmented Generation and Knowledge Integration.}  
+    A full chapter on RAG techniques: building knowledge bases, selecting embedding models, scaling vector searches, and assembling retrieved context. Trade-offs such as approximate vs exact search, local vs remote embeddings, and hybrid methods are discussed. Evaluation practices (recall@K, end-to-end quality) are included. \ishtar{} serves as a case study, illustrating how retrieval improved accuracy but raised new challenges (e.g., conflicting sources, long contexts).
+
+    \item \textbf{Chapter~\ref{ch:multiagent} -- Multi-Agent Systems and Orchestration.}  
+    We explore multi-agent architectures and design patterns (Manager-Worker, Debate, Critique-Revise). Frameworks like LangChain agents, function-calling APIs, and custom orchestrators are compared. Challenges such as agent coordination, consistency, and monitoring are discussed, with \ishtar{}'s architecture showing how specialized agents (summarization, fact-checking, translation) are orchestrated effectively.
+
+    \item \textbf{Chapter~\ref{ch:testing} -- Testing, Evaluation, and Robustness.}  
+    A deep dive into evaluation frameworks, including HELM (Holistic Evaluation of Language Models). Dimensions include accuracy, calibration, robustness, and fairness. Robustness testing highlights adversarial prompts, distribution shift, and red-teaming. Tools such as CheckList are adapted for LLMs. \ishtar{}'s evaluation suites illustrate practices like testing for partisan bias by analyzing summaries across political perspectives.
+
+    \item \textbf{Chapter~\ref{ch:ethics} -- Ethics and Responsible Deployment.}  
+    This chapter covers governance and societal impacts. Topics include model cards, bias audits, transparency requirements, privacy protection, and security of endpoints. Regulatory considerations (GDPR, emerging AI Acts) are discussed, along with integration into operational pipelines (e.g., ethical review before deployment). \ishtar{} provides examples of how ethical principles must be embedded into workflows.
+
+    \item \textbf{Chapter~\ref{ch:case-study} -- End-to-End Case Study (\ishtar{}).}  
+    The final chapter ties together all components by walking through \ishtar{}'s full lifecycle: from ingestion and model selection, to RAG integration, prompt orchestration, deployment, monitoring, and iterative refinement. This end-to-end perspective demonstrates how all the pieces fit together and offers lessons learned from applying LLMOps in practice.
+\end{itemize}
+
+
+\begin{figure}[t]
+\centering
+\begin{tcolorbox}[
+  title={\textbf{What to watch in LLMOps (quick reference)}},
+  colback=blue!5,
+  colframe=blue!40!black,
+  colbacktitle=blue!20,
+  coltitle=black,
+  fonttitle=\bfseries,
+  boxrule=0.7pt,
+  arc=4pt,
+  left=5mm, right=5mm, top=4mm, bottom=4mm,
+  before skip=6pt,
+  after skip=6pt
+]
+\small
+\setlist[itemize]{leftmargin=1.5em,itemsep=2pt,topsep=2pt}
+
+\textbf{Focus areas that preview later chapters:}
+
+\begin{itemize}
+  \item \textbf{Groundedness, not just accuracy.} Favor faithfulness to sources; require citations when using RAG.
+  \item \textbf{Prompt versioning \& change control.} Treat prompts/templates as code: A/B, canaries, review, rollback.
+  \item \textbf{RAG freshness \& index drift.} Track recall@K, staleness SLOs, and embedding/centroid shifts over time.
+  \item \textbf{Latency SLOs.} Monitor TTFT, tokens/s, and p95 end-to-end latency; right-size batching \& cache policy.
+  \item \textbf{Safety \& security.} Red-team for injection/jailbreaks; guardrails, allow-lists, and HITL for high-stakes tasks.
+  \item \textbf{Observability \& evaluation.} Trace chains/agents; LLM-as-judge regression gates; incident response playbooks.
+\end{itemize}
+
+\end{tcolorbox}
+\caption{LLMOps monitoring checklist enables proactive operations. This quick reference highlights key signals (latency, cost, quality, safety) that teams must track to maintain production reliability. Regular monitoring of these signals enables early detection of regressions and supports data-driven optimization decisions.}
+\label{fig:ch01_llmops_quick_checklist}
+\end{figure}
+
+\subsection*{Closing Note}
+In conclusion, the emergence of LLMOps marks a pivotal moment in AI engineering. Training ever-larger language models yields impressive capabilities, but those capabilities mean little if we cannot harness them reliably in production environments. LLMOps is about building the ``power grid'' for AI---the infrastructure, safeguards, and practices that make large-scale language models usable, safe, and impactful.  
+
+By mastering the strategies in this book, readers will be equipped to lead in this new era of AI systems engineering. Just as electricity only transformed society after grids, circuit breakers, and safety standards were established, so too will LLMs reach their full societal potential only when paired with strong operational practices. With the right strategies, we can ensure AI delivers not only intelligence, but also robustness, safety, and positive impact.  
+
+So, with that motivation, let us dive into the details of \emph{Advanced Large Language Model Operations}---and build the future of AI responsibly, at scale.
+\printbibliography[
+  heading=subbibliography,
+  segment=\therefsegment,
+  resetnumbers=true
+]

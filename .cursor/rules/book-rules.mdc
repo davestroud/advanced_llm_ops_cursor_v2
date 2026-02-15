@@ -1,0 +1,260 @@
+---
+alwaysApply: true
+---
+
+PROJECT RULES (CURSOR): Springer Visual Language + Artifact Standards
+Applies to: all .tex chapters in this repo (SNmono class; graybox option enabled).
+Goal: consistent, production-safe visuals beyond figures/tables: boxes, algorithms, listings, diagrams, plots, decision/risk maps.
+
+========================
+A) NON-NEGOTIABLE RULES
+========================
+1) Production-safe only
+- Prefer vector: TikZ / PGFPlots / PDF. Avoid screenshots. If a screenshot is unavoidable, justify in adjacent prose.
+- No tiny text in visuals: minimum \footnotesize (prefer \small). Never smaller than \scriptsize.
+- Do not rely on color alone (grayscale-safe): use line styles, markers, hatching, labels.
+- Avoid manual layout hacks (\vspace, negative spacing). Avoid [H] floats unless absolutely required.
+
+2) Float & caption discipline
+- Default float placement: [t]. Use [tb] only if needed.
+- Every artifact gets: \centering ... \caption{...} \label{...}
+- Captions must state the reader takeaway (what to learn / why it matters).
+- Reference every artifact in surrounding prose within ±1 paragraph.
+
+3) Label naming (mandatory)
+Use these prefixes:
+- Figures:   fig:chXX_slug
+- Tables:    tab:chXX_slug
+- Algorithms: alg:chXX_slug
+- Listings:   lst:chXX_slug
+- Boxes (optional): box:chXX_slug
+Where chXX is chapter number (e.g., ch06).
+References must be: Fig.~\ref{...}, Table~\ref{...}, Alg.~\ref{...}, Listing~\ref{...}
+
+4) Width & readability
+- Max width target: 0.95\linewidth.
+- Never scale down until unreadable. If needed, split into two artifacts.
+
+===================================
+B) WHAT TO ADD (DECISION HEURISTIC)
+===================================
+When expanding a section, add AT MOST ONE of:
+- Box: best practices / pitfalls / definitions / checklists / Ishtar vignette
+- Algorithm: a procedure or operational policy (routing, gating, rollout, incident handling)
+- Listing: config/code snippet (YAML/Terraform/Python/SQL)
+- Diagram: architecture / sequence / swimlane / state machine (TikZ)
+- Chart: performance/cost curves or distributions (PGFPlots)
+- Decision/Risk map: make tradeoffs visual (TikZ/PGFPlots)
+
+Avoid adding “decorative” visuals. Every artifact must teach something.
+
+==========================================
+C) REQUIRED GLOBAL PACKAGES (ADD ONCE)
+==========================================
+If not already present in book.tex, add ONCE (do not add per chapter):
+- Algorithms:
+  \usepackage{algorithm}
+  \usepackage{algpseudocode}
+- Listings (use listings, not minted):
+  \usepackage{listings}
+
+==========================================
+C.1) SHARED ENVIRONMENTS (DEFINE ONCE, USE EVERYWHERE)
+==========================================
+The environments `llmalgobox` and `llmlistingbox` are defined in Chapter 9 (ch09-agents-orchestration.tex).
+**CRITICAL RULE**: Other chapters MUST NOT redefine these environments using `\newenvironment`.
+
+**For chapters that need these environments:**
+1. Define counters ONLY (if not already defined):
+   \makeatletter
+   \@ifundefined{c@llmalgorithm}{%
+     \newcounter{llmalgorithm}[chapter]
+     \renewcommand{\thellmalgorithm}{\thechapter.\arabic{llmalgorithm}}
+   }{}
+   \@ifundefined{c@llmlisting}{%
+     \newcounter{llmlisting}[chapter]
+     \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
+   }{}
+   \makeatother
+
+2. Use `\@ifundefined` to conditionally define environments ONLY if they don't exist:
+   \makeatletter
+   \@ifundefined{llmalgobox}{%
+     \newenvironment{llmalgobox}[1]{...}{\end{tcolorbox}}%
+   }{%
+     \renewenvironment{llmalgobox}[1]{...}{\end{tcolorbox}}%
+   }
+   \@ifundefined{llmlistingbox}{%
+     \newenvironment{llmlistingbox}[1]{...}{\end{tcolorbox}}%
+   }{%
+     \renewenvironment{llmlistingbox}[1]{...}{\end{tcolorbox}}%
+   }
+   \makeatother
+
+**Why**: Chapter 9 defines these environments first. If another chapter uses `\newenvironment` without checking, LaTeX will error with "already defined". The `\@ifundefined` check prevents this.
+
+**For listings language tags**: The `listings` package does not include YAML, JSON, or JavaScript by default. Use `style=springer` only, or define custom language styles if needed.
+
+==========================================
+D) STANDARD STYLES / MACROS (ADD ONCE)
+==========================================
+Add the following to macros.tex (or a single global style file). Use these consistently.
+
+1) Springer-native callout boxes (preferred)
+\newcommand{\BestPracticeBox}[1]{\begin{svgraybox}\textbf{Best Practice.} #1\end{svgraybox}}
+\newcommand{\PitfallBox}[1]{\begin{svgraybox}\textbf{Pitfall.} #1\end{svgraybox}}
+\newcommand{\DefinitionBox}[1]{\begin{svgraybox}\textbf{Definition.} #1\end{svgraybox}}
+\newcommand{\ChecklistBox}[1]{\begin{svgraybox}\textbf{Checklist.} #1\end{svgraybox}}
+\newcommand{\IshtarVignette}[1]{\begin{svgraybox}\textbf{Ishtar AI Vignette.} #1\end{svgraybox}}
+
+2) Listings default style (production-safe)
+\lstdefinestyle{springer}{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  breaklines=true,
+  breakatwhitespace=true,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1,
+  numbersep=6pt,
+  frame=single,
+  framerule=0.2pt,
+  xleftmargin=1.5em,
+  tabsize=2,
+  showstringspaces=false
+}
+\lstset{style=springer}
+
+3) TikZ baseline styles (keep diagrams consistent)
+\tikzset{
+  box/.style={draw, rounded corners, align=center, inner sep=4pt, minimum height=10mm},
+  arrow/.style={-Stealth, thick},
+  lane/.style={draw, rounded corners, inner sep=6pt}
+}
+
+==========================================
+E) ACCEPTANCE CHECKLIST (MUST PASS)
+==========================================
+Before finalizing changes:
+- Has correct float + caption + label prefix (fig/tab/alg/lst).
+- Referred in text (Fig.~\ref{...} etc.) within ±1 paragraph.
+- Readable fonts; no color-only meaning; no screenshot unless justified.
+- Width <= 0.95\linewidth; no extreme scaling; avoid \vspace hacks.
+- Consistent terminology with chapter and book.
+
+=================================================
+F) READY-MADE ARTIFACT LIBRARY (COPY/PASTE)
+=================================================
+
+(1) Best Practice box
+\BestPracticeBox{State the practice as an imperative rule. Include the “why” in one clause.}
+
+(2) Pitfall box
+\PitfallBox{Name the failure mode, the symptom, and the mitigation in one short paragraph.}
+
+(3) Definition box
+\DefinitionBox{Define the term precisely; include units if relevant (e.g., TTFT in ms).}
+
+(4) Checklist box (bulleted)
+\ChecklistBox{
+\begin{itemize}
+\item Item 1 (actionable)
+\item Item 2 (verifiable)
+\item Item 3 (ties to monitoring/eval)
+\end{itemize}
+}
+
+(5) Algorithm template (operational policy)
+\begin{algorithm}[t]
+\caption{<Action> with <gate/constraint>}
+\label{alg:chXX_<slug>}
+\begin{algorithmic}[1]
+\State \textbf{Input:} <inputs/thresholds>
+\State \textbf{Output:} <decision/side effect>
+\State <steps>
+\If{<gate condition>}
+  \State <promote/rollout action>
+\Else
+  \State <rollback/alert action>
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+(6) Listing template (YAML / config)
+\begin{lstlisting}[caption={<What this config controls>},label={lst:chXX_<slug>}]
+# keep short; explain in prose what matters
+\end{lstlisting}
+
+(7) Sequence-style flow diagram (simple TikZ)
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[node distance=8mm, font=\small]
+\node[box] (u) {User};
+\node[box, right=12mm of u] (r) {Router};
+\node[box, right=12mm of r] (ret) {Retriever};
+\node[box, right=12mm of ret] (llm) {LLM};
+\draw[arrow] (u) -- (r);
+\draw[arrow] (r) -- (ret);
+\draw[arrow] (ret) -- node[above]{context} (llm);
+\draw[arrow] (llm) .. controls +(0,-10mm) and +(0,-10mm) .. node[below]{answer + citations} (u);
+\end{tikzpicture}
+\caption{Request flow for retrieval-augmented generation; context and citations are first-class outputs.}
+\label{fig:chXX_rag_flow}
+\end{figure}
+
+(8) Swimlane diagram (control vs data plane)
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\small]
+\node[lane, minimum width=0.95\linewidth] (control) {Control plane: eval gates, rollout policy, safety rules};
+\node[lane, below=6mm of control, minimum width=0.95\linewidth] (data) {Data plane: routing, retrieval, generation, tool calls, logging};
+\end{tikzpicture}
+\caption{Separate control-plane governance from data-plane execution to reduce operational risk.}
+\label{fig:chXX_swimlanes}
+\end{figure}
+
+(9) Decision 2x2 (tradeoff map)
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\small]
+\draw[thick] (0,0) rectangle (10,6);
+\draw[thick] (5,0) -- (5,6);
+\draw[thick] (0,3) -- (10,3);
+\node at (5,-0.4) {Cost $\rightarrow$};
+\node[rotate=90] at (-0.6,3) {Latency $\rightarrow$};
+\node at (2.5,4.5) {Low cost\\High latency};
+\node at (7.5,1.5) {High cost\\Low latency};
+\end{tikzpicture}
+\caption{Tradeoff map used to choose deployment profiles; mark recommended regions in surrounding prose.}
+\label{fig:chXX_decision_map}
+\end{figure}
+
+(10) PGFPlots chart skeleton (throughput/cost curve)
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.95\linewidth,
+  xlabel={<x units>},
+  ylabel={<y units>},
+  grid=major
+]
+% \addplot table {<data>};
+\end{axis}
+\end{tikzpicture}
+\caption{<What the curve demonstrates>; call out saturation/inflection regions in text.}
+\label{fig:chXX_curve}
+\end{figure}
+
+========================
+G) DO / DON’T SUMMARY
+========================
+DO:
+- Use svgraybox callouts for guidance, algorithms for workflows, listings for configs, TikZ/PGFPlots for visuals.
+- Keep diagrams clean; split if dense.
+- Cross-reference everything.
+
+DON’T:
+- Use screenshots, color-dependent meaning, tiny fonts, [H] floats by default, or layout hacks.
+- Add visuals that don’t teach or can’t be referenced as evidence in prose.
+

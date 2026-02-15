@@ -1,0 +1,171 @@
+%%%%%%%%%%%%%%%%%%%% book.tex %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Root file for "Advanced Large Language Model Operations"
+% Springer-Verlag svmono class (pdfLaTeX workflow)
+%
+%%%%%%%%%%%%%%%% Springer-Verlag %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[graybox,envcountchap,sectrefs]{SNmono}
+
+\usepackage{graphicx}
+\usepackage[table]{xcolor} % Color support
+% ---------- URL hyphenation options must come before hyperref ----------
+\PassOptionsToPackage{hyphens}{url}
+
+% ---------- FONTS & TYPO ----------
+
+\usepackage{newtxtext}
+\usepackage[varvw]{newtxmath} % Springer text/math combo
+\usepackage{microtype}
+\usepackage{textcomp} % Better symbol support in text fonts
+\usepackage{multicol}
+
+% ---------- ENCODING & UNICODE ----------
+\usepackage[utf8]{inputenc} % pdfLaTeX
+\usepackage{newunicodechar}
+\newunicodechar{≤}{\leq}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{【}{[}
+\newunicodechar{】}{]}
+
+% ---------- CORE MATH/SYMBOLS ----------
+\usepackage{type1cm}
+\let\Bbbk\relax
+\usepackage{amsfonts,amssymb}
+\usepackage{amsmath} % load before hyperref
+\usepackage{textcomp}
+
+% ---------- FLOATS, GRAPHICS, TABLES ----------
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{longtable}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage[table]{xcolor}
+\usepackage{siunitx}
+\sisetup{detect-all}
+
+% ---------- CODE LISTINGS ----------
+\usepackage{listings}
+
+% ---------- ALGORITHMS ----------
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% ---------- LISTS, BOXES, EPIGRAPH ----------
+\usepackage{enumitem}
+\setlist{nosep}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{breakable}
+\usepackage{epigraph}
+\setlength\epigraphwidth{.72\textwidth}
+
+% ---------- TIKZ & PLOTS (load once) ----------
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,shapes.misc,shapes.symbols,fit}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ---------- INDEX ----------
+\usepackage{makeidx}
+\makeindex % (use Springer svind.ist in production)
+
+% ---------- BIBLIOGRAPHY: chapter-local lists with biblatex+biber ----------
+\usepackage{csquotes}
+\usepackage[
+  backend=biber,
+  style=numeric,
+  sorting=none,
+  refsegment=chapter,
+  defernumbers=true
+]{biblatex}
+\addbibresource{references.bib}
+\defbibheading{subbibliography}{\section*{References}}
+
+% ---------- GRAPHICS PATH ----------
+\graphicspath{{./}{images/}{figures/}}
+
+% ---------- PROJECT MACROS (after core pkgs, before hyperref) ----------
+\input{macros.tex}
+
+% ---------- HYPERREF (load absolutely last), then bookmark ----------
+\usepackage[hidelinks]{hyperref}
+\usepackage{bookmark}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{textcomp}
+\begin{document}
+
+\author{David Stroud}
+\title{Advanced Large Language Model Operations}
+\subtitle{-- Best Practices and Key Concepts --}
+\maketitle
+
+\frontmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\include{author/dedication}
+\include{author/foreword}
+\include{author/preface}
+\include{author/acknowledgement}
+
+\tableofcontents
+\include{author/acronym}
+\include{author/notation}
+
+\mainmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Parts defined inline above
+
+% ------- Chapters (chapter-local bibliography per chapter) -------
+\part{Foundations of LLMOps}
+\include{author/part1-foundations}
+
+\include{ch01-intro-ishar}
+
+\include{ch02-llmops-fundamentals}
+
+\include{ch03-infra-env}
+
+\part{Delivery and Production Operations}
+\include{author/part2-delivery}
+
+\include{ch04-cicd}
+
+\include{ch05-observability}
+
+\include{ch06-scaling}
+
+\part{Optimization, Retrieval, and Agents}
+\include{author/part3-optimization}
+
+\include{ch07-performance}
+
+\include{ch08-rag}
+
+\include{ch09-agents-orchestration}
+
+\part{Quality, Governance, and Capstone}
+\include{author/part4-governance}
+
+\include{ch10-testing-eval}
+
+\include{ch11-ethics}
+
+\include{ch12-ishtar-end-to-end}
+
+% Appendices (keep only if used)
+% \include{author/appendix}  % Commented out - no appendix content
+
+\backmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\include{author/glossary}
+% Note: Bibliography is printed per-chapter, not globally
+
+\printindex
+\end{document}

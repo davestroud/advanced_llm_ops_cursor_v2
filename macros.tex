@@ -1,0 +1,170 @@
+% =========================
+% macros.tex (hardened)
+% =========================
+
+\newcommand{\swatch}[1]{\fcolorbox{black}{#1}{\rule{1em}{1em}}}
+
+% --- Safe fallback if hyperref isn't loaded yet ---
+\providecommand{\texorpdfstring}[2]{#1}
+
+% --- Robust Ishtar macro (works in headings/TOC/PDF) ---
+\DeclareRobustCommand{\ishtar}{\texorpdfstring{\textbf{Ishtar\,AI}}{Ishtar AI}}
+
+% --- TikZ styles
+% NOTE: For the 'cylinder' shape, ensure in the preamble:
+%   \usetikzlibrary{shapes.symbols}
+% If not available, we fall back to a rounded rectangle.
+\makeatletter
+\@ifundefined{pgfdeclareshape}{%
+  % PGF/TikZ not loaded yet: define a minimal, safe placeholder
+  \newcommand{\pgfshapecylinderfallback}{}
+  \tikzset{db/.style={draw, rounded corners, minimum height=10mm, minimum width=12mm}}
+}{%
+  % PGF/TikZ present; try to use cylinder, otherwise fallback
+  \@ifundefined{pgfdeclareshape@cylinder}{%
+    \tikzset{db/.style={draw, rounded corners, minimum height=10mm, minimum width=12mm}}
+  }{%
+    \tikzset{db/.style={cylinder, draw, shape aspect=0.3, minimum height=10mm, minimum width=10mm}}
+  }%
+}
+\makeatother
+
+% --- Global TikZ defaults ---
+\tikzset{
+  >=Stealth,
+  every picture/.append style={line width=0.6pt},
+  every node/.append style={font=\footnotesize},
+}
+
+% --- TikZ baseline styles (keep diagrams consistent) ---
+\tikzset{
+  box/.style={draw, rounded corners, align=center, inner sep=4pt, minimum height=10mm},
+  arrow/.style={-Stealth, thick},
+  lane/.style={draw, rounded corners, inner sep=6pt}
+}
+
+% --- Column type 'Y' only if array/tabularx is available ---
+\makeatletter
+\@ifundefined{newcolumntype}{%
+  % 'array' not loaded yet; defer defining Y to where array/tabularx is loaded
+}{%
+  \newcolumntype{Y}{>{\raggedright\arraybackslash}X}%
+}
+\makeatother
+
+% --- Inline/formatting helpers (use unique or guarded names) ---
+% If \header already exists, overwrite it; else define it.
+\makeatletter
+\@ifundefined{header}{%
+  \newcommand{\header}[1]{\textbf{#1}}%
+}{%
+  \renewcommand{\header}[1]{\textbf{#1}}%
+}
+\makeatother
+
+% Define \attr only if it's not defined elsewhere
+\providecommand{\attr}[1]{\texttt{#1}}
+
+% --- Optional product/term wrappers (kept commented if unused) ---
+% \newcommand{\product}[1]{\textsf{#1}}
+% \newcommand{\term}[1]{\textit{#1}}
+% \newcommand{\code}[1]{\texttt{#1}}
+
+% ----------------------------
+% Standard callout boxes
+% ----------------------------
+\newcommand{\BestPracticeBox}[1]{%
+  \begin{tcolorbox}[
+    title={\textbf{Best Practice}},
+    colback=green!5,
+    colframe=green!40!black,
+    colbacktitle=green!20,
+    coltitle=black,
+    fonttitle=\bfseries,
+    boxrule=0.7pt,
+    arc=4pt,
+    left=5mm, right=5mm, top=4mm, bottom=4mm,
+    before skip=6pt,
+    after skip=6pt
+  ]
+  #1
+  \end{tcolorbox}%
+}
+\newcommand{\PitfallBox}[1]{%
+  \par\addvspace{12pt}%
+  \begin{svgraybox}\textbf{Pitfall.} #1\end{svgraybox}%
+  \par\addvspace{12pt}%
+}
+\newcommand{\DefinitionBox}[1]{%
+  \par\addvspace{12pt}%
+  \begin{svgraybox}\textbf{Definition.} #1\end{svgraybox}%
+  \par\addvspace{12pt}%
+}
+\newcommand{\ChecklistBox}[2][Checklist]{%
+  \begin{tcolorbox}[
+    title={\textbf{#1}},
+    colback=blue!5,
+    colframe=blue!40!black,
+    colbacktitle=blue!20,
+    coltitle=black,
+    fonttitle=\bfseries,
+    boxrule=0.7pt,
+    arc=4pt,
+    left=5mm, right=5mm, top=4mm, bottom=4mm,
+    before skip=12pt,
+    after skip=12pt,
+    breakable
+  ]
+  #2
+  \end{tcolorbox}%
+}
+\newcommand{\IshtarVignette}[1]{%
+  \par\addvspace{12pt}%
+  \begin{svgraybox}\textbf{Ishtar AI Vignette.} #1\end{svgraybox}%
+  \par\addvspace{12pt}%
+}
+
+% --- Listings default style (production-safe) ---
+\lstdefinestyle{springer}{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  breaklines=true,
+  breakatwhitespace=true,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1,
+  numbersep=6pt,
+  frame=single,
+  framerule=0.2pt,
+  xleftmargin=1.5em,
+  tabsize=2,
+  showstringspaces=false
+}
+\lstset{style=springer}
+
+% ==========================================================
+% Figure fitting helpers (SNmono-safe)
+% ==========================================================
+% Maximum figure dimensions: allows figures to be 15% wider than linewidth
+% and up to 90% of page height. These values can be adjusted per-figure
+% if needed by redefining \LLMFigMaxWidth or \LLMFigMaxHeight locally.
+\newcommand{\LLMFigMaxWidth}{1.15\linewidth}
+\newcommand{\LLMFigMaxHeight}{0.9\textheight}
+
+% A wrapper that scales DOWN to fit the Springer textblock,
+% and prevents overly-tall diagrams from spilling off the page.
+% Note: adjustbox scales content proportionally, so increasing TikZ sizes
+% will be visible up to these maximum constraints.
+\newenvironment{llmfigbox}{%
+  \begin{adjustbox}{max width=\LLMFigMaxWidth, max totalheight=\LLMFigMaxHeight, center}%
+}{%
+  \end{adjustbox}%
+}
+
+% A wrapper that centers content without scaling constraints.
+% Use this when you want full control over figure sizing.
+\newenvironment{llmfigboxnoscale}{%
+  \begin{adjustbox}{center}%
+}{%
+  \end{adjustbox}%
+}

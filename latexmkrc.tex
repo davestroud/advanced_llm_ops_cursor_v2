@@ -1,0 +1,48 @@
+# =========================================
+# latexmkrc — Springer svmono (pdfLaTeX)
+# pdfLaTeX + biblatex/biber + makeindex(svind.ist)
+# =========================================
+
+# --- TeX search path for local styles (safe) ---
+$ENV{'TEXINPUTS'} = './style//:'    . ($ENV{'TEXINPUTS'} // '');
+$ENV{'BSTINPUTS'} = './style//:'    . ($ENV{'BSTINPUTS'} // '');
+
+# --- Engine: pdfLaTeX (Springer default) ---
+$pdf_mode  = 1;  # -pdf
+$pdflatex  = 'pdflatex -file-line-error -interaction=nonstopmode -synctex=1 %O %S';
+
+# --- Bibliography: biblatex + biber ---
+$bibtex_use = 2;            # auto-use biber when biblatex is detected
+$biber       = 'biber %O %B';
+
+# --- Index: Springer style ---
+# Use your local style/svind.ist (or svind.ist in project root)
+$makeindex   = 'makeindex -s style/svind.ist %O -o %D %S';
+
+# --- Runs & dependencies ---
+$max_repeat  = 5;  # generous for long monographs
+$recorder    = 1;  # write .fls for accurate deps
+
+# --- Cleaning: keep assets, purge aux ---
+@default_excluded_clean = ('images/*', '*.pdf', '*.png', '*.jpg');
+push @generated_exts, qw(
+  aux bbl blg bcf run.xml
+  fls fdb_latexmk log out
+  toc lof lot lol
+  idx ind ilg
+  synctex.gz
+);
+
+# --- Previewer (optional; comment/uncomment as needed) ---
+# $pdf_previewer = 'start open';          # macOS
+# $pdf_previewer = 'start';               # Windows
+# $pdf_previewer = 'evince %S &';         # Linux
+
+# =========================================================
+# NOTE:
+# 1) No qpdf linearization: Springer production handles PDF optimization.
+# 2) No shell-escape or external compilers (knitr/asymptote/metapost/etc.)
+#    unless explicitly required by the manuscript AND approved by Springer.
+# 3) Glossaries/nomenclature are NOT configured here. If you truly use the
+#    glossaries package, we can add a minimal, reproducible hook on request.
+# =========================================================

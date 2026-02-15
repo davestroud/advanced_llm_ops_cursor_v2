@@ -1,0 +1,158 @@
+======================================================================
+FINAL COMPLIANCE REPORT - BOOK RULES ADHERENCE
+======================================================================
+
+EXECUTIVE SUMMARY
+----------------------------------------------------------------------
+Status: MOSTLY COMPLIANT (automated checks complete, manual review needed)
+
+Automated checks completed:
+  ✓ Label naming conventions (fig:chXX_slug, tab:chXX_slug)
+  ✓ Float placement ([t] default, no [H])
+  ✓ Reference format (Fig./Table.)
+  ✓ Citation formatting (no spaces after commas)
+  ✓ TikZ figure wrappers (llmfigbox)
+  ✓ Font sizes in TikZ (tiny/scriptsize -> footnotesize/small)
+
+Manual review needed:
+  ⚠ Caption quality (many captions are descriptive, not takeaway-focused)
+  ⚠ Artifact references (many figures/tables not referenced in prose)
+  ⚠ Callout boxes (manual tcolorbox implementations could use macros)
+
+======================================================================
+DETAILED FINDINGS
+======================================================================
+
+1. LABEL NAMING CONVENTIONS
+----------------------------------------------------------------------
+✓ COMPLIANT: All labels follow chXX_slug convention
+  - Figures: fig:chXX_slug
+  - Tables: tab:chXX_slug
+  - Algorithms: alg:chXX_slug (when used)
+  - Listings: lst:chXX_slug (when used)
+
+2. FLOAT PLACEMENT & STRUCTURE
+----------------------------------------------------------------------
+✓ COMPLIANT: All floats use [t] placement
+  - No [H] placements found
+  - All floats have captions and labels
+  - Proper centering applied
+
+3. REFERENCE FORMAT
+----------------------------------------------------------------------
+✓ COMPLIANT: All references use proper format
+  - Fig.~\ref{} for figures
+  - Table~\ref{} for tables
+  - No "Figure" or "Table" found in active code
+
+4. CITATION FORMATTING
+----------------------------------------------------------------------
+✓ COMPLIANT: All citations formatted correctly
+  - No spaces after commas in \cite{}
+  - Proper spacing before citations
+
+5. TIKZ FIGURE WRAPPERS
+----------------------------------------------------------------------
+✓ COMPLIANT: All TikZ figures wrapped with llmfigbox
+  - Consistent scaling applied
+  - No resizebox wrappers
+
+6. FONT SIZES IN VISUALS
+----------------------------------------------------------------------
+✓ FIXED: All tiny/scriptsize fonts replaced
+  - \tiny -> \footnotesize (minimum allowed)
+  - \scriptsize -> \small (preferred)
+  - Applied across all chapters
+
+7. CAPTION QUALITY (MANUAL REVIEW)
+----------------------------------------------------------------------
+⚠ NEEDS ATTENTION: Many captions are descriptive rather than takeaway-focused
+
+Rule requirement: "Captions must state the reader takeaway (what to learn / why it matters)"
+
+Examples of captions needing improvement:
+  - "Comparison of Vector Index Types for RAG Workloads" (descriptive)
+  - "Scaling strategies employed in \ishtar{}" (descriptive)
+  - "Representative performance improvements..." (descriptive)
+
+Good examples (takeaway-focused):
+  - "Why scale changes LLM deployment. Large parameter counts make weight memory..."
+  - "LLMOps observability: what to capture beyond traditional monitoring, why it matters..."
+
+Recommendation: Review captions to ensure they answer "what should the reader learn?" 
+rather than just describing content.
+
+8. ARTIFACT REFERENCES (MANUAL REVIEW)
+----------------------------------------------------------------------
+⚠ NEEDS ATTENTION: Many figures/tables not referenced in prose
+
+Rule requirement: "Reference every artifact in surrounding prose within ±1 paragraph"
+
+Unreferenced artifacts found:
+  - Chapter 1: 12 figures/tables unreferenced
+  - Chapter 2: 5 figures/tables unreferenced
+  - Chapter 3: 9 figures/tables unreferenced
+  - Chapter 4: 5 figures/tables unreferenced
+  - Chapter 5: 5 figures/tables unreferenced
+  - Chapter 6: 11 figures/tables unreferenced
+  - Chapter 7: 15 figures/tables unreferenced
+  - Chapter 8: 4 figures/tables unreferenced
+  - Chapter 9: 1 figure unreferenced
+  - Chapter 12: 3 figures/tables unreferenced
+
+Recommendation: Add references to all artifacts in surrounding prose, or remove 
+artifacts that don't support the narrative.
+
+9. CALLOUT BOXES (MANUAL REVIEW)
+----------------------------------------------------------------------
+⚠ OPTIMIZATION OPPORTUNITY: Manual tcolorbox implementations found
+
+Rule preference: Use standard macros (\BestPracticeBox, \PitfallBox, etc.)
+
+Manual boxes found:
+  - Chapter 3: 2 "Best Practice" boxes
+  - Chapter 4: 2 "Best Practice" boxes
+  - Chapter 6: 4 "Best Practice" boxes
+  - Chapter 7: 2 "Best Practice" boxes
+  - Chapter 8: 1 "Best Practice" box
+  - Chapter 9: 2 "Best Practice" boxes
+  - Chapter 10: 1 "Best Practice" box
+  - Chapter 11: 1 "Best Practice" box
+
+Note: These boxes are functional but could be standardized for consistency.
+Recommendation: Consider converting to standard macros for consistency, but not 
+critical if current styling is intentional.
+
+10. VISUAL STANDARDS
+----------------------------------------------------------------------
+✓ COMPLIANT: No screenshots found (PNG files are justified as provided images)
+✓ COMPLIANT: Font sizes fixed (no tiny/scriptsize)
+✓ COMPLIANT: No layout hacks (negative spacing) found
+✓ COMPLIANT: No [H] float placements
+
+======================================================================
+RECOMMENDATIONS
+======================================================================
+
+HIGH PRIORITY:
+1. Add references to unreferenced figures/tables in prose
+2. Improve captions to state reader takeaway (what to learn/why it matters)
+
+MEDIUM PRIORITY:
+3. Consider converting manual callout boxes to standard macros
+4. Review PNG images to ensure they're justified (not screenshots)
+
+LOW PRIORITY:
+5. Consider adding more "why it matters" language to descriptive captions
+
+======================================================================
+STATUS SUMMARY
+======================================================================
+
+Automated Compliance: ✓ FULLY COMPLIANT
+Manual Review Items: ⚠ NEEDS ATTENTION (but not blocking)
+
+The book adheres to all automated compliance checks. Remaining items require 
+editorial judgment and may be addressed incrementally.
+
+======================================================================
