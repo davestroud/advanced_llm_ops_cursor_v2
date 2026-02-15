@@ -1,0 +1,59 @@
+# TexGuardian configuration for "Advanced Large Language Model Operations"
+# Springer Nature svmono monograph by David Stroud
+
+project:
+  root: book.tex
+  name: "Advanced LLM Operations"
+  type: monograph  # not a conference paper
+
+build:
+  engine: pdflatex
+  bibliography: biber
+  index: makeindex
+  index_style: svind.ist
+  synctex: true
+  latexmk: true
+  latexmkrc: .latexmkrc
+  max_runs: 5
+
+provider:
+  # Configure one of: bedrock or openrouter
+  # AWS Bedrock (recommended if you have AWS credentials):
+  # name: bedrock
+  # model: anthropic.claude-opus-4-20250514
+  # region: us-east-1
+
+  # OpenRouter:
+  name: openrouter
+  model: anthropic/claude-opus-4
+
+checks:
+  # Springer-specific verification rules
+  float_placement: true    # Check [t] vs [H] usage
+  label_prefix: true       # Enforce fig:/tab:/alg:/lst: prefixes
+  caption_quality: true    # Check takeaway-focused captions
+  cross_references: true   # All artifacts referenced in prose
+  font_size: true          # No text smaller than \scriptsize
+  width_compliance: true   # Max 0.95\linewidth
+  anonymization: false     # Not needed for monograph (not double-blind)
+  bibliography: true       # Validate citations
+
+style:
+  document_class: SNmono
+  class_options: [graybox, envcountchap, sectrefs]
+  max_width: "0.95\\linewidth"
+  min_font_size: "\\footnotesize"
+
+chapters:
+  - ch01-intro-ishar.tex
+  - ch02-llmops-fundamentals.tex
+  - ch03-infra-env.tex
+  - ch04-cicd.tex
+  - ch05-observability.tex
+  - ch06-scaling.tex
+  - ch07-performance.tex
+  - ch08-rag.tex
+  - ch09-agents-orchestration.tex
+  - ch10-testing-eval.tex
+  - ch11-ethics.tex
+  - ch12-ishtar-end-to-end.tex

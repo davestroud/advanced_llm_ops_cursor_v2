@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "advanced-llm-ops-v2"
+name = "advanced-llm-ops-cursor-v2"
 version = "0.1.0"
 description = "Advanced LLM operations"
 authors = ["Your Name <you@example.com>"]
