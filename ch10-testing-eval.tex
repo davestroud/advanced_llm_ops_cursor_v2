@@ -250,7 +250,7 @@ Fig.~\ref{fig:ch10_test_coverage_matrix} visualizes this coverage matrix approac
 \pgfmathsetmacro{\testlabelyrowzero}{\starty+0*(\cellheight+\cellsep)+\cellheight/2}
 \pgfmathsetmacro{\axislabelx}{\startx+1*(\cellwidth+\cellsep)+\cellwidth/2}
 \pgfmathsetmacro{\axislabely}{\starty+3*(\cellheight+\cellsep)+0.8}
-\pgfmathsetmacro{\axislabelxleft}{\startx-1.2}
+\pgfmathsetmacro{\axislabelxleft}{\startx-2.2}
 
 % Capability labels (top row)
 \node[anchor=center, font=\normalsize\bfseries, text=black!90] at (\labelxcolzero, \labely) {Vocabulary};
@@ -801,17 +801,17 @@ Fig.~\ref{fig:ch10_metrics_dashboard} shows how multiple metrics are visualized 
 \definecolor{dashorange}{RGB}{201,111,29}
 \definecolor{dashred}{RGB}{173,63,60}
 \begin{tikzpicture}[font=\small, scale=1.0]
-% Dashboard layout - taller boxes for better scale visibility
-\draw[fill=gray!5, draw=black!25, line width=1.2pt, rounded corners=6pt] (0,0) rectangle (18,14);
+% Dashboard layout - tighter outer box eliminates dead space below charts
+\draw[fill=gray!5, draw=black!25, line width=1.2pt, rounded corners=6pt] (0,5.4) rectangle (18,14);
 \node[anchor=north west, font=\large\bfseries, text=black!90] at (0.6,13.4) {Evaluation Metrics Dashboard};
 
 % Top row - Correctness Trend (left) - taller box with better scale visibility
 \draw[fill=white, draw=dashblue!60!black, line width=1.2pt, rounded corners=4pt] (0.8,9.5) rectangle (8.2,12.8);
 \node[anchor=north west, font=\normalsize\bfseries, text=dashblue!90!black] at (1.0,12.6) {Correctness Trend};
-% Y-axis scale labels - more spread out vertically
-\node[anchor=east, font=\footnotesize, text=black!60] at (1.0,11.8) {0.95};
-\node[anchor=east, font=\footnotesize, text=black!60] at (1.0,11.0) {0.90};
-\node[anchor=east, font=\footnotesize, text=black!60] at (1.0,10.2) {0.85};
+% Y-axis scale labels - positioned inside chart area
+\node[anchor=east, font=\footnotesize, text=black!60] at (1.6,11.8) {0.95};
+\node[anchor=east, font=\footnotesize, text=black!60] at (1.6,11.0) {0.90};
+\node[anchor=east, font=\footnotesize, text=black!60] at (1.6,10.2) {0.85};
 % Simple upward trend line - adjusted for taller box with better scale
 \draw[dashblue!80!black, line width=3pt] (1.3,10.3) -- (2.5,10.5) -- (3.7,10.7) -- (4.9,10.9) -- (6.1,11.1) -- (7.3,11.3);
 % Grid lines - adjusted for taller box
@@ -823,18 +823,18 @@ Fig.~\ref{fig:ch10_metrics_dashboard} shows how multiple metrics are visualized 
 }
 % Value indicator - larger font
 \node[anchor=east, font=\normalsize\bfseries, text=dashblue!90!black] at (7.8,10.8) {0.92 $\uparrow$};
-% X-axis time labels
-\node[anchor=center, font=\tiny, text=black!50] at (2.9,9.5) {Week 1};
-\node[anchor=center, font=\tiny, text=black!50] at (5.3,9.5) {Week 2};
-\node[anchor=center, font=\tiny, text=black!50] at (7.3,9.5) {Week 3};
+% X-axis time labels - inside chart area, larger and more visible
+\node[anchor=center, font=\scriptsize, text=black!70] at (2.9,9.9) {Week 1};
+\node[anchor=center, font=\scriptsize, text=black!70] at (5.3,9.9) {Week 2};
+\node[anchor=center, font=\scriptsize, text=black!70] at (7.3,9.9) {Week 3};
 
 % Top row - Faithfulness Trend (right) - taller box with better scale visibility
 \draw[fill=white, draw=dashgreen!60!black, line width=1.2pt, rounded corners=4pt] (9.8,9.5) rectangle (17.2,12.8);
 \node[anchor=north west, font=\normalsize\bfseries, text=dashgreen!90!black] at (10.0,12.6) {Faithfulness Trend};
-% Y-axis scale labels - more spread out vertically
-\node[anchor=east, font=\footnotesize, text=black!60] at (10.0,11.8) {0.95};
-\node[anchor=east, font=\footnotesize, text=black!60] at (10.0,11.0) {0.90};
-\node[anchor=east, font=\footnotesize, text=black!60] at (10.0,10.2) {0.85};
+% Y-axis scale labels - positioned inside chart area
+\node[anchor=east, font=\footnotesize, text=black!60] at (10.6,11.8) {0.95};
+\node[anchor=east, font=\footnotesize, text=black!60] at (10.6,11.0) {0.90};
+\node[anchor=east, font=\footnotesize, text=black!60] at (10.6,10.2) {0.85};
 % Simple downward trend line - adjusted for taller box with better scale
 \draw[dashgreen!80!black, line width=3pt] (10.3,11.5) -- (11.5,11.3) -- (12.7,11.1) -- (13.9,10.9) -- (15.1,10.7) -- (16.3,10.5);
 % Grid lines - adjusted for taller box
@@ -846,18 +846,18 @@ Fig.~\ref{fig:ch10_metrics_dashboard} shows how multiple metrics are visualized 
 }
 % Value indicator - larger font
 \node[anchor=east, font=\normalsize\bfseries, text=dashgreen!90!black] at (16.8,10.8) {0.88 $\downarrow$};
-% X-axis time labels
-\node[anchor=center, font=\tiny, text=black!50] at (11.9,9.5) {Week 1};
-\node[anchor=center, font=\tiny, text=black!50] at (14.3,9.5) {Week 2};
-\node[anchor=center, font=\tiny, text=black!50] at (16.3,9.5) {Week 3};
+% X-axis time labels - inside chart area, larger and more visible
+\node[anchor=center, font=\scriptsize, text=black!70] at (11.9,9.9) {Week 1};
+\node[anchor=center, font=\scriptsize, text=black!70] at (14.3,9.9) {Week 2};
+\node[anchor=center, font=\scriptsize, text=black!70] at (16.3,9.9) {Week 3};
 
 % Bottom row - Latency Trend (left) - taller box with better scale visibility
 \draw[fill=white, draw=dashorange!60!black, line width=1.2pt, rounded corners=4pt] (0.8,6.2) rectangle (8.2,9.5);
 \node[anchor=north west, font=\normalsize\bfseries, text=dashorange!90!black] at (1.0,9.3) {Latency Trend};
-% Y-axis scale labels (latency in seconds) - more spread out vertically
-\node[anchor=east, font=\footnotesize, text=black!60] at (1.0,8.5) {1.5s};
-\node[anchor=east, font=\footnotesize, text=black!60] at (1.0,7.7) {1.2s};
-\node[anchor=east, font=\footnotesize, text=black!60] at (1.0,6.9) {0.9s};
+% Y-axis scale labels (latency in seconds) - positioned inside chart area
+\node[anchor=east, font=\footnotesize, text=black!60] at (1.6,8.5) {1.5s};
+\node[anchor=east, font=\footnotesize, text=black!60] at (1.6,7.7) {1.2s};
+\node[anchor=east, font=\footnotesize, text=black!60] at (1.6,6.9) {0.9s};
 % Simple downward trend line (improving = lower latency) - adjusted for taller box
 \draw[dashorange!80!black, line width=3pt] (1.3,8.3) -- (2.5,8.1) -- (3.7,7.9) -- (4.9,7.7) -- (6.1,7.5) -- (7.3,7.3);
 % Grid lines - adjusted for taller box
@@ -869,18 +869,18 @@ Fig.~\ref{fig:ch10_metrics_dashboard} shows how multiple metrics are visualized 
 }
 % Value indicator - larger font
 \node[anchor=east, font=\normalsize\bfseries, text=dashorange!90!black] at (7.8,7.8) {1.1s $\downarrow$};
-% X-axis time labels
-\node[anchor=center, font=\tiny, text=black!50] at (2.9,6.2) {Week 1};
-\node[anchor=center, font=\tiny, text=black!50] at (5.3,6.2) {Week 2};
-\node[anchor=center, font=\tiny, text=black!50] at (7.3,6.2) {Week 3};
+% X-axis time labels - inside chart area, larger and more visible
+\node[anchor=center, font=\scriptsize, text=black!70] at (2.9,6.6) {Week 1};
+\node[anchor=center, font=\scriptsize, text=black!70] at (5.3,6.6) {Week 2};
+\node[anchor=center, font=\scriptsize, text=black!70] at (7.3,6.6) {Week 3};
 
 % Bottom row - Cost Trend (right) - taller box with better scale visibility
 \draw[fill=white, draw=dashred!60!black, line width=1.2pt, rounded corners=4pt] (9.8,6.2) rectangle (17.2,9.5);
 \node[anchor=north west, font=\normalsize\bfseries, text=dashred!90!black] at (10.0,9.3) {Cost Trend};
-% Y-axis scale labels (cost in dollars) - more spread out vertically
-\node[anchor=east, font=\footnotesize, text=black!60] at (10.0,8.5) {\$0.06};
-\node[anchor=east, font=\footnotesize, text=black!60] at (10.0,7.7) {\$0.05};
-\node[anchor=east, font=\footnotesize, text=black!60] at (10.0,6.9) {\$0.04};
+% Y-axis scale labels (cost in dollars) - positioned inside chart area
+\node[anchor=east, font=\footnotesize, text=black!60] at (10.6,8.5) {\$0.06};
+\node[anchor=east, font=\footnotesize, text=black!60] at (10.6,7.7) {\$0.05};
+\node[anchor=east, font=\footnotesize, text=black!60] at (10.6,6.9) {\$0.04};
 % Simple downward trend line (improving = lower cost) - adjusted for taller box
 \draw[dashred!80!black, line width=3pt] (10.3,8.3) -- (11.5,8.1) -- (12.7,7.9) -- (13.9,7.7) -- (15.1,7.5) -- (16.3,7.3);
 % Grid lines - adjusted for taller box
@@ -892,10 +892,10 @@ Fig.~\ref{fig:ch10_metrics_dashboard} shows how multiple metrics are visualized 
 }
 % Value indicator - larger font
 \node[anchor=east, font=\normalsize\bfseries, text=dashred!90!black] at (16.8,7.8) {\$0.04 $\downarrow$};
-% X-axis time labels
-\node[anchor=center, font=\tiny, text=black!50] at (11.9,6.2) {Week 1};
-\node[anchor=center, font=\tiny, text=black!50] at (14.3,6.2) {Week 2};
-\node[anchor=center, font=\tiny, text=black!50] at (16.3,6.2) {Week 3};
+% X-axis time labels - inside chart area, larger and more visible
+\node[anchor=center, font=\scriptsize, text=black!70] at (11.9,6.6) {Week 1};
+\node[anchor=center, font=\scriptsize, text=black!70] at (14.3,6.6) {Week 2};
+\node[anchor=center, font=\scriptsize, text=black!70] at (16.3,6.6) {Week 3};
 
 \end{tikzpicture}
 \end{llmfigbox}
