@@ -45,38 +45,9 @@ Throughout, \ishtar{} serves as the reference point for the engineering and deci
 \end{itemize}
 \end{tcolorbox}
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\makeatother
 
 \section{Introduction}
 \label{sec:ch6-introduction}
-Scaling a Large Language Model deployment is a multifaceted challenge. While traditional applications often scale linearly with additional compute resources, LLM-based systems face unique constraints: massive model sizes, GPU memory limits, high operational costs, and variable demand patterns.
 
 In this chapter, we present a detailed guide to scaling LLM systems from prototype to global production, with \ishtar{} as our primary reference case.
 
@@ -85,14 +56,14 @@ In this chapter, we present a detailed guide to scaling LLM systems from prototy
 Scaling a Large Language Model deployment is a multifaceted challenge. While traditional applications often scale linearly with additional compute resources, LLM-based systems face unique constraints: massive model sizes, GPU memory limits, high operational costs, and variable demand patterns. These factors make even high-performance GPU servers struggle under LLM workloads \cite{vllm2023}. As a result, scaling LLM deployments has become a major focus in both industry and academia—nearly every recent ML systems conference now features dedicated sessions on LLM serving and optimization \cite{vllm2023}. Groundbreaking models like ChatGPT have demonstrated unprecedented utility and demand, but their inference is slow and resource-intensive: for example, generating each token may require reading on the order of a terabyte of model weights \cite{google2022_chip}. In this chapter, we present a detailed guide to scaling LLM systems from prototype to global production, with \ishtar{} as our primary reference case:\cite{vllm_pagedattention}.
 
 \subsection{Operational Realities Beyond Baseline Constraints}\label{sec:scaling-operational-realities}
-Beyond baseline resource limits, several operational realities make scaling LLM deployments uniquely challenging compared to traditional microservices:
+Beyond baseline resource limits, several operational realities make scaling LLM deployments uniquely challenging compared to traditional microservices (see Table~\ref{tab:ch06_scaling_challenges}):
 
 \begin{enumerate}
     \item \textbf{Non-linear scaling of inference latency:} Unlike stateless API endpoints where horizontal scaling is straightforward, LLM inference latency may plateau or worsen under load due to GPU queueing and the quadratic complexity of the attention mechanism with respect to context length. Concretely, doubling the input sequence length roughly quadruples the attention computation \cite{vaswani2017_attention}, so serving long prompts incurs superlinear slowdowns unless mitigated.
 
     \item \textbf{Context window–driven resource pressure:} Increasing the maximum context length (e.g., from 4k to 32k tokens) multiplies memory requirements for the key–value (KV) cache and intermediate activations. This often necessitates model parallelism, tensor slicing, or sequence parallelism to maintain throughput:\cite{vaswani2017_attention,vllm_pagedattention}.
 
-    \item \textbf{Serving infrastructure fragmentation:} Scaling may involve multiple specialized inference backends (e.g., NVIDIA Triton, vLLM, DeepSpeed-MII), each with different performance profiles. Managing a heterogeneous fleet complicates autoscaling decisions and requires careful load routing to exploit each runtime’s strengths.
+    \item \textbf{Serving infrastructure fragmentation:} Scaling may involve multiple specialized inference backends (e.g., NVIDIA Triton, vLLM, DeepSpeed-MII), each with different performance profiles. Managing a heterogeneous fleet complicates autoscaling decisions and requires careful load routing to exploit each runtime's strengths.
 
     \item \textbf{Data pipeline bottlenecks:} For retrieval-augmented generation (\textsc{RAG}) systems, bottlenecks may shift from inference to embedding generation, vector search latency, or feature store throughput. At scale, index sharding, caching of retrieved results, and pre-fetch strategies become critical to prevent retrieval from dominating end-to-end latency.
 
@@ -136,7 +107,7 @@ Beyond baseline resource limits, several operational realities make scaling LLM 
 \subsection{The \ishtar{} Case}\label{sec:scaling-ishtar-case}
 \noindent\textit{Note: The performance metrics and scaling numbers cited for \ishtar{} throughout this chapter are based on production measurements from the deployment. Specific values (e.g., latency reductions, throughput improvements, cost savings) reflect observed results under typical workload conditions and may vary with different models, hardware configurations, or traffic patterns. Where applicable, ranges are provided to indicate variability.}
 
-In \ishtar{}, these constraints manifested most visibly during breaking news cycles, when concurrent journalist queries could spike $10\times$ above baseline. Our scaling strategy combined:
+In \ishtar{}, these constraints manifested most visibly during breaking news cycles, when concurrent journalist queries could spike $10\times$ above baseline. As summarized in Table~\ref{tab:ch06_ishtar_scaling_strategies}, our scaling strategy combined:
 
 \begin{table}[t]
 \centering
@@ -1029,8 +1000,72 @@ Fig.~\ref{fig:ch06_parallelism} provides a compact view of how model, tensor, an
 
 \begin{figure}[t]
 \centering
-%\includegraphics[width=0.9\textwidth]{figures/parallelism-diagram.pdf}
-\caption{Distributed inference methods enable large-model deployment but introduce communication overhead. \textbf{(a)} Model Parallelism partitions layers across GPUs, minimizing inter-GPU communication but requiring high memory per GPU. \textbf{(b)} Tensor Parallelism splits matrix operations within layers, requiring frequent all-reduce synchronization. \textbf{(c)} Pipeline Parallelism stages computation, enabling high throughput but adding pipeline bubbles. Choose based on model size, hardware topology, and latency tolerance.}
+\begin{llmfigbox}
+\begin{tikzpicture}[
+  font=\small,
+  gpu/.style={rectangle, rounded corners=3pt, draw=none, minimum width=18mm, minimum height=10mm, align=center, inner sep=3pt},
+  layer/.style={rectangle, rounded corners=2pt, draw=none, minimum width=14mm, minimum height=7mm, align=center, inner sep=2pt, font=\footnotesize},
+  arr/.style={-{Stealth[length=2mm]}, line width=0.8pt, draw=black!60},
+  comm/.style={<->, line width=0.6pt, draw=red!60, dashed},
+  titlestyle/.style={font=\small\bfseries, align=center}
+]
+
+% ============ (a) Data Parallelism ============
+\node[titlestyle] (dptitle) at (0, 3.2) {(a) Data Parallelism};
+
+\node[gpu, fill=blue!20] (dp1) at (-1.8, 1.8) {GPU 0\\Full Model};
+\node[gpu, fill=blue!20] (dp2) at (0, 1.8) {GPU 1\\Full Model};
+\node[gpu, fill=blue!20] (dp3) at (1.8, 1.8) {GPU 2\\Full Model};
+
+\node[font=\footnotesize, text=black!60, align=center] at (0, 0.8) {Each GPU holds a\\complete model replica};
+
+% Request arrows
+\node[font=\footnotesize] (req) at (0, 2.8) {Requests};
+\draw[arr] (req.south) -- (dp1.north);
+\draw[arr] (req.south) -- (dp2.north);
+\draw[arr] (req.south) -- (dp3.north);
+
+% ============ (b) Tensor Parallelism ============
+\node[titlestyle] (tptitle) at (6, 3.2) {(b) Tensor Parallelism};
+
+% Single layer split across GPUs
+\node[layer, fill=green!25] (tp1) at (4.5, 2.2) {Slice 0};
+\node[layer, fill=green!25] (tp2) at (6.0, 2.2) {Slice 1};
+\node[layer, fill=green!25] (tp3) at (7.5, 2.2) {Slice 2};
+
+\node[font=\footnotesize, text=black!60] at (6.0, 2.8) {Single Layer};
+
+% All-reduce arrows
+\draw[comm] (tp1.east) -- (tp2.west);
+\draw[comm] (tp2.east) -- (tp3.west);
+
+\node[layer, fill=green!15] (tpl2a) at (4.5, 1.2) {Slice 0};
+\node[layer, fill=green!15] (tpl2b) at (6.0, 1.2) {Slice 1};
+\node[layer, fill=green!15] (tpl2c) at (7.5, 1.2) {Slice 2};
+
+\draw[arr] (tp1.south) -- (tpl2a.north);
+\draw[arr] (tp2.south) -- (tpl2b.north);
+\draw[arr] (tp3.south) -- (tpl2c.north);
+\draw[comm] (tpl2a.east) -- (tpl2b.west);
+\draw[comm] (tpl2b.east) -- (tpl2c.west);
+
+\node[font=\footnotesize, text=black!60, align=center] at (6.0, 0.5) {Matrix ops split across GPUs;\\all-reduce sync per layer};
+
+% ============ (c) Pipeline Parallelism ============
+\node[titlestyle] (pptitle) at (12, 3.2) {(c) Pipeline Parallelism};
+
+\node[gpu, fill=orange!20] (pp1) at (12, 2.4) {GPU 0\\Layers 0--7};
+\node[gpu, fill=orange!25] (pp2) at (12, 1.4) {GPU 1\\Layers 8--15};
+\node[gpu, fill=orange!30] (pp3) at (12, 0.4) {GPU 2\\Layers 16--23};
+
+\draw[arr] (pp1.south) -- (pp2.north);
+\draw[arr] (pp2.south) -- (pp3.north);
+
+\node[font=\footnotesize, text=black!60, align=center, right=8mm of pp2] {Sequential stages;\\microbatches\\in flight};
+
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Distributed inference methods enable large-model deployment but introduce communication overhead. \textbf{(a)} Data Parallelism replicates the full model on each GPU, routing different requests to different replicas for throughput scaling. \textbf{(b)} Tensor Parallelism splits individual layer operations (matrix multiplies) across GPUs, requiring all-reduce synchronization at every layer boundary. \textbf{(c)} Pipeline Parallelism assigns contiguous layer blocks to different GPUs, forming an assembly line where microbatches flow through sequential stages. Choose based on model size, hardware topology, and latency tolerance.}
 \label{fig:ch06_parallelism}
 \end{figure}
 
@@ -1401,7 +1436,7 @@ Serverless LLM platforms pay higher cold-start penalties; predictive pre-warming
 \end{tcolorbox}
 
 \medskip
-\noindent\textbf{Summary.} Autoscaling an LLM deployment is a delicate balance: react quickly enough to maintain SLOs, avoid oscillations and unnecessary cost, and anticipate cold starts. Combining reactive metrics with proactive event signals is state of the art. In our \ishtar{} deployment, the hybrid approach (load forecasts + calendar events) enabled rapid yet stable scale-outs (6 to 28 GPU replicas in under 2 minutes) without breaching latency targets.
+\noindent\textbf{Summary.} Autoscaling an LLM deployment is a delicate balance: react quickly enough to maintain SLOs, avoid oscillations and unnecessary cost, and anticipate cold starts. Combining reactive metrics with proactive event signals is state of the art. In our \ishtar{} deployment, the hybrid approach (load forecasts + calendar events) enabled rapid yet stable scale-outs (6 to 28 GPU replicas in under 2 minutes) without breaching latency targets. Figure~\ref{fig:ch06_autoscale_target_tracking} illustrates metrics-based target tracking, while Figure~\ref{fig:ch06_autoscale_event_based} shows event-based predictive scaling.
 
 \begin{figure}[t]
 \centering
@@ -1831,6 +1866,50 @@ Use high-end GPUs only for latency-critical or very heavy workloads, and route l
 
 \subsubsection{Spot/preemptible capacity}
 Many cloud providers offer spare capacity at much lower prices (e.g., AWS Spot, Azure Low-Priority VMs, GCP Preemptible VMs). The downside is they can be terminated with short notice. However, for elastic portions of your workload (background tasks or burst capacity), leveraging these can drastically cut costs. Systems like SpotServe have shown it is feasible to serve LLMs on spot instances by using fast checkpointing---saving model state at token boundaries so if an instance dies, work is not lost \cite{pope2023exegpt}. SpotServe introduces a mechanism to commit partial decoding progress so another instance can resume, achieving cost savings with minimal impact on users.
+
+\subsection{Spot Instances and Preemption Strategies for LLM Workloads}\index{spot instances}\index{preemption}
+\label{subsec:ch06-spot-instances}
+
+Spot (AWS), preemptible (GCP), and low-priority (Azure) instances offer GPU capacity at 60--90\% discounts compared to on-demand pricing, but they can be reclaimed by the cloud provider with as little as 30 seconds notice. For LLM workloads, leveraging spot capacity requires careful engineering to handle preemption without losing user-visible work.
+
+\subsubsection{When spot makes sense}
+Spot instances are well-suited for LLM workloads that can tolerate interruption:
+
+\begin{itemize}
+    \item \textbf{Batch inference}: offline processing of document summarization, classification, or embedding generation, where jobs can be checkpointed and resumed on a replacement instance.
+    \item \textbf{Non-latency-sensitive training and fine-tuning}: LoRA adapter training or continued pre-training, where checkpoints are written at regular intervals and the job resumes from the latest checkpoint on a new instance.
+    \item \textbf{Burst capacity for non-critical traffic}: supplementing on-demand capacity during traffic surges for low-priority user tiers or background features (e.g., suggested follow-up questions, automated tagging).
+    \item \textbf{Nightly evaluation suites}: running large-scale adversarial, fairness, or regression evaluation suites (Section~\ref{sec:cicd-continuous-eval} of Chapter~\ref{ch:cicd}) where jobs are idempotent and can be restarted.
+\end{itemize}
+
+\subsubsection{Preemption handling}
+The key engineering challenge is graceful degradation when a spot instance is reclaimed:
+
+\begin{itemize}
+    \item \textbf{KV-cache checkpointing}: for serving workloads, save the KV-cache state at token boundaries so that in-flight requests can be migrated to a replacement instance. Systems like SpotServe demonstrate that partial decoding progress can be committed and resumed, achieving near-seamless failover for interactive sessions \cite{pope2023exegpt}.
+    \item \textbf{Graceful shutdown hooks}: register cloud provider termination notifications (e.g., AWS EC2 Spot Instance interruption notice, 2-minute warning) and use the window to drain active requests, flush metrics, and persist state.
+    \item \textbf{Request rerouting}: the load balancer must detect preemption within seconds and reroute in-flight requests to surviving instances. Health-check intervals should be shortened for spot pools (e.g., 5\,s instead of 30\,s).
+    \item \textbf{Training checkpointing}: for fine-tuning workloads, write checkpoints every $N$ steps (calibrated so that the maximum lost work is bounded, e.g., at most 10 minutes of training). Store checkpoints on durable shared storage (S3, GCS, or a persistent volume) rather than local disk.
+\end{itemize}
+
+\subsubsection{Cost/latency trade-offs}
+The decision to use spot capacity involves a trade-off between cost savings and tail-latency risk:
+
+\begin{itemize}
+    \item \textbf{Batch inference}: spot savings of 60--80\% with minimal risk, since jobs are idempotent and restartable. Total wall-clock time may increase by 10--20\% due to occasional preemptions and restart overhead.
+    \item \textbf{Interactive serving}: spot savings of 40--60\% for burst capacity, but preemption can cause P99 latency spikes of 5--15 seconds during failover. Acceptable only for non-SLO-critical traffic tiers.
+    \item \textbf{Fine-tuning}: spot savings of 70--90\%, with wall-clock overhead of 5--15\% from checkpoint/restart cycles. The dominant risk is losing training state if checkpointing is infrequent.
+\end{itemize}
+
+\subsubsection{Integration with autoscaling}
+Spot capacity should be integrated with the autoscaling framework (Section~\ref{sec:autoscaling}) as a fallback tier:
+
+\begin{enumerate}
+    \item Maintain a \emph{base pool} of on-demand instances sized to handle steady-state traffic at SLO targets.
+    \item Configure the autoscaler to add \emph{spot instances first} when scaling out for burst capacity. If spot capacity is unavailable (capacity pool exhausted), fall back to on-demand instances.
+    \item Tag spot instances with \texttt{instance\_lifecycle=spot} in Prometheus labels so that dashboards can track spot utilization, preemption rate, and cost savings separately from on-demand capacity.
+    \item Set autoscaler policies that prefer draining spot instances first during scale-in, preserving on-demand instances for stability.
+\end{enumerate}
 
 \subsubsection{Autoscale down aggressively}
 Idle GPUs burn money. Ensure your autoscaling (Section~\ref{sec:autoscaling}) scales in when load drops. It can even be worth it to shut down to zero during off-hours (if the model can be re-loaded relatively quickly when needed). Also consider using GPU time-sharing (if supported)---e.g., run two small models on one GPU when volumes are low, instead of each on separate GPUs, to increase utilization.

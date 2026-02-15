@@ -40,34 +40,6 @@ running example, which will serve as a continuous reference implementation throu
 \end{itemize}
 \end{tcolorbox}
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\makeatother
 
 \section{Introduction}
 \label{sec:ch2-introduction}
@@ -103,7 +75,7 @@ Finding this balance is important: a higher temperature or more random sampling 
 \subsubsection{Finite context window constraints} Models have strict token limits—GPT-3, for instance, processes a maximum of 2,048 tokens per request—beyond which earlier context is no longer considered. In effect, an LLM has a short-term memory of fixed size, and anything beyond that memory is "forgotten" by the model during a single pass. In production systems, overcoming this limitation requires advanced prompt management strategies\index{prompt!management}. One approach is to summarize\index{summarization} or compress earlier parts of a conversation or document once the context window is filled, thereby freeing up space for new information while preserving the gist of what came before. Another approach is retrieval-augmented generation (RAG)\index{Retrieval-Augmented Generation}, which dynamically fetches relevant information from an external knowledge source and includes it in the prompt so that even if the model can't internally remember something beyond its token window, the needed facts are brought back into scope. These strategies allow the system to handle inputs or dialogues that exceed the base model's context length, but they add complexity to the operational pipeline (for example, deciding when and how to summarize versus when to retrieve external data).
 
 \subsubsection{Ethical and reliability risks} Since LLMs are trained on vast, imperfect corpora\index{corpus}, they encode patterns that may reflect societal biases\index{bias}, propagate stereotypes, or produce factually incorrect statements (hallucinations\index{hallucination}). Without mitigations, an LLM might, for example, use biased or insensitive language when asked about certain groups, or it might state a falsehood confidently as if it were true. Embedding operational safeguards—such as pre- and post-processing filters\index{filter}, verification agents\index{agent!verification}, and human-in-the-loop\index{human-in-the-loop} review—into the deployment pipeline is essential to catch and correct such issues. In \ishtar{}, for example, a dedicated verification agent automatically cross-checks all high-stakes outputs against trusted sources before delivery, flagging any claims that cannot be verified. Likewise, content filters\index{content filter} may screen the model's responses for disallowed content (such as hate speech or private personal information) and either block or redact such outputs. These ethical and reliability considerations demand more than just ad hoc fixes; they require a systematic layer of governance and monitoring. LLMOps teams often define clear guidelines and use specialized tools to ensure the model's behavior remains within acceptable and safe bounds. This aspect makes LLMOps not merely a technical discipline but also one that intersects with policy, law, and ethics teams.
-In summary, these characteristics—massive scale, probabilistic behavior, constrained memory, and heightened ethical risk—make LLMOps a distinct operational discipline. It's not just an incremental adaptation of MLOps, but rather an expansion that requires specialized tools, infrastructure, and governance. We need new methods for prompt management, new infrastructure for serving and scaling, and new oversight mechanisms to ensure LLM-driven systems are reliable and aligned with human values.
+In summary, these characteristics—massive scale, probabilistic behavior, constrained memory, and heightened ethical risk—make LLMOps a distinct operational discipline. It's not just an incremental adaptation of MLOps, but rather an expansion that requires specialized tools, infrastructure, and governance. We need new methods for prompt management, new infrastructure for serving and scaling, and new oversight mechanisms to ensure LLM-driven systems are reliable and aligned with human values. Table~\ref{tab:ch02_llmops_vs_mlops} contrasts traditional MLOps practices with their LLMOps counterparts across key operational dimensions.
 
 \begin{table}[t]
 \centering
@@ -136,6 +108,8 @@ In summary, these characteristics—massive scale, probabilistic behavior, const
 % ---------------- Equations Section ----------------
 \subsubsection{Supporting Equations (Capacity, Cost, and Complexity)}
 \label{sec:ch2-supporting-equations}
+
+\PitfallBox{Understanding these mathematical foundations is not merely academic---it is the basis for every operational decision covered in this book. The parameter memory equation determines how many GPUs you must provision (and therefore your infrastructure cost). The KV-cache formula governs how many concurrent users your system can serve before running out of memory. The cost-per-token model translates hardware choices into business economics. Without internalizing these relationships, teams risk over-provisioning (wasting budget), under-provisioning (violating latency SLAs), or choosing hardware configurations that cannot physically serve their workload. The equations below give practitioners the quantitative vocabulary to reason about capacity planning\index{capacity planning}, cost optimization\index{cost!optimization}, and scaling decisions\index{scaling} before committing real resources.}
 
 \subsubsection{Parameter memory (inference)}
 Let $P$ be the number of parameters and $b$ the bytes per weight (e.g., FP16\index{FP16}: $b{=}2$, BF16\index{BF16}: $b{=}2$, INT8\index{INT8}: $b{=}1$). The parameter footprint\index{memory!parameter} (the memory needed just to store the model's weights) is approximately:
@@ -202,6 +176,8 @@ Sampling temperature\index{temperature!sampling} $\tau$ is a decoding hyperparam
 % ------------------ Illustrative Diagrams ------------------
 \subsubsection{Illustrative Diagrams}
 \label{sec:ch2-illustrative-diagrams}
+
+The equations above define memory and compute requirements, but visual representations help solidify how these components interact. Figure~\ref{fig:ch02_transformer_block} illustrates the core Transformer block architecture, showing how attention mechanisms and feed-forward networks contribute to memory and compute costs. Figure~\ref{fig:ch02_quadratic_attn} demonstrates the quadratic scaling of attention complexity with sequence length, motivating the use of efficient attention variants and retrieval strategies for long contexts.
 
 \begin{figure}[t]
     \centering
@@ -318,7 +294,7 @@ Sampling temperature\index{temperature!sampling} $\tau$ is a decoding hyperparam
       \end{axis}
     \end{tikzpicture}
     \end{llmfigbox}
-    \caption{Empirical growth in Transformer-based model size (log scale). Parameter counts have increased by orders of magnitude, driving distinct operational constraints in memory, compute, and cost.}
+    \caption{Empirical growth in Transformer-based model size (log scale). Parameter counts have increased by orders of magnitude, driving distinct operational constraints in memory, compute, and cost. As shown in Figure~\ref{fig:ch02_llm_scale}, model sizes have grown from millions to hundreds of billions of parameters in just a few years.}
     \label{fig:ch02_llm_scale}
 \end{figure}
 
@@ -391,6 +367,8 @@ Model & Params $P$ & $M_{\text{params}}$ (GB) \\
 \end{itemize}
 \end{tcolorbox}
 
+The trade-off between time-to-first-token (TTFT) and overall throughput is central to serving optimization, as illustrated in Figure~\ref{fig:ch02_ttft_throughput}. By varying batch sizes, systems can amortize initialization overhead across multiple requests, but must balance this against latency targets and GPU memory constraints.
+
 % ------------------ Throughput vs TTFT Plot ------------------
 \begin{figure}[t]
     \centering
@@ -453,7 +431,7 @@ An effective LLMOps pipeline consists of interconnected stages, each addressing 
 
 \end{enumerate}
 
-Listing~\ref{lst:ch02_pipeline_config} shows a complete pipeline configuration that orchestrates all stages from data acquisition to monitoring.
+Table~\ref{tab:ch02_pipeline_components} summarizes the key stages of an LLMOps pipeline, their core activities, and the artifacts produced at each step. Listing~\ref{lst:ch02_pipeline_config} shows a complete pipeline configuration that orchestrates all stages from data acquisition to monitoring.
 
 \begin{llmlistingbox}{LLMOps pipeline configuration}
 \label{lst:ch02_pipeline_config}
@@ -780,6 +758,84 @@ Listing~\ref{lst:ch02_tool_schema} shows a versioned tool schema with contract v
 \end{lstlisting}
 \end{llmlistingbox}
 
+\subsubsection{Tool Calling Failure Modes}\index{tool calling!failure modes}
+
+While tool calling significantly extends the capabilities of LLM-powered systems, it introduces failure modes that do not exist in pure text-generation pipelines. Understanding these modes is essential for designing robust operational safeguards.
+
+\begin{itemize}
+  \item \textbf{Argument injection\index{tool calling!argument injection}:} The LLM crafts malicious or unexpected arguments to tool calls, analogous to SQL injection\index{SQL injection} in traditional software. For example, a model might embed shell metacharacters or path-traversal sequences in a file-retrieval tool argument, potentially accessing resources outside the intended scope. Mitigation requires strict input validation against the tool's JSON Schema, allowlisting of argument values where feasible, and sandboxing\index{sandboxing} tool execution environments so that even a successful injection cannot escalate privileges.
+
+  \item \textbf{Schema-breaking changes\index{tool calling!schema breaking}:} When tool schemas evolve (e.g., a required parameter is renamed or a field type changes), models trained or prompted against older schemas may generate calls using the stale format. These calls may fail silently or produce incorrect results. In multi-model or multi-tenant environments, different model versions may expect different schema versions simultaneously, making backward compatibility critical.
+
+  \item \textbf{Tool selection errors\index{tool calling!selection error}:} The model picks the wrong tool for the task---for example, calling a geocoding API when the user asked for a population statistic. Selection errors are particularly insidious because the tool call itself may succeed, returning syntactically valid but semantically irrelevant data that the model then weaves into a confident-sounding answer. Monitoring tool-selection accuracy as a first-class metric is essential.
+
+  \item \textbf{Cascading failures\index{tool calling!cascading failure}:} In agentic pipelines where one tool's output feeds into another tool's input, a single tool failure can trigger a chain of downstream errors. A timeout in a database lookup, for instance, may cause a summarization tool to receive empty input, which in turn causes a citation tool to hallucinate references. Circuit breakers\index{circuit breaker}, retry budgets, and graceful degradation paths (e.g., returning a partial answer with an explicit ``information unavailable'' flag) help contain blast radius.
+
+  \item \textbf{Hallucinated tool calls\index{tool calling!hallucinated}:} The model invents tool names that do not exist in the registered tool catalog. This occurs more frequently when the model is presented with a large tool catalog and must select from many options, or when the system prompt insufficiently constrains the model's generation. Strict tool-name validation at the orchestration layer---rejecting any call whose name does not match a registered tool---is a simple but essential safeguard.
+\end{itemize}
+
+\PitfallBox{Tool calling failures are often \emph{silent}: the system returns HTTP~200, the model produces fluent text, yet the underlying data is wrong because the wrong tool was called, the arguments were malformed, or a cascading failure corrupted intermediate results. Treat tool-call validation as a safety-critical control, not an optimization.}
+
+\subsubsection{Tool Schema Versioning Best Practices}\index{tool calling!versioning}
+
+As tool ecosystems grow, schema versioning becomes a critical operational concern. Unlike model weights (which are immutable once deployed), tool schemas evolve continuously as backend APIs change, new parameters are added, and deprecated features are removed.
+
+\begin{itemize}
+  \item \textbf{Semantic versioning\index{semantic versioning}:} Apply semantic versioning (MAJOR.MINOR.PATCH) to every tool schema. Increment MAJOR for breaking changes (removed fields, type changes), MINOR for backward-compatible additions, and PATCH for documentation or metadata updates. Include the version string in the schema itself (as shown in Listing~\ref{lst:ch02_tool_schema}) so that both the model and the orchestration layer can reference it.
+
+  \item \textbf{Backward compatibility windows:} When introducing a breaking schema change, maintain the old version for a defined grace period (e.g., 2--4 weeks). During this window, the orchestration layer accepts calls in both old and new formats, translating old-format calls to the new backend. This prevents hard cutover failures when models have cached or fine-tuned against the previous schema.
+
+  \item \textbf{Deprecation workflows\index{tool calling!deprecation}:} Mark deprecated tools or parameters with explicit metadata (\texttt{"deprecated": true, "sunset\_date": "2025-06-01"}) and emit warnings in logs when they are invoked. Track deprecation-warning rates in dashboards to gauge migration progress before removing the old schema.
+
+  \item \textbf{Contract testing\index{contract testing}:} Maintain automated contract tests (referenced in the schema's \texttt{contract\_tests} field) that verify the tool's behavior against its declared inputs and outputs. Run these tests in CI/CD pipelines whenever the schema or the backend implementation changes. Contract tests serve as the operational guarantee that the schema accurately describes the tool's behavior.
+\end{itemize}
+
+\BestPracticeBox{Treat tool schemas as \emph{public APIs} with the same rigor applied to external-facing REST endpoints: version them semantically, test them contractually, deprecate them gracefully, and never introduce breaking changes without a migration path. In multi-model deployments, schema compatibility matrices---mapping which model versions support which schema versions---prevent silent integration failures.}
+
+\subsubsection{Tool Calling vs.\ Retrieval: When to Use Which}\index{tool calling!vs.\ retrieval}
+
+Tool calling and Retrieval-Augmented Generation (RAG)\index{RAG!vs.\ tool calling} both extend the model's knowledge beyond its training data, but they serve fundamentally different purposes and exhibit different operational characteristics. Choosing the right mechanism---or combining both---depends on the nature of the data, the required action, and the operational constraints.
+
+\begin{itemize}
+  \item \textbf{Structured data and actions} $\rightarrow$ \textbf{tool calling.} When the system needs to query a database with specific parameters, invoke an API, perform a calculation, or trigger a side effect (e.g., sending an email, creating a record), tool calling is the appropriate mechanism. The model formulates structured arguments that map directly to an API contract.
+
+  \item \textbf{Unstructured knowledge} $\rightarrow$ \textbf{RAG.} When the system needs to ground its response in large corpora of documents, articles, policies, or manuals, retrieval pipelines (embedding-based search, reranking, chunk assembly) are more appropriate. RAG excels at surfacing relevant passages from heterogeneous text sources.
+
+  \item \textbf{Hybrid patterns:} Many production systems combine both mechanisms. For example, \ishtar{} uses RAG to retrieve relevant conflict reports and background context, then uses tool calling to perform entity resolution, timeline extraction, and geocoding on the retrieved information. The key operational principle is that retrieval provides \emph{knowledge} while tool calling provides \emph{capability}---the ability to act on or transform that knowledge.
+\end{itemize}
+
+Table~\ref{tab:ch02_tool_vs_rag} provides decision criteria for choosing between tool calling and RAG, comparing their operational characteristics across data structure, freshness, failure modes, and security considerations.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Decision criteria for choosing between tool calling and RAG. In practice, many production LLM systems combine both: RAG for knowledge grounding and tool calling for structured actions and computations.}
+\label{tab:ch02_tool_vs_rag}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{28mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Criterion} & \textbf{Tool Calling} & \textbf{RAG} \\
+\midrule
+Data structure & Structured (databases, APIs, schemas) & Unstructured (documents, articles, policies) \\
+\addlinespace[2pt]
+Action vs.\ knowledge & Performs actions or computations & Provides contextual knowledge \\
+\addlinespace[2pt]
+Freshness & Real-time (queries live systems) & Depends on index refresh cadence \\
+\addlinespace[2pt]
+Failure mode & Schema mismatch, argument injection, timeouts & Retrieval miss, irrelevant chunks, stale index \\
+\addlinespace[2pt]
+Latency profile & Varies by backend API (ms to seconds) & Embedding search + reranking (typically 50--200\,ms) \\
+\addlinespace[2pt]
+Security surface & API credentials, sandboxing, rate limits & Index access control, PII in chunks \\
+\addlinespace[2pt]
+Versioning unit & Tool schema version & Index version + embedding model version \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \subsection{Evaluation Metrics}
 Evaluating LLMs requires looking at multiple metrics, because no single number perfectly captures an LLM’s performance on complex tasks. Beyond traditional accuracy or exact-match metrics, LLMOps practitioners consider: \begin{itemize}
 \item \textbf{Factual consistency}: Does the model’s output contain true statements and avoid contradicting known facts? For example, if the model summarizes an article or answers a question, factual consistency checks whether it correctly represents the source material or real-world truth.
@@ -788,7 +844,7 @@ Evaluating LLMs requires looking at multiple metrics, because no single number p
 \item \textbf{Latency and cost per query}: From an operational standpoint, it’s crucial to measure how fast the model returns an answer (latency) and how much compute or money each query costs. A model could be extremely accurate and eloquent, but if it takes 20 seconds to answer or if each answer costs \$1.00 of GPU time, it might be impractical. Monitoring these metrics ensures that the system meets the real-time needs of users and stays within budget. There is often a trade-off here: a larger model might give better answers but with higher latency and cost, so the team might need to optimize or consider distillation (using a smaller model) if these metrics are outside acceptable bounds.
 \end{itemize}
 
-Often, evaluating an LLM system means combining automated metrics (like the above, possibly computed by scripts or additional models) with human evaluations (like user ratings or expert review). For example, one might regularly sample outputs and have people score them for helpfulness or correctness. Over time, these metrics guide the development: if factual consistency is low, that might prompt adding a RAG component; if latency is too high, that might prompt optimizing the model or the hardware. In later chapters, we will explore specific evaluation methodologies and tools, but at the fundamental level it's important to recognize that LLMOps deals with a vector of metrics rather than a single scalar measure of "accuracy."
+Often, evaluating an LLM system means combining automated metrics (like the above, possibly computed by scripts or additional models) with human evaluations (like user ratings or expert review). For example, one might regularly sample outputs and have people score them for helpfulness or correctness. Over time, these metrics guide the development: if factual consistency is low, that might prompt adding a RAG component; if latency is too high, that might prompt optimizing the model or the hardware. In later chapters, we will explore specific evaluation methodologies and tools, but at the fundamental level it's important to recognize that LLMOps deals with a vector of metrics rather than a single scalar measure of "accuracy." Table~\ref{tab:ch02_evaluation_metrics} summarizes the key metric categories, their measurement approaches, and operational implications.
 
 Listing~\ref{lst:ch02_evaluation_config} shows a comprehensive evaluation metrics configuration that defines thresholds and measurement approaches for each metric category.
 
@@ -1121,7 +1177,7 @@ Additionally, many systems dynamically adjust $B \times T$ to control memory usa
 
 
 \subsubsection{Rule-of-thumb parameter memory}
-Let us revisit parameter memory with a quick table that aligns with Eq.~\ref{eq:param-mem} for some representative model scales (all assuming FP16 weights):
+Let us revisit parameter memory with a quick table that aligns with Eq.~\ref{eq:param-mem} for some representative model scales (all assuming FP16 weights). Table~\ref{tab:ch02_param_memory} provides concrete memory requirements for common model sizes, helping teams assess deployment feasibility and infrastructure needs:
 
 \begin{table}[t]
 \centering

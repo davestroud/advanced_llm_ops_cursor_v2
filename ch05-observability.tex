@@ -44,34 +44,6 @@ This chapter covers LLM observability beyond traditional monitoring:
 \end{itemize}
 \end{tcolorbox}
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\makeatother
 
 \section{Introduction}
 \label{sec:monitoring-intro}
@@ -147,7 +119,7 @@ Finally, LLM observability has a governance dimension. Logs often contain user t
 
 \section{RAG-Specific Metrics and Drift Monitoring}\index{RAG!monitoring}\index{drift!monitoring}
 \label{sec:rag-specific-metrics-and-drift-monitoring}
-Retrieval-Augmented Generation (RAG) introduces unique observability needs. Beyond standard recall@K or mean reciprocal rank (MRR), practitioners track:
+Retrieval-Augmented Generation (RAG) introduces unique observability needs, as illustrated in Figure~\ref{fig:ch05_telemetry_layers}. Beyond standard recall@K or mean reciprocal rank (MRR), practitioners track:
 \begin{itemize}
     \item \textbf{Retriever latency and recall}: Measuring how quickly and accurately documents are retrieved.
     \item \textbf{Context utilization}: Fraction of retrieved passages actually attended to by the model.
@@ -166,7 +138,7 @@ In production, RAG observability benefits from a layered metric set that separat
     \item \emph{Answer utility}: answer relevance (addresses user question) and correctness against a reference when available.
     \item \emph{System costs/latency}: retriever latency percentiles, re-ranker latency, and overall TTFT/tokens-per-second to surface quality–cost trade-offs.
 \end{enumerate}
-Frameworks such as RAGAS and ARES formalize groundedness (faithfulness), context relevance, and evidence attribution; annotated corpora like RAGTruth can support supervised detectors. A best practice is to combine model-graded scores (e.g., faithfulness) with retrieval metrics (e.g., MRR/NDCG) and to track attribution fidelity (evidence–answer span overlap) as a first-class signal.
+Frameworks such as RAGAS and ARES formalize groundedness (faithfulness), context relevance, and evidence attribution; annotated corpora like RAGTruth can support supervised detectors. A best practice is to combine model-graded scores (e.g., faithfulness) with retrieval metrics (e.g., MRR/NDCG) and to track attribution fidelity (evidence–answer span overlap) as a first-class signal. Table~\ref{tab:ch05_rag_metrics_taxonomy} provides a comprehensive taxonomy of RAG-specific metrics with target values and monitoring recommendations.
 
 \begin{table}[t]
 \centering
@@ -256,6 +228,63 @@ Instrumentation in LLMOps extends traditional logging. At minimum, logs must cap
 A practical observability baseline for LLM applications is to standardize telemetry across \emph{traces}, \emph{metrics}, and \emph{logs} using OpenTelemetry (OTel). Traces represent each request as a tree of spans (e.g., retrieval $\rightarrow$ rerank $\rightarrow$ model call $\rightarrow$ tool execution $\rightarrow$ post-processing), enabling engineers to attribute latency, failures, and cost to specific stages \cite{otel_traces,otel_spec}. OpenTelemetry also provides APIs and SDKs for producing log records and for correlating events with trace context and resource attributes (service name, deployment environment, and version), which is especially valuable when debugging multi-component LLM pipelines \cite{otel_logs_concepts}.
 
 For metrics, Prometheus remains a common substrate in cloud-native environments. The Prometheus/OpenMetrics text exposition format is widely supported by client libraries and exporters, making it well-suited for scraping token usage, latency histograms (TTFT and end-to-end), retrieval hit-rate, tool error rates, and safety-trigger counters from LLM services \cite{openmetrics_spec,prometheus_instrumentation,prometheus_clientlibs}. In many architectures, an OpenTelemetry Collector \cite{otel_collector} receives telemetry from services and fans out to one or more backends (for example: Prometheus-compatible storage for metrics and a tracing backend for spans), while preserving consistent semantic conventions and labels for analysis \cite{otel_spec}.
+
+Fig.~\ref{fig:ch05_otel_collector_hub} illustrates how the OTel Collector acts as a central hub, receiving traces, metrics, and logs from application services and routing them to specialized backends after processing.
+
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[
+  font=\small,
+  node distance=10mm and 16mm,
+  >=Stealth,
+  source/.style={rectangle, rounded corners=4pt, draw=none, fill=blue!15, align=center, minimum width=30mm, minimum height=12mm, inner sep=4pt},
+  collector/.style={rectangle, rounded corners=6pt, draw=black!40, line width=1pt, fill=orange!12, align=center, minimum width=50mm, minimum height=22mm, inner sep=6pt},
+  processor/.style={rectangle, rounded corners=3pt, draw=none, fill=yellow!20, align=center, minimum width=22mm, minimum height=8mm, inner sep=3pt, font=\footnotesize},
+  backend/.style={rectangle, rounded corners=4pt, draw=none, align=center, minimum width=30mm, minimum height=12mm, inner sep=4pt},
+  arr/.style={-{Latex}, line width=1pt, draw=black!60}
+]
+
+% Application sources (left)
+\node[source] (app1) {LLM Inference\\Service};
+\node[source, below=8mm of app1] (app2) {Retrieval\\Service};
+\node[source, below=8mm of app2] (app3) {Tool / Agent\\Service};
+
+% Signal labels next to sources
+\node[font=\footnotesize, text=black!60, right=1mm of app1.east, anchor=west] (sig1) {traces, metrics, logs};
+\node[font=\footnotesize, text=black!60, right=1mm of app2.east, anchor=west] (sig2) {traces, metrics};
+\node[font=\footnotesize, text=black!60, right=1mm of app3.east, anchor=west] (sig3) {traces, logs};
+
+% OTel Collector (center)
+\node[collector, right=45mm of app2] (collector) {\textbf{OTel Collector}};
+
+% Processors inside collector (below label)
+\node[processor, below=2mm of collector.north] (p1) {Batching};
+\node[processor, right=4mm of p1] (p2) {Filtering};
+\node[processor, right=4mm of p2] (p3) {Sampling};
+
+% Backends (right)
+\node[backend, fill=green!15, right=40mm of collector, yshift=24mm] (prom) {\textbf{Prometheus}\\Metrics};
+\node[backend, fill=purple!15, right=40mm of collector, yshift=8mm] (jaeger) {\textbf{Jaeger}\\Traces};
+\node[backend, fill=cyan!15, right=40mm of collector, yshift=-8mm] (elastic) {\textbf{Elasticsearch}\\Logs};
+\node[backend, fill=red!12, right=40mm of collector, yshift=-24mm] (grafana) {\textbf{Grafana}\\Dashboards};
+
+% Arrows: sources -> collector
+\draw[arr] (sig1.east) -- (collector.west |- app1);
+\draw[arr] (sig2.east) -- (collector.west);
+\draw[arr] (sig3.east) -- (collector.west |- app3);
+
+% Arrows: collector -> backends
+\draw[arr] (collector.east |- prom) -- (prom.west);
+\draw[arr] (collector.east |- jaeger) -- (jaeger.west);
+\draw[arr] (collector.east |- elastic) -- (elastic.west);
+\draw[arr] (collector.east |- grafana) -- (grafana.west);
+
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{The OpenTelemetry Collector serves as a centralized telemetry hub for LLM observability. Application services emit traces, metrics, and logs via OTel SDKs; the Collector processes them (batching, filtering, sampling) and routes each signal type to the appropriate backend. This architecture decouples instrumentation from storage, enabling teams to add or swap backends without modifying application code.}
+\label{fig:ch05_otel_collector_hub}
+\end{figure}
 
 \subsection{LLM Application Tracing in Practice}\label{sec:llm-tracing-practice}
 LLM-specific tracing benefits from a richer span taxonomy than conventional HTTP services. At minimum, capture spans for (i) prompt assembly (template version, truncation decisions, and system-policy version), (ii) retrieval and reranking (index version, top-$k$, scores, and permission filters), (iii) model inference (model identifier, decoding parameters, input/output token counts, and estimated cost), and (iv) tool calls (tool schema version, retries, validation, and downstream latency). Tag spans with experiment identifiers (A/B bucket or canary cohort), user segment, and knowledge base snapshot so that regressions can be localized to a specific release, model choice, template, or index build rather than treated as ``the model got worse.''
@@ -393,7 +422,7 @@ groups:
 
 \medskip
 \noindent\textbf{Structured, schema-first telemetry.}
-In production, \emph{structured} logs (e.g., JSON) with a stable schema are essential. Each record should include a globally unique \texttt{trace\_id}, a \texttt{span\_id} for step-level correlation, and a \texttt{conversation\_id} for session grouping. Recommended fields include: \texttt{prompt\_template\_id} and \texttt{prompt\_version}; \texttt{retrieval\_metadata} (doc IDs, index version, top-\$k\$, re-ranker scores); \texttt{token\_counts} (prompt, completion, total); \texttt{cost\_estimates}; \texttt{latency\_breakdown} (TTFT, TPOT, tool I/O); and \texttt{safety\_signals} (toxicity flags, jailbreak detectors). A clear \texttt{error\_type} taxonomy (e.g., \texttt{provider\_timeout}, \texttt{rate\_limit}, \texttt{tool\_schema\_mismatch}, \texttt{parser\_failure}) shortens mean time to diagnosis by enabling precise aggregation.
+In production, \emph{structured} logs (e.g., JSON) with a stable schema are essential. Each record should include a globally unique \texttt{trace\_id}, a \texttt{span\_id} for step-level correlation, and a \texttt{conversation\_id} for session grouping. Recommended fields include: \texttt{prompt\_template\_id} and \texttt{prompt\_version}; \texttt{retrieval\_metadata} (doc IDs, index version, top-\$k\$, re-ranker scores); \texttt{token\_counts} (prompt, completion, total); \texttt{cost\_estimates}; \texttt{latency\_breakdown} (TTFT, TPOT, tool I/O); and \texttt{safety\_signals} (toxicity flags, jailbreak detectors). A clear \texttt{error\_type} taxonomy (e.g., \texttt{provider\_timeout}, \texttt{rate\_limit}, \texttt{tool\_schema\_mismatch}, \texttt{parser\_failure}) shortens mean time to diagnosis by enabling precise aggregation, as detailed in Table~\ref{tab:ch05_telemetry_schema}.
 
 \begin{table}[t]
 \centering
@@ -1013,7 +1042,7 @@ High-fidelity traces require stable correlation across boundaries. Every request
 \end{figure}
 
 \subsubsection{Streaming-aware tracing.}
-Because decoding is streamed, record TTFT, token cadence (tokens/s series), and finalization time as span attributes or span events. Fine-grained events (e.g., “first citation emitted,” “tool decision chosen”) make it possible to link subjective user experience to specific inflection points in the waterfall.
+Because decoding is streamed, record TTFT, token cadence (tokens/s series), and finalization time as span attributes or span events. Fine-grained events (e.g., "first citation emitted," "tool decision chosen") make it possible to link subjective user experience to specific inflection points in the waterfall. Figure~\ref{fig:ch05_span_taxonomy} illustrates the recommended span naming conventions that enable systematic observability across LLM pipeline components.
 
 \subsubsection{Variant and experiment tracking.}
 Tracing should encode prompt and policy \emph{versions} (template hash, guardrail policy ID) and A/B allocation. When a regression appears, side-by-side trace diffs reveal whether the change stemmed from a prompt edit, a retriever parameter shift, or a model upgrade—without relying on anecdotal reproductions.
@@ -1120,7 +1149,7 @@ In mature deployments, dashboards are explicitly \emph{SLO-driven}: every panel 
 
 \medskip
 \noindent\textbf{Three-tier layout.}
-A useful organizing principle is a \emph{three-tier} layout:
+A useful organizing principle is a \emph{three-tier} layout, as summarized in Table~\ref{tab:ch05_three_tier_layout}:
 
 \begin{table}[t]
 \centering
@@ -1173,6 +1202,38 @@ Observability is incomplete without continuous quality evaluation. Automated eva
 
 For example, Phoenix \cite{arize_phoenix_docs} supports attaching evaluators that grade outputs for relevance or toxicity, storing the results alongside traces. This makes it possible to chart not only latency or error rates, but also a \emph{hallucination rate} or \emph{toxicity score} over time. Feedback loops connect these evaluations back into prompt libraries or fine-tuning datasets.
 
+\subsubsection{Continuous RAGAS Integration}\index{RAGAS!continuous evaluation}
+The RAGAS framework provides a suite of reference-free metrics---faithfulness, answer relevancy, and context recall---that can be computed continuously on production traffic without requiring ground-truth labels. In a production deployment, a sampled fraction (typically 1--5\%) of live requests is routed through RAGAS evaluators asynchronously. Results are persisted alongside traces and exported to Prometheus, where recording rules compute rolling aggregates:
+
+\begin{itemize}
+    \item \textbf{Faithfulness} measures the fraction of answer claims supported by retrieved context. Track rolling 1-hour and 24-hour means with confidence intervals; alert when the 1-hour mean drops below the 24-hour baseline by more than one standard deviation.
+    \item \textbf{Answer relevancy} measures whether the response addresses the user's question. Low relevancy with high faithfulness suggests the retriever is fetching correct but off-topic documents---a retrieval configuration issue rather than a generation problem.
+    \item \textbf{Context recall} estimates how much of the required information was present in the retrieved context. Declining recall often precedes faithfulness drops, making it a leading indicator for retrieval degradation.
+\end{itemize}
+
+By tracking these three metrics simultaneously, operators can localize quality issues to specific pipeline components: low context recall points to retriever problems; low faithfulness with adequate recall points to generation problems; low relevancy points to query understanding or routing issues.
+
+\subsubsection{Failure Patterns and Alert Thresholds}\index{quality!failure patterns}
+Quality metrics exhibit three characteristic failure patterns, each requiring different alert configurations and response strategies:
+
+\begin{enumerate}
+    \item \textbf{Sustained drop.} A gradual decline over hours or days, often caused by embedding drift, index staleness, or slow prompt degradation. Detect with a slope test on the 24-hour rolling mean: alert when the regression coefficient exceeds a pre-registered threshold for two consecutive evaluation windows.
+    \item \textbf{Sudden cliff.} An abrupt drop (e.g., faithfulness falling from 0.88 to 0.65 within minutes), typically caused by a deployment event, index rebuild failure, or upstream model change. Detect with a change-point detector (e.g., CUSUM or Bayesian online change-point detection) on the 15-minute rolling mean. This pattern demands immediate investigation and usually correlates with a deployment marker in the annotated timeline.
+    \item \textbf{Gradual drift.} A slow, persistent decline over weeks that escapes individual alert windows but compounds into material degradation. Detect by comparing weekly aggregates against a locked baseline; schedule automated re-evaluation on golden query sets monthly to catch drift that evades per-window thresholds.
+\end{enumerate}
+
+\subsubsection{Concrete Rollback Triggers}
+Quality-driven rollback should be governed by explicit, pre-registered thresholds rather than ad hoc judgment. Recommended triggers include:
+
+\begin{itemize}
+    \item If faithfulness drops below 0.7 for 15 consecutive minutes, trigger automatic rollback to the previous prompt/model version.
+    \item If answer relevancy drops below 0.65 for 30 consecutive minutes, escalate to on-call and initiate controlled traffic shifting to a known-good configuration.
+    \item If context recall drops below 0.6 for 1 hour, trigger retrieval index investigation and switch to a fallback retriever (e.g., BM25) while the primary index is diagnosed.
+    \item If the unsupported-claim rate exceeds 5\% for two consecutive 15-minute windows, enable constrained decoding mode and reduce retriever fan-out.
+\end{itemize}
+
+These thresholds should be calibrated against historical data from golden query replays and adjusted as the system matures. Encode them as Prometheus alerting rules (analogous to Listing~\ref{lst:ch05_alerting_rules}) so that rollback is automated rather than dependent on human detection.
+
 \medskip
 \noindent\textbf{Quality as a first-class pipeline artifact.}
 A robust quality loop treats evaluations as \emph{first-class pipeline artifacts}. Each model or route should have a versioned evaluation policy that specifies: (i) sampling rate and cohorting (by tenant, route, language); (ii) metric bundle (e.g., groundedness, citation faithfulness, refusal/deflection rate, JSON-schema validity); and (iii) gating rules that tie metric movements to actions (rollback, traffic shifting, guardrail tightening). In practice, quality checks operate on multiple cadences: lightweight rubric checks on near-real-time samples for early warning; heavier batched suites (golden prompts, adversarial probes) on nightly schedules for thorough regression detection.
@@ -1221,7 +1282,7 @@ Incident response playbooks should define rollback strategies (e.g., revert prom
 
 \medskip
 \noindent\textbf{SLO-aligned, multi-window alerting.}
-Beyond these core principles, effective alerting in LLM systems is \emph{SLO-driven} and \emph{multi-window}. Attach each alert to an explicit SLI with an error budget (e.g., P99 TTFT, unsupported-claim rate, refusal rate), and use burn-rate detectors over short and long windows (e.g., 5\,min and 1\,h) so pages fire quickly for severe regressions while suppressing noise from brief blips. Token/cost anomalies should be normalized by route, tenant, and content type; this prevents high-variance cohorts from drowning out true incidents and surfaces abuse patterns (e.g., prompt amplification) early.
+Beyond these core principles, effective alerting in LLM systems is \emph{SLO-driven} and \emph{multi-window}. Attach each alert to an explicit SLI with an error budget (e.g., P99 TTFT, unsupported-claim rate, refusal rate), and use burn-rate detectors over short and long windows (e.g., 5\,min and 1\,h) so pages fire quickly for severe regressions while suppressing noise from brief blips. Token/cost anomalies should be normalized by route, tenant, and content type; this prevents high-variance cohorts from drowning out true incidents and surfaces abuse patterns (e.g., prompt amplification) early, as shown in Table~\ref{tab:ch05_alert_types_thresholds}.
 
 \begin{table}[t]
 \centering
@@ -1469,11 +1530,78 @@ Run \emph{game days} that simulate prompt injection, retriever outages, provider
 \medskip
 In sum, resilient LLM operations hinge on SLO-aligned alerts, trace-linked diagnosis, pre-approved mitigations, and engineered degradation paths. These practices compress the loop from detection to recovery and meaningfully limit the user-visible impact of failures—particularly the fast-moving safety and prompt-manipulation incidents emblematic of modern LLM applications.
 
+\subsection{End-to-End Incident Narrative: Hallucination Spike}
+\label{subsec:ch05-incident-narrative}
+
+\IshtarVignette{
+\textbf{Incident: Hallucination spike following knowledge base update.}
+
+\medskip
+\noindent\textbf{T+0 min --- Detection.}
+A Grafana alert fires: the rolling 15-minute hallucination rate for the \texttt{/analysis} route has exceeded the 5\% SLO threshold, reaching 8.2\%. The alert links to a Prometheus recording rule (\texttt{ishtar:hallucination:rate}) and includes an OpenTelemetry exemplar trace ID. The on-call engineer opens the Grafana dashboard and confirms the spike is localized to the \texttt{conflict\_reports} slice---other slices remain within normal bounds.
+
+\medskip
+\noindent\textbf{T+3 min --- Trace-based diagnosis.}
+The engineer clicks the exemplar link, which opens the problematic trace in Jaeger. The waterfall shows normal latency for the \texttt{llm.call} span but an anomalous pattern in \texttt{retriever.search}: the retrieval latency has increased from a baseline P50 of 45\,ms to 180\,ms, and the \texttt{retrieval.recall\_at\_k} attribute has dropped from 0.89 to 0.52. The \texttt{retrieval.index\_version} attribute shows \texttt{v2024-08-15}, whereas the deployment marker indicates a knowledge base update was pushed 22 minutes earlier. The trace also reveals that the RAGAS faithfulness score attached to the synthesis span is 0.41---far below the 0.85 target.
+
+\medskip
+\noindent\textbf{T+7 min --- Root cause identification.}
+Cross-referencing the index version with the deployment log reveals that the knowledge base update included a re-chunking of conflict-zone documents with a new chunk size (512 tokens instead of the previous 256). The new chunks are too large for the embedding model's effective context window, causing embedding quality to degrade for this document subset. The embeddings are technically valid but semantically drifted: cosine similarity between the new chunk embeddings and the pinned reference set has dropped from 0.91 to 0.72---tripping the embedding drift threshold that was set but not yet wired to an automatic rollback.
+
+\medskip
+\noindent\textbf{T+10 min --- Stabilization.}
+The engineer executes the pre-approved playbook: (1) rolls back the retrieval index to \texttt{v2024-08-14} using the index snapshot stored in the artifact registry; (2) confirms via golden query replay that faithfulness has recovered to 0.87 on the conflict\_reports slice; (3) verifies that the hallucination rate on the Grafana dashboard has returned below 3\% within two evaluation windows.
+
+\medskip
+\noindent\textbf{T+30 min --- Eradication and prevention.}
+The team re-chunks the affected documents with the original 256-token chunk size, regenerates embeddings, and validates them against the reference set before re-deploying. Post-incident, three improvements are implemented:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+    \item The embedding drift alert is wired to an automatic index rollback trigger (previously it was advisory-only).
+    \item The CI pipeline for knowledge base updates now includes a mandatory embedding drift check: new embeddings must maintain cosine similarity $\geq$ 0.85 with the pinned reference set before promotion.
+    \item The failing conflict-zone queries from this incident are captured and added to the regression test suite, ensuring that future index updates are tested against these specific cases.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Observability tools used:} Grafana (alert and dashboard), Prometheus (hallucination rate metric and recording rules), Jaeger (trace waterfall and span attributes), RAGAS (faithfulness scoring on synthesis span), OTel Collector (telemetry routing and exemplar binding), golden query replay (recovery validation).
+}
+
 \section{Historical Analysis and Continuous Improvement}
 \label{sec:historical-analysis-and-continuous-improvement}
 Logs and traces serve as a longitudinal dataset for improvement. By clustering traces of failed outputs, teams can identify systematic weaknesses (e.g., persistent hallucinations on financial queries). Periodic analysis of token cost versus value delivered enables strategic model routing: cheap models for trivial queries, stronger models for complex tasks (cf.\ Smoothie routing).
 
 Continuous improvement depends on tying observability back into development: integrating regression traces into CI pipelines (Chapter~\ref{ch:cicd}), enriching prompt libraries, and adjusting retrieval strategies based on drift analysis. This creates a closed loop where observability data feeds into CI/CD gates and evaluation frameworks (Chapter~\ref{ch:testing}), ensuring that production insights translate into systematic improvements.
+
+Table~\ref{tab:ch05_troubleshooting_runbook} provides a quick-reference runbook mapping common symptoms to the metrics that diagnose them, their likely root causes, and recommended first-response actions.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Troubleshooting runbook maps observable symptoms to diagnostic metrics, likely causes, and first-response actions. This table serves as a quick reference during incidents, enabling operators to move from symptom to action without lengthy investigation.}
+\label{tab:ch05_troubleshooting_runbook}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Symptom} & \textbf{Check Metric} & \textbf{Likely Cause} & \textbf{Action} \\
+\midrule
+High latency & TTFT P99; queue depth; GPU utilization & Overloaded GPU; batch size too large; KV-cache pressure & Scale up replicas; reduce batch size; enable KV-cache eviction \\
+\addlinespace[2pt]
+Low quality scores & Faithfulness score; context recall & Embedding drift; stale index; prompt regression & Re-index knowledge base; check embedding model version; rollback prompt \\
+\addlinespace[2pt]
+Cost spike & Cost per request; tokens per request & Verbose outputs; retrieval over-fetching; model tier misconfiguration & Cap max tokens; reduce \texttt{topK}; verify routing rules \\
+\addlinespace[2pt]
+High hallucination rate & Unsupported-claim rate; citation coverage & Missing evidence in retrieval; context window overflow & Increase retriever fan-out; enable passage deduplication; reduce context cap \\
+\addlinespace[2pt]
+Elevated refusal rate & Refusal rate per route; guardrail trigger count & Overly strict guardrails; prompt template regression & Review guardrail thresholds; rollback prompt version; check safety policy \\
+\addlinespace[2pt]
+Retrieval timeout & Retriever P95 latency; index health & Index corruption; shard imbalance; network partition & Rebuild index; rebalance shards; failover to BM25 fallback \\
+\addlinespace[2pt]
+Token amplification & Tokens per turn; tool call count & Verbosity loop; agent oscillation; tool storms & Cap max steps per request; add early-exit heuristics; reduce tool budget \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 % \section{Case Study: Enhanced Ishtar Monitoring Stack}
 % \label{sec:case-study-enhanced-ishtar-monitoring-stack}
@@ -1492,6 +1620,76 @@ Continuous improvement depends on tying observability back into development: int
 % \end{figure}
 
 % Figure~\ref{fig:ishtar-observability} shows the enhanced stack: unified tracing (LangSmith + OTel), semantic logging (LangFuse \cite{langfuse_docs}), automated evaluators, and dashboards. This design provides both real-time monitoring and offline analysis, enabling fast incident response and long-term quality improvement.
+
+\section{Cost Attribution and Unit Economics}\index{cost attribution}\index{unit economics}
+\label{sec:ch05-cost-attribution}
+
+Observability is incomplete without cost visibility. In LLM systems, inference costs scale with token consumption, and a single feature or user cohort can dominate spend without any visible signal in latency or error-rate dashboards. Cost attribution ties observability metrics to billing, enabling teams to answer not just ``is the system healthy?'' but ``is the system \emph{economical}?''
+
+\subsection{Token Counting and Cost Calculation}
+\label{subsec:ch05-token-cost-calc}
+
+Every request should carry a cost estimate computed from token counts and the per-token pricing of the model used. For self-hosted models, cost is derived from GPU-seconds consumed; for API-based models, it maps directly to the provider's pricing schedule. The telemetry schema (Table~\ref{tab:ch05_telemetry_schema}) already includes \texttt{token\_counts} and \texttt{cost\_estimates} fields---the key is to populate them consistently and use them as first-class dimensions in dashboards and alerts.
+
+Cost per request is calculated as:
+\[
+\text{cost}_{\text{request}} = \text{tokens}_{\text{input}} \times p_{\text{input}} + \text{tokens}_{\text{output}} \times p_{\text{output}},
+\]
+where $p_{\text{input}}$ and $p_{\text{output}}$ are the per-token prices for the model tier used. For self-hosted deployments, substitute GPU-second pricing: $\text{cost}_{\text{request}} = t_{\text{GPU}} \times p_{\text{GPU/s}}$, where $t_{\text{GPU}}$ is the wall-clock GPU time consumed by the request.
+
+\subsection{Attribution Dimensions}
+\label{subsec:ch05-attribution-dimensions}
+
+Cost attribution becomes actionable when it is broken down by multiple dimensions simultaneously. Table~\ref{tab:ch05_cost_attribution} shows a representative cost breakdown for an \ishtar{}-style deployment.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Cost attribution by dimension reveals spending patterns invisible in aggregate metrics. Breaking costs down by model tier, feature, and user tier enables targeted optimization---for example, discovering that a summarization feature consumes 40\% of spend while serving only 15\% of requests.}
+\label{tab:ch05_cost_attribution}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2cm}>{\raggedright\arraybackslash}p{2.2cm}@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Dimension} & \textbf{Example Segments} & \textbf{Cost Share} & \textbf{Optimization Lever} \\
+\midrule
+\textbf{By model tier} & GPT-4 class (70B); GPT-3.5 class (13B); Distilled (8B) & 60\% / 25\% / 15\% & Route simple queries to cheaper tiers \\
+\addlinespace[2pt]
+\textbf{By feature} & Search; Chat; Summarization; Fact-check & 20\% / 35\% / 30\% / 15\% & Cache high-repeat summarization; batch fact-check \\
+\addlinespace[2pt]
+\textbf{By user tier} & Free; Pro; Enterprise & 10\% / 45\% / 45\% & Enforce per-tier token budgets; throttle free tier \\
+\addlinespace[2pt]
+\textbf{By request type} & Short QA ($<$200 tokens); Long analysis ($>$2k tokens) & 15\% / 85\% & Context trimming; prompt compression for long requests \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Integration with OpenTelemetry Metrics}
+\label{subsec:ch05-cost-otel-integration}
+
+To enable cost attribution, augment existing OTel spans and metrics with custom attributes that carry cost-relevant metadata. Add the following attributes to every inference span:
+
+\begin{itemize}
+    \item \texttt{llm.model\_tier}: the pricing tier of the model used (e.g., \texttt{premium}, \texttt{standard}, \texttt{lightweight}).
+    \item \texttt{llm.feature}: the application feature that originated the request (e.g., \texttt{search}, \texttt{chat}, \texttt{summarize}).
+    \item \texttt{llm.user\_tier}: the billing tier of the requesting user or tenant.
+    \item \texttt{llm.cost\_usd}: the computed cost estimate for this request.
+\end{itemize}
+
+These attributes flow through the OTel Collector to Prometheus, where recording rules (analogous to those in Listing~\ref{lst:ch05_prometheus_config}) aggregate cost by dimension. Grafana dashboards can then display cost breakdowns per feature, per tenant, and per model tier, with burn-rate alerts when any dimension exceeds its budget.
+
+\BestPracticeBox{
+\textbf{Cost-aware observability principles:}
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Attach cost estimates to every inference span so cost is queryable alongside latency and quality.
+    \item Break cost down by model tier, feature, and user tier to identify optimization opportunities.
+    \item Set per-dimension cost budgets with burn-rate alerts; treat cost overruns as incidents requiring the same response discipline as latency or safety regressions.
+    \item Monitor cost per unit of value (e.g., cost per successful fact-check, cost per satisfied user) rather than cost per request alone---this aligns engineering optimization with business outcomes.
+    \item Review cost attribution dashboards weekly; flag features where cost grows faster than usage as candidates for caching, model routing, or prompt compression.
+\end{itemize}
+}
 
 \section{Best Practices and Conclusion}
 \label{sec:best-practices-and-conclusion}

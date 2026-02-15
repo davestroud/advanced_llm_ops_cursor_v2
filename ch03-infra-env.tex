@@ -24,6 +24,8 @@
   left=5mm, right=5mm, top=4mm, bottom=4mm,
   breakable
 ]
+
+
 \noindent\textbf{Chapter roadmap.}
 This chapter develops the infrastructure layer as a first-class component of LLMOps:
 \begin{itemize}[leftmargin=1.5em, itemsep=3pt]
@@ -46,34 +48,6 @@ This chapter develops the infrastructure layer as a first-class component of LLM
 \end{itemize}
 \end{tcolorbox}
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\makeatother
 
 \section{Introduction}
 \label{sec:ch3-introduction}
@@ -91,7 +65,6 @@ This informs our exploration of LLMOps infrastructure, positioning it not simply
 % ==================================================================
 \section{Hardware Selection for LLM Workloads}\index{hardware!selection}
 \label{sec:infra-hardware-bench}
-Screenshot 2026-01-02 at 14.38.02
 Selecting optimal hardware for LLM training and inference is a multi-dimensional decision involving performance, scalability, and cost considerations. 
 An LLMOps practitioner must understand the differences between available accelerators, their architectural trade-offs, and the workload profiles for which they are best suited. 
 Large Language Model workloads typically demand two primary hardware capabilities: (1) high-throughput matrix compute (for Transformer attention and feed-forward operations) and (2) large, high-bandwidth memory to store model weights and intermediate activations~\cite{nvidia-h100-arch,nvidia-a100-arch,jouppi2023-tpuv4}. 
@@ -127,10 +100,27 @@ where $T$ is the sequence length and $\alpha$ the bytes per element (e.g., 2 for
 
 This linear dependence means that long-context or high-concurrency serving can easily become memory-bound. For example, a single 13B-parameter model (like LLaMA-13B with 40 layers and 40 heads of dimension 128) will require on the order of 1–2 GB of GPU memory per 1024 tokens of context \textit{per request} in FP16 precision.\footnote{Empirical estimates from practitioner reports indicate $\sim$10–15 GB just for KV caches when serving a batch of eight concurrent requests at 1024-token contexts.} Caching and memory management strategies (see \S\ref{sec:infra-hardware-bench}) are therefore central to efficient operations.
 
+\IshtarVignette{%
+\textbf{Worked Example: From SLA to Hardware Selection for \ishtar{}.}\index{SLA!hardware mapping}\index{capacity planning!worked example}
+
+Suppose the \ishtar{} deployment must meet the following operational contract: \emph{P99 TTFT $< 500$\,ms} and \emph{sustain 100 concurrent requests} for a 13B-parameter model with average context length $T = 2048$ tokens and average output length $N_{\text{out}} = 256$ tokens in FP16.
+
+\medskip\noindent\textbf{Step 1: Memory budget.} Model weights require $M_{\text{params}} = 13 \times 10^9 \times 2 \approx 26$\,GB. The KV-cache for batch size $B$ at sequence length $T = 2048$ with $L = 40$ layers, $H = 40$ heads, $d_h = 128$, and $\alpha = 2$ bytes (FP16) is $M_{\text{KV}} \approx 2 \times 40 \times B \times 40 \times 128 \times 2048 \times 2 \approx 1.68$\,GB per request. For $B = 100$ concurrent requests, KV-cache alone requires $\sim$168\,GB.
+
+\medskip\noindent\textbf{Step 2: Hardware feasibility.}
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{3$\times$ A100-80GB} (240\,GB total): 26\,GB weights + 168\,GB KV-cache $=$ 194\,GB $<$ 240\,GB. Feasible, with $\sim$46\,GB headroom for activations and overhead. Each A100 delivers $\sim$2\,TB/s memory bandwidth; at this batch size, estimated TTFT $\approx 350$--$450$\,ms (within SLA).
+  \item \textbf{2$\times$ H100-80GB} (160\,GB total): 26 + 168 $=$ 194\,GB $>$ 160\,GB. \emph{Does not fit.} Would require INT8 quantization ($\alpha = 1$), halving KV-cache to $\sim$84\,GB and weights to $\sim$13\,GB for a total of $\sim$97\,GB. With H100's 3.35\,TB/s bandwidth, estimated TTFT $\approx 200$--$300$\,ms (well within SLA).
+  \item \textbf{8$\times$ L4-24GB} (192\,GB total): Marginal fit, but L4 memory bandwidth ($\sim$300\,GB/s each) is insufficient for the prefill-phase compute at this batch size. Estimated TTFT $\approx 1200$--$1500$\,ms, far exceeding the 500\,ms SLA.
+\end{itemize}
+
+\medskip\noindent\textbf{Conclusion.} The L4 configuration fails the latency SLA despite fitting in aggregate memory. The A100 configuration works in FP16 but leaves limited headroom. The H100 configuration with INT8 quantization offers the best latency margin and headroom for traffic spikes. This analysis demonstrates that memory capacity, memory bandwidth, and compute throughput must all be evaluated jointly against the SLA---no single metric suffices.
+}
+
 \subsection{GPU Architectures and Choices}\index{GPU!architecture}
 \label{sec:infra-hardware-gpu}
 
-NVIDIA GPUs remain the dominant hardware for LLM workloads in 2024–2025. The NVIDIA L4 offers excellent per-watt efficiency for smaller models, embeddings, and lightweight inference; the A100 was the mainstream workhorse for both training and inference in the early 2020s; and the H100 (Hopper architecture) introduces new low-precision math (FP8), significantly higher memory bandwidth, and other architectural improvements targeting Transformer models. 
+NVIDIA GPUs remain the dominant hardware for LLM workloads in 2024–2025. The NVIDIA L4 offers excellent per-watt efficiency for smaller models, embeddings, and lightweight inference; the A100 was the mainstream workhorse for both training and inference in the early 2020s; and the H100 (Hopper architecture) introduces new low-precision math (FP8), significantly higher memory bandwidth, and other architectural improvements targeting Transformer models. Table~\ref{tab:ch03_gpucompare} compares key specifications and typical performance characteristics of these GPU accelerators. 
 
 \begin{table}[t]
   \centering
@@ -486,7 +476,7 @@ In summary, it is best to operate GPUs at a batch size that still meets your lat
 \subsection{Caching and Quantization Effects}
 \label{sec:infra-cost-quant}
 
-Beyond raw compute, two techniques significantly impact performance and cost in LLM serving: caching and quantization.
+Beyond raw compute, two techniques significantly impact performance and cost in LLM serving: caching and quantization. As illustrated in Figure~\ref{fig:ch03_batchtradeoff}, throughput gains from increasing batch size eventually saturate as memory or kernel overhead becomes the bottleneck.
 
 \subsubsection{KV Cache and Prompt Caching} 
 Transformers benefit from caching past key/value tensors so that each new token does not recompute attention for all previous tokens. Using the KV cache yields huge speedups for long sequences---after the first token, each subsequent token’s attention is only over the latest token vs.\ all previous. However, the KV cache consumes a lot of memory (growing with sequence length). In practice, this means that serving long prompts or generating long outputs can memory-bind GPUs, limiting batch size or requiring high-memory GPUs. For example, LLaMA-2 13B was reported to use on the order of $\sim$1 MB of VRAM per generated token (in FP16) for the KV cache---so a 4k-token generation uses $\sim$4 GB for one request. This is comparable to the model weights themselves in size.
@@ -545,6 +535,61 @@ Several insights emerge:
 
 This worked example shows that raw hourly prices can be misleading. A seemingly more expensive accelerator (H100) may deliver better economics than a cheaper one (A100) when measured in cost-per-output, and specialized hardware (TPU v5e) can further reduce unit costs in high-throughput scenarios.
 
+\subsection{End-to-End Deployment Cost Scenario}\index{cost!deployment scenario}\index{cost!end-to-end comparison}
+\label{sec:infra-cost-scenario}
+
+To make the cost analysis fully concrete, we now present an end-to-end deployment scenario for \ishtar{}'s 70B-parameter summarization model\index{cost!70B model deployment}. The operational requirement is to sustain \textbf{100 requests per second} with a \textbf{P99 TTFT target of 500\,ms}, using FP16 precision where possible and INT8 quantization where memory constraints require it. Table~\ref{tab:ch03_e2e_cost} compares three hardware configurations under these constraints.
+
+\begin{table}[t]
+\centering
+\small
+\caption{End-to-end deployment cost comparison for \ishtar{}'s 70B model at 100 req/s with P99 TTFT $<$ 500\,ms. The H100 configuration offers the best balance of cost and latency; the A100 configuration provides a lower-risk FP16 path at higher cost; the L4 configuration cannot meet the latency SLA at this scale. Costs assume on-demand cloud pricing (early 2025) and sustained utilization at 80\%.}
+\label{tab:ch03_e2e_cost}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{28mm}cccc@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Configuration} & \textbf{Monthly Cost} & \textbf{Throughput (tok/s)} & \textbf{TTFT P99} & \textbf{Cost/1M tokens} \\
+\midrule
+3$\times$ A100-80GB (FP16, tensor parallel) &
+\$8{,}208 &
+$\sim$24{,}000 &
+$\sim$420\,ms &
+\$0.13 \\
+\addlinespace[2pt]
+2$\times$ H100-80GB (INT8, tensor parallel) &
+\$7{,}200 &
+$\sim$30{,}000 &
+$\sim$280\,ms &
+\$0.09 \\
+\addlinespace[2pt]
+8$\times$ L4-24GB (INT8, pipeline parallel) &
+\$2{,}016 &
+$\sim$10{,}000 &
+$\sim$1{,}400\,ms &
+\$0.08 \\
+\bottomrule
+\end{tabularx}
+\vspace{3pt}
+\footnotesize
+\textit{Note:} Monthly costs assume 720 hours at on-demand rates (A100: \$3.80/hr, H100: \$5.00/hr, L4: \$0.35/hr) with 80\% average utilization. Throughput and TTFT estimates are based on published benchmarks for 70B models with continuous batching enabled.
+\end{table}
+
+Several observations emerge from this comparison:
+
+\begin{itemize}
+  \item \textbf{Cost-optimized profile (L4):}\index{cost!optimization} The L4 configuration achieves the lowest cost per million tokens (\$0.08), but its P99 TTFT of $\sim$1{,}400\,ms far exceeds the 500\,ms target. This configuration is suitable only for batch or asynchronous workloads where latency is not a binding constraint---for example, overnight bulk summarization jobs.
+
+  \item \textbf{Latency-optimized profile (H100):}\index{latency!optimization} The H100 configuration meets the TTFT target with substantial margin (280\,ms vs.\ 500\,ms) while also delivering the highest throughput. Despite requiring INT8 quantization, this configuration provides headroom for traffic spikes and leaves capacity for future context-length increases. It represents the best choice when latency SLAs are firm and the quality impact of INT8 quantization is acceptable.
+
+  \item \textbf{Balanced profile (A100):}\index{cost!balanced profile} The A100 configuration runs in native FP16 (avoiding quantization quality risk) and meets the TTFT target, but at the highest monthly cost. This is the conservative choice when quantization has not been validated against the application's evaluation suite, or when the team prefers to avoid the operational complexity of INT8 calibration.
+\end{itemize}
+
+\IshtarVignette{%
+For the \ishtar{} production deployment, the team selected the \textbf{2$\times$ H100 configuration} after validating that INT8 quantization produced less than 1\% degradation on their conflict-reporting evaluation suite. The 280\,ms TTFT provides sufficient headroom for the 500\,ms SLA, and the \$7{,}200/month cost fits within the project's infrastructure budget. The L4 configuration was retained for the nightly batch re-indexing pipeline, where latency is irrelevant and cost per token is the primary concern. This mixed-hardware strategy---latency-sensitive workloads on H100, throughput-sensitive batch workloads on L4---exemplifies the ``right accelerator for the right job'' principle discussed throughout this chapter.
+}
 
 % ==================================================================
 \section{Infrastructure-as-Code (IaC) for LLMOps}\index{Infrastructure-as-Code}
@@ -1363,7 +1408,7 @@ When models exceed the memory of a single GPU, serving requires model parallelis
 
 \subsection{Summary}\label{sec:serving-summary}
 
-The landscape of LLM serving is rapidly evolving. By combining robust serving frameworks (e.g., TGI, vLLM, TensorRT) with novel methods (e.g., Smoothie routing, KV cache optimizations, speculative decoding), LLMOps practitioners can achieve significant gains in both performance and cost-efficiency. What is cutting-edge today often becomes standard within a year—continuous awareness of new serving methods is therefore critical for engineering competitive, scalable LLM systems.
+The landscape of LLM serving is rapidly evolving. By combining robust serving frameworks (e.g., TGI, vLLM, TensorRT) with novel methods (e.g., Smoothie routing, KV cache optimizations, speculative decoding), LLMOps practitioners can achieve significant gains in both performance and cost-efficiency. What is cutting-edge today often becomes standard within a year—continuous awareness of new serving methods is therefore critical for engineering competitive, scalable LLM systems. Table~\ref{tab:ch03_servingcompare} summarizes the key trade-offs among major serving frameworks to guide framework selection.
 
 
 \begin{table}[t]
@@ -1419,10 +1464,6 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 
 \begin{figure}[t]
 \centering
-% Temporarily increase maximum width to allow wider horizontal layout
-\renewcommand{\LLMFigMaxWidth}{1.4\linewidth}
-\begin{llmfigbox}
-% Professional color definitions
 \definecolor{cloudblue}{RGB}{66,133,244}
 \definecolor{vpccyan}{RGB}{0,188,212}
 \definecolor{onpremgray}{RGB}{158,158,158}
@@ -1431,129 +1472,136 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \definecolor{vpnteal}{RGB}{0,150,136}
 \definecolor{gpupurple}{RGB}{156,39,176}
 \definecolor{storeyellow}{RGB}{255,193,7}
-\resizebox{\linewidth}{!}{%
+\resizebox{0.95\linewidth}{!}{%
 \begin{tikzpicture}[
-  font=\small,
+  font=\footnotesize,
   >=Stealth,
-  node distance=14mm and 16mm,
-  box/.style={rectangle, rounded corners=6pt, draw=black!75, line width=1.2pt, align=center},
-  header/.style={font=\normalsize\bfseries, inner sep=6pt, text=black!95},
-  res/.style={rectangle, rounded corners=5pt, draw=black!75, line width=1pt, minimum width=22mm, minimum height=12mm, font=\small\bfseries, align=center},
-  arrow/.style={-{Latex}, line width=1.5pt, draw=black!80},
-  arrowDashed/.style={-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1.2pt, draw=black!60},
-  cloud/.style={box, fill=cloudblue!20, draw=cloudblue!85!black, line width=1.3pt, minimum width=56mm, minimum height=58mm, inner sep=10pt},
-  vpc/.style={box, fill=vpccyan!25, draw=vpccyan!80!black, line width=1.1pt, inner sep=8pt},
-  onprem/.style={box, fill=onpremgray!20, draw=onpremgray!80!black, line width=1.3pt, minimum width=56mm, minimum height=58mm, inner sep=10pt},
-  k8s/.style={box, fill=k8sgreen!25, draw=k8sgreen!80!black, line width=1.1pt, inner sep=8pt},
-  lb/.style={res, fill=apiorange!30, draw=apiorange!80!black, minimum width=30mm, minimum height=16mm},
-  gw/.style={res, fill=vpnteal!30, draw=vpnteal!80!black, minimum width=26mm, minimum height=16mm},
-  gpu/.style={res, fill=gpupurple!30, draw=gpupurple!80!black, minimum width=24mm, minimum height=14mm},
-  store/.style={res, fill=storeyellow!30, draw=storeyellow!80!black, minimum width=32mm, minimum height=16mm}
+  box/.style={rectangle, rounded corners=4pt, draw=black!70, line width=0.9pt, align=center},
+  header/.style={font=\small\bfseries, inner sep=4pt, text=black!90},
+  res/.style={rectangle, rounded corners=3pt, draw=black!70, line width=0.8pt,
+              minimum height=9mm, font=\footnotesize\bfseries, align=center, text width=18mm},
+  arrow/.style={-{Latex[length=2mm]}, line width=1pt, draw=black!75},
+  arrowDashed/.style={-{Latex[length=2mm]}, dashed, line width=0.8pt, draw=black!55},
+  cloud/.style={box, fill=cloudblue!15, draw=cloudblue!80!black, line width=1pt,
+                minimum width=44mm, minimum height=56mm, inner sep=6pt},
+  vpc/.style={box, fill=vpccyan!18, draw=vpccyan!75!black, line width=0.8pt, inner sep=5pt},
+  onprem/.style={box, fill=onpremgray!15, draw=onpremgray!75!black, line width=1pt,
+                 minimum width=44mm, minimum height=56mm, inner sep=6pt},
+  k8s/.style={box, fill=k8sgreen!18, draw=k8sgreen!75!black, line width=0.8pt, inner sep=5pt},
+  lb/.style={res, fill=apiorange!25, draw=apiorange!75!black},
+  gw/.style={res, fill=vpnteal!25, draw=vpnteal!75!black},
+  gpu/.style={res, fill=gpupurple!25, draw=gpupurple!75!black, text width=14mm},
+  store/.style={res, fill=storeyellow!25, draw=storeyellow!75!black}
 ]
 
 % ================== SECTION HEADERS ==================
-\node[header] (headerA) at (-70mm, 60mm) {Cloud-Native};
-\node[header] (headerB) at (70mm, 60mm) {Hybrid};
-\node[header] (headerC) at (0mm, -55mm) {Multi-Cluster / Multi-Region};
+\node[header] (headerA) at (-52mm, 48mm) {Cloud-Native};
+\node[header] (headerB) at (52mm, 48mm) {Hybrid};
+\node[header] (headerC) at (0mm, -42mm) {Multi-Cluster / Multi-Region};
 
 % ================== VISUAL SEPARATORS ==================
-\draw[draw=black!20, line width=0.8pt, dashed] (0mm, -80mm) -- (0mm, 20mm);
-\draw[draw=black!20, line width=0.8pt, dashed] (-120mm, -10mm) -- (120mm, -10mm);
+\draw[draw=black!15, line width=0.6pt, dashed] (0mm, -60mm) -- (0mm, 16mm);
+\draw[draw=black!15, line width=0.6pt, dashed] (-90mm, -8mm) -- (90mm, -8mm);
 
 % ================== (A) CLOUD-NATIVE (Top Left) ==================
-\node[cloud] (cloudA) at (-70mm, 30mm) {};
-\node[font=\small\bfseries, text=black!70] at (cloudA.north west) [anchor=north west, xshift=3mm, yshift=-3mm] {Cloud};
-\node[vpc, minimum width=50mm, minimum height=52mm] (vpcA) at (cloudA.center) {};
-\node[font=\small\bfseries, text=black!70] at (vpcA.north west) [anchor=north west, xshift=2mm, yshift=-2mm] {VPC};
-\node[lb, align=center] (apigwA) at ($(vpcA.north) + (0, -14mm)$) {API\\Gateway};
-\node[k8s, minimum width=46mm, minimum height=20mm] (k8sA) at ($(vpcA.center) + (0, 3mm)$) {K8s Cluster};
-\node[gpu] (gpuA1) at ($(k8sA.south) + (-13mm, -17mm)$) {GPU};
-\node[gpu] (gpuA2) at ($(k8sA.south) + (13mm, -17mm)$) {GPU};
-\node[store, align=center] (objA) at ($(cloudA.south) + (0, 8mm)$) {Object\\Store};
+\node[cloud] (cloudA) at (-52mm, 22mm) {};
+\node[font=\scriptsize\bfseries, text=black!65] at (cloudA.north west)
+  [anchor=north west, xshift=2mm, yshift=-2mm] {Cloud};
+\node[vpc, minimum width=40mm, minimum height=50mm] (vpcA) at (cloudA.center) {};
+\node[font=\scriptsize\bfseries, text=black!65] at (vpcA.north west)
+  [anchor=north west, xshift=2mm, yshift=-1.5mm] {VPC};
+\node[lb] (apigwA) at ($(vpcA.north) + (0, -10mm)$) {API\\Gateway};
+\node[k8s, minimum width=36mm, minimum height=14mm] (k8sA) at ($(vpcA.center) + (0, 5mm)$) {K8s Cluster};
+\node[store] (objA) at ($(vpcA.center) + (0, -8mm)$) {Object\\Store};
+\node[gpu] (gpuA1) at ($(vpcA.south) + (-10mm, 7mm)$) {GPU};
+\node[gpu] (gpuA2) at ($(vpcA.south) + (10mm, 7mm)$) {GPU};
 
-\draw[arrow, color=apiorange!90!black] (apigwA) -- (k8sA);
-\draw[arrow, color=gpupurple!90!black] (k8sA) -- (objA);
+\draw[arrow, color=apiorange!85!black] (apigwA) -- (k8sA);
+\draw[arrow, color=gpupurple!85!black] (k8sA) -- (objA);
 
 % ================== (B) HYBRID (Top Right) ==================
-\node[onprem] (premB) at (30mm, 30mm) {};
-\node[font=\small\bfseries, text=black!70] at (premB.north west) [anchor=north west, xshift=3mm, yshift=-3mm] {On-Premise};
-\node[k8s, minimum width=46mm, minimum height=20mm] (k8sBprem) at ($(premB.center) + (0, 12mm)$) {K8s Cluster};
-\node[gpu] (gpuB1) at ($(k8sBprem.south) + (-13mm, -17mm)$) {GPU};
-\node[gpu] (gpuB2) at ($(k8sBprem.south) + (13mm, -17mm)$) {GPU};
-\node[store, align=center] (vecB) at ($(premB.south) + (0, 8mm)$) {Vector\\DB};
+\node[onprem] (premB) at (25mm, 22mm) {};
+\node[font=\scriptsize\bfseries, text=black!65] at (premB.north west)
+  [anchor=north west, xshift=2mm, yshift=-2mm] {On-Premise};
+\node[k8s, minimum width=36mm, minimum height=14mm] (k8sBprem) at ($(premB.center) + (0, 12mm)$)
+  {K8s Cluster};
+\node[store] (vecB) at ($(premB.center) + (0, -4mm)$) {Vector DB};
+\node[gpu] (gpuB1) at ($(premB.south) + (-10mm, 7mm)$) {GPU};
+\node[gpu] (gpuB2) at ($(premB.south) + (10mm, 7mm)$) {GPU};
 
-\node[cloud] (cloudB) at (110mm, 30mm) {};
-\node[font=\small\bfseries, text=black!70] at (cloudB.north west) [anchor=north west, xshift=3mm, yshift=-3mm] {Cloud};
-\node[vpc, minimum width=50mm, minimum height=52mm] (vpcB) at (cloudB.center) {};
-\node[font=\small\bfseries, text=black!70] at (vpcB.north west) [anchor=north west, xshift=2mm, yshift=-2mm] {VPC};
-\node[lb, align=center] (apigwB) at ($(vpcB.north) + (0, -14mm)$) {API\\Gateway};
-\node[k8s, minimum width=46mm, minimum height=20mm] (k8sBcloud) at ($(vpcB.center) + (0, 3mm)$) {K8s Cluster};
-\node[gpu] (gpuB3) at ($(k8sBcloud.south) + (-13mm, -17mm)$) {GPU};
-\node[gpu] (gpuB4) at ($(k8sBcloud.south) + (13mm, -17mm)$) {GPU};
+\node[cloud] (cloudB) at (82mm, 22mm) {};
+\node[font=\scriptsize\bfseries, text=black!65] at (cloudB.north west)
+  [anchor=north west, xshift=2mm, yshift=-2mm] {Cloud};
+\node[vpc, minimum width=40mm, minimum height=50mm] (vpcB) at (cloudB.center) {};
+\node[font=\scriptsize\bfseries, text=black!65] at (vpcB.north west)
+  [anchor=north west, xshift=2mm, yshift=-1.5mm] {VPC};
+\node[lb] (apigwB) at ($(vpcB.north) + (0, -10mm)$) {API\\Gateway};
+\node[k8s, minimum width=36mm, minimum height=14mm] (k8sBcloud) at ($(vpcB.center) + (0, 5mm)$)
+  {K8s Cluster};
+\node[gpu] (gpuB3) at ($(vpcB.south) + (-10mm, 7mm)$) {GPU};
+\node[gpu] (gpuB4) at ($(vpcB.south) + (10mm, 7mm)$) {GPU};
 
-\node[gw, align=center] (vpnL) at ($(premB.east) + (15mm, 0)$) {VPN\\Gateway};
-\node[gw, align=center] (vpnR) at ($(cloudB.west) + (-15mm, 0)$) {VPN\\Gateway};
+\node[gw] (vpnL) at ($(premB.east) + (10mm, 0)$) {VPN\\Gateway};
+\node[gw] (vpnR) at ($(cloudB.west) + (-10mm, 0)$) {Direct\\Connect};
 
-\draw[arrow, color=vpnteal!90!black] (k8sBprem) -- (vpnL);
-\draw[arrow, color=vpnteal!90!black] (vpnR) -- (k8sBcloud);
-\draw[arrowDashed, color=gray!70] (vpnL) -- node[font=\small\bfseries, align=center, midway, above, text=black!85] {Direct\\Connect} (vpnR);
-\draw[arrow, color=gpupurple!90!black] (k8sBprem) -- (vecB);
-\draw[arrow, color=apiorange!90!black] (apigwB) -- (k8sBcloud);
+\draw[arrow, color=vpnteal!85!black] (k8sBprem.east) -- (vpnL.west);
+\draw[arrow, color=vpnteal!85!black] (vpnR.east) -- (k8sBcloud.west);
+\draw[arrowDashed, color=gray!65] (vpnL) -- (vpnR);
+\draw[arrow, color=gpupurple!85!black] (k8sBprem) -- (vecB);
+\draw[arrow, color=apiorange!85!black] (apigwB) -- (k8sBcloud);
 
 % ================== (C) MULTI-CLUSTER (Bottom Center) ==================
-\node[cloud] (cloudC) at (0mm, -80mm) {};
-\node[font=\small\bfseries, text=black!70] at (cloudC.north west) [anchor=north west, xshift=3mm, yshift=-3mm] {Multi-Cloud/Region};
-\node[lb, align=center] (glbC) at ($(cloudC.north) + (0, -16mm)$) {Global\\LB/DNS};
+\node[cloud, minimum width=82mm, minimum height=52mm] (cloudC) at (0mm, -65mm) {};
+\node[font=\scriptsize\bfseries, text=black!65] at (cloudC.north west)
+  [anchor=north west, xshift=2mm, yshift=-2mm] {Multi-Cloud/Region};
+\node[lb] (glbC) at ($(cloudC.north) + (0, -12mm)$) {Global\\LB/DNS};
 
-\node[vpc, minimum width=48mm, minimum height=54mm] (vpcC1) at ($(cloudC.center) + (-32mm, -8mm)$) {};
-\node[font=\small\bfseries, text=black!70] at (vpcC1.north west) [anchor=north west, xshift=2mm, yshift=-2mm] {Region A};
-\node[k8s, minimum width=44mm, minimum height=22mm] (k8sC1) at ($(vpcC1.center) + (0, 14mm)$) {K8s Cluster};
-\node[gpu] (gpuC1) at ($(k8sC1.south) + (-13mm, -19mm)$) {GPU};
-\node[gpu] (gpuC2) at ($(k8sC1.south) + (13mm, -19mm)$) {GPU};
+\node[vpc, minimum width=36mm, minimum height=36mm] (vpcC1) at ($(cloudC.center) + (-22mm, -6mm)$) {};
+\node[font=\scriptsize\bfseries, text=black!65] at (vpcC1.north west)
+  [anchor=north west, xshift=2mm, yshift=-1.5mm] {Region A};
+\node[k8s, minimum width=32mm, minimum height=14mm] (k8sC1) at ($(vpcC1.center) + (0, 8mm)$)
+  {K8s Cluster};
+\node[gpu] (gpuC1) at ($(vpcC1.south) + (-9mm, 7mm)$) {GPU};
+\node[gpu] (gpuC2) at ($(vpcC1.south) + (9mm, 7mm)$) {GPU};
 
-\node[vpc, minimum width=48mm, minimum height=54mm] (vpcC2) at ($(cloudC.center) + (32mm, -8mm)$) {};
-\node[font=\small\bfseries, text=black!70] at (vpcC2.north west) [anchor=north west, xshift=2mm, yshift=-2mm] {Region B};
-\node[k8s, minimum width=44mm, minimum height=22mm] (k8sC2) at ($(vpcC2.center) + (0, 14mm)$) {K8s Cluster};
-\node[gpu] (gpuC3) at ($(k8sC2.south) + (-13mm, -19mm)$) {GPU};
-\node[gpu] (gpuC4) at ($(k8sC2.south) + (13mm, -19mm)$) {GPU};
+\node[vpc, minimum width=36mm, minimum height=36mm] (vpcC2) at ($(cloudC.center) + (22mm, -6mm)$) {};
+\node[font=\scriptsize\bfseries, text=black!65] at (vpcC2.north west)
+  [anchor=north west, xshift=2mm, yshift=-1.5mm] {Region B};
+\node[k8s, minimum width=32mm, minimum height=14mm] (k8sC2) at ($(vpcC2.center) + (0, 8mm)$)
+  {K8s Cluster};
+\node[gpu] (gpuC3) at ($(vpcC2.south) + (-9mm, 7mm)$) {GPU};
+\node[gpu] (gpuC4) at ($(vpcC2.south) + (9mm, 7mm)$) {GPU};
 
-\draw[arrow, color=apiorange!90!black] (glbC) -- ($(glbC) + (-32mm, -22mm)$) -- (k8sC1);
-\draw[arrow, color=apiorange!90!black] (glbC) -- ($(glbC) + (32mm, -22mm)$) -- (k8sC2);
-\draw[arrowDashed, color=gray!70] (k8sC1) -- node[font=\small\bfseries, align=center, midway, above, sloped, text=black!85] {spillover/\\failover} (k8sC2);
+\draw[arrow, color=apiorange!85!black] (glbC.south west) ++(2mm,0) -- (k8sC1.north);
+\draw[arrow, color=apiorange!85!black] (glbC.south east) ++(-2mm,0) -- (k8sC2.north);
+\draw[arrowDashed, color=gray!65] (k8sC1) --
+  node[font=\scriptsize\bfseries, align=center, midway, above, sloped, text=black!80]
+  {failover} (k8sC2);
 
-% ================== PROFESSIONAL LEGEND (Bottom) ==================
-\node[box, fill=white!99, draw=black!50, rounded corners=6pt, line width=1.2pt, minimum width=180mm, minimum height=24mm, inner sep=8pt] (legend) at (0mm, -120mm) {};
+% ================== LEGEND (Bottom) ==================
+\node[box, fill=white, draw=black!40, rounded corners=4pt, line width=0.8pt,
+      minimum width=160mm, minimum height=10mm, inner sep=4pt] (legend)
+  at (0mm, -98mm) {};
 
-% Row 1
-\node[cloud, minimum width=22mm, minimum height=14mm] (L1) at ($(legend.west) + (22mm, 8mm)$) {};
-\node[font=\small\bfseries, right=8mm of L1.east, anchor=west, text=black!90] {Cloud/Region};
-
-\node[vpc, minimum width=22mm, minimum height=14mm] (L2) at ($(L1.east) + (30mm, 0)$) {};
-\node[font=\small\bfseries, right=8mm of L2.east, anchor=west, text=black!90] {VPC};
-
-\node[onprem, minimum width=22mm, minimum height=14mm] (L8) at ($(L2.east) + (30mm, 0)$) {};
-\node[font=\small\bfseries, right=8mm of L8.east, anchor=west, text=black!90] {On-Prem};
-
-\node[k8s, minimum width=22mm, minimum height=14mm] (L3) at ($(L8.east) + (30mm, 0)$) {};
-\node[font=\small\bfseries, right=8mm of L3.east, anchor=west, text=black!90] {K8s};
-
-% Row 2
-\node[gpu, minimum width=22mm, minimum height=14mm] (L4) at ($(L1) + (0, -16mm)$) {};
-\node[font=\small\bfseries, right=8mm of L4.east, anchor=west, text=black!90] {GPU Node};
-
-\node[lb, minimum width=22mm, minimum height=14mm] (L5) at ($(L2) + (0, -16mm)$) {};
-\node[font=\small\bfseries, right=8mm of L5.east, anchor=west, text=black!90] {API GW/LB};
-
-\node[gw, minimum width=22mm, minimum height=14mm] (L6) at ($(L8) + (0, -16mm)$) {};
-\node[font=\small\bfseries, right=8mm of L6.east, anchor=west, text=black!90, align=left] {VPN/Direct\\Connect};
-
-\node[store, minimum width=22mm, minimum height=14mm] (L7) at ($(L3) + (0, -16mm)$) {};
-\node[font=\small\bfseries, right=8mm of L7.east, anchor=west, text=black!90, align=left] {Object/Vector\\Store};
+\node[cloud, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L1) at ($(legend.west) + (8mm, 0)$) {};
+\node[font=\scriptsize, right=2mm of L1.east, anchor=west] {Cloud};
+\node[vpc, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L2) at ($(L1.east) + (16mm, 0)$) {};
+\node[font=\scriptsize, right=2mm of L2.east, anchor=west] {VPC};
+\node[onprem, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L3) at ($(L2.east) + (14mm, 0)$) {};
+\node[font=\scriptsize, right=2mm of L3.east, anchor=west] {On-Prem};
+\node[k8s, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L4) at ($(L3.east) + (20mm, 0)$) {};
+\node[font=\scriptsize, right=2mm of L4.east, anchor=west] {K8s};
+\node[gpu, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L5) at ($(L4.east) + (14mm, 0)$) {};
+\node[font=\scriptsize, right=2mm of L5.east, anchor=west] {GPU};
+\node[lb, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L6) at ($(L5.east) + (14mm, 0)$) {};
+\node[font=\scriptsize, right=2mm of L6.east, anchor=west] {API GW};
+\node[gw, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L7) at ($(L6.east) + (18mm, 0)$) {};
+\node[font=\scriptsize, right=2mm of L7.east, anchor=west] {VPN};
+\node[store, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L8) at ($(L7.east) + (14mm, 0)$) {};
+\node[font=\scriptsize, right=2mm of L8.east, anchor=west] {Storage};
 
 \end{tikzpicture}%
 }
-\end{llmfigbox}
-\renewcommand{\LLMFigMaxWidth}{1.15\linewidth}
 \caption{Deployment pattern selection determines operational complexity and cost structure. \textbf{Cloud-Native} (top left) maximizes elasticity and reduces operational overhead but may increase costs at scale. \textbf{Hybrid} (top right) balances on-premise control with cloud flexibility, optimizing for cost and compliance. \textbf{Multi-Cluster} (bottom center) enables geographic distribution and failover but increases management complexity. Choose based on scale, compliance requirements, and operational capabilities.}
 \label{fig:ch03_deploy_patterns_balanced}
 \end{figure}
@@ -1562,10 +1610,10 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \subsection{Cloud-Native Deployments}
 \label{sec:deploy-cloud}
 
-A \emph{cloud-native deployment} operates entirely within a cloud provider (or multiple clouds), leveraging managed services wherever possible. 
-For LLMOps, this often entails running GPU instances on AWS, Azure, or GCP within Kubernetes clusters, storing artifacts in cloud object stores, and relying on cloud-native networking and IAM for access control. 
-The benefits include elasticity, reduced operational overhead, and access to a rich ecosystem of managed services~\cite{terraform-docs,awscdk-docs}. 
-A representative cloud-native architecture is illustrated in Fig.~\ref{fig:ch03_cloud_native_deployment}.
+A \emph{cloud-native deployment} operates entirely within a cloud provider (or multiple clouds), leveraging managed services wherever possible.
+For LLMOps, this often entails running GPU instances on AWS, Azure, or GCP within Kubernetes clusters, storing artifacts in cloud object stores, and relying on cloud-native networking and IAM for access control.
+The benefits include elasticity, reduced operational overhead, and access to a rich ecosystem of managed services~\cite{terraform-docs,awscdk-docs}.
+A representative cloud-native architecture is illustrated in Fig.~\ref{fig:ch03_cloud_native_deployment}. Figure~\ref{fig:ch03_deploy_patterns_balanced} contrasts cloud-native, hybrid, and multi-cluster deployment patterns to illustrate the operational and cost trade-offs inherent in each approach.
 Several specific considerations apply:
 
 \begin{itemize}
@@ -1731,7 +1779,7 @@ Empirical measurements showed:
 Autoscaling reduced monthly GPU costs by $\sim$30\%. During one surge, scaling to 4 H100s allowed 5$\times$ normal traffic with 95th percentile latency of 1.8s (versus $>$5s without scaling). Scaling down caused some disruptions, later mitigated with pod disruption budgets.
 
 \subsection{Hybrid Integration}
-The on-prem L4 cluster processes $\sim$200 articles/minute, embedding and tagging content before exporting results via VPN to the AWS cluster. This ensures sensitive raw data remains on-prem, while embeddings and generated summaries (lower compliance risk) reside in the cloud. This hybrid setup fulfills regulatory constraints while maintaining scalability.
+The on-prem L4 cluster processes $\sim$200 articles/minute, embedding and tagging content before exporting results via VPN to the AWS cluster. This ensures sensitive raw data remains on-prem, while embeddings and generated summaries (lower compliance risk) reside in the cloud. This hybrid setup fulfills regulatory constraints while maintaining scalability, as depicted in Figure~\ref{fig:ch03_ishtar_infra}.
 
 \begin{figure}[t]
 \centering

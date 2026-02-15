@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(comm:*)",
+      "Bash(/tmp/analyze_refs.py:*)",
+      "Bash(python3:*)",
+      "Bash(/tmp/find_typos.py:*)",
+      "Bash(/tmp/citation_audit.md:*)",
+      "Bash(/tmp/find_broken_refs.py:*)",
+      "Bash(biber:*)"
+    ]
+  }
+}

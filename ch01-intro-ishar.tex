@@ -24,7 +24,7 @@
   left=5mm, right=5mm, top=4mm, bottom=4mm
 ]
 \noindent\textbf{Chapter roadmap.}
-This chapter introduces LLMOps as the operational discipline for running LLM-powered systems reliably at scale. We begin by motivating LLMOps through production failure modes and operational challenges (compute economics, serving infrastructure, data drift, evaluation, observability, and security). We then introduce the Ishtar AI case study as a running example throughout the book, examine early deployment case studies to extract operational lessons, and conclude with a roadmap mapping each chapter to the end-to-end LLMOps lifecycle.
+This chapter introduces LLMOps as the engineering practice for running LLM-powered systems reliably at scale. We begin by motivating LLMOps through production failure modes and operational challenges (compute economics, serving infrastructure, data drift, evaluation, observability, and security). We then introduce the Ishtar AI case study as a running example throughout the book, examine early deployment case studies to extract operational lessons, and conclude with a roadmap mapping each chapter to the end-to-end LLMOps lifecycle.
 
 \medskip
 \noindent\textbf{Learning objectives.} After reading this chapter, you will be able to:
@@ -37,34 +37,6 @@ This chapter introduces LLMOps as the operational discipline for running LLM-pow
 \end{itemize}
 \end{tcolorbox}
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\makeatother
 
 \section{Introduction}
 
@@ -95,6 +67,8 @@ Production systems therefore require:
   \item \textbf{Cost controls:} caching\index{caching}, batching\index{batching}, quantization\index{quantization}, and model routing\index{routing!model} (e.g., small/fast model for routine tasks; larger model for complex reasoning) to maintain sustainable cost per successful outcome.
 \end{itemize}
 
+These trade-offs across latency, throughput, and cost are illustrated in Figure~\ref{fig:ch01_cost_latency_throughput}, which shows how each stage of the request path contributes to end-to-end response time and how different optimization strategies target specific bottlenecks.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.95\linewidth]{images/ch01-cost-latency-throughput}
@@ -111,7 +85,7 @@ Even with managed APIs, LLM-powered applications behave like distributed systems
   \item \textbf{Multi-region resilience:}\index{multi-region deployment} high availability\index{high availability} frequently requires regional redundancy, intelligent routing, and graceful degradation\index{graceful degradation} when capacity is constrained.
 \end{itemize}
 
-Reliability\index{reliability} is also a concern: when a subcomponent fails (retriever times out, a tool API is down, or the model hits a rate limit), the overall system should gracefully degrade (e.g., use cached or partial results, fall back to a simpler response) rather than fail catastrophically.
+Reliability\index{reliability} is also a concern: when a subcomponent fails (retriever times out, a tool API is down, or the model hits a rate limit), the overall system should gracefully degrade (e.g., use cached or partial results, fall back to a simpler response) rather than fail catastrophically. Figure~\ref{fig:ch01_architecture} illustrates how these components interact and where fallback mechanisms can be inserted to maintain system availability under partial failures.
 
 % Preamble requirements: \usepackage{tikz} and \usetikzlibrary{arrows.meta,positioning}
 \begin{figure}[t]
@@ -262,7 +236,7 @@ Traditional monitoring\index{monitoring} focuses on uptime, CPU, and error rates
 
 In practice, LLM applications behave like composed systems: a single user request may traverse routing logic, retrieval, reranking, multi-step prompting\index{prompting!multi-step}, tool calls, and post-processing. Failures are therefore frequently \emph{cross-layer} (e.g., a retrieval miss causing hallucination\index{hallucination}, or a tool timeout causing a partial answer that still looks fluent). The operational goal is not merely to detect that an error occurred, but to explain \emph{why} an output was produced and \emph{which component} (prompt, retriever, tool, model version, or safety layer) drove the observed behavior.
 
-A useful mental model is to treat observability as an \emph{evidence ledger} for each response: record the exact prompt template\index{prompt!template} and parameters, the evidence retrieved (with identifiers and timestamps), the tool calls performed, and the model configuration (provider, version, temperature/top-$p$\index{temperature}\index{top-p}, context length). These traces support three production-critical workflows: (i) incident response\index{incident response} (rapid attribution and rollback), (ii) continuous evaluation (turning production failures into regression tests), and (iii) governance\index{governance} (audit trails for safety, privacy, and policy compliance).
+A useful mental model is to treat observability as an \emph{evidence ledger} for each response: record the exact prompt template\index{prompt!template} and parameters, the evidence retrieved (with identifiers and timestamps), the tool calls performed, and the model configuration (provider, version, temperature/top-$p$\index{temperature}\index{top-p}, context length). These traces support three production-critical workflows: (i) incident response\index{incident response} (rapid attribution and rollback), (ii) continuous evaluation (turning production failures into regression tests), and (iii) governance\index{governance} (audit trails for safety, privacy, and policy compliance). Table~\ref{tab:ch01_llm_observability} details what to capture at each layer of the stack, why it matters operationally, and the failure signals that warrant investigation.
 
 \begin{tcolorbox}[
   title={\textbf{Effective LLM observability includes:}},
@@ -611,6 +585,51 @@ These challenges converge into a single conclusion: LLM deployments are not mere
 
 LLMOps therefore formalizes the practices required to run these systems with reliability and accountability. It extends classical MLOps by treating prompts and policies as first-class, versioned artifacts; by monitoring behavioral and safety properties alongside infrastructure metrics; and by introducing release gates and incident response tailored to generative systems. The remainder of this book develops these practices systematically: Chapter~\ref{ch:llmops-fundamentals} establishes core concepts; Chapter~\ref{ch:infra} covers infrastructure design; Chapter~\ref{ch:cicd} presents CI/CD patterns; and subsequent chapters address scaling, optimization, governance, and end-to-end deployment. We use the \ishtar{} case study throughout to ground these concepts in a concrete end-to-end system.
 
+The preceding discussion of operational challenges is not merely theoretical---real-world deployments have already produced costly failures that underscore the need for disciplined LLMOps practices. Table~\ref{tab:ch01_economic_impact} catalogs several high-profile incidents\index{LLM!failures}\index{hallucination!economic impact} where inadequate operational controls led to financial, legal, or reputational consequences. Each case illustrates a specific failure mode---hallucination\index{hallucination}, data leakage\index{data leakage}, or unsafe generation---and the corresponding LLMOps lesson that could have prevented or mitigated the harm.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Real-world economic impact of LLM operational failures. These incidents demonstrate that hallucination, data leakage, and unsafe generation carry concrete financial and reputational costs. Each row maps a public incident to its consequence and the LLMOps practice that addresses the underlying failure mode.}
+\label{tab:ch01_economic_impact}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{26mm}>{\raggedright\arraybackslash}p{14mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Incident} & \textbf{Year} & \textbf{Consequence} & \textbf{LLMOps Lesson} \\
+\midrule
+Air Canada chatbot promised unauthorized refund\index{Air Canada chatbot} &
+2024 &
+Court ordered airline to honor the hallucinated refund policy; estimated low five-figure payout plus legal costs &
+Output grounding\index{grounding} and policy-constrained generation: responses touching contractual or financial commitments must be validated against authoritative sources before delivery \\
+\addlinespace[2pt]
+Lawyer submitted ChatGPT-fabricated case citations\index{fabricated citations} &
+2023 &
+\$5{,}000 court-imposed fine; sanctioned attorneys; reputational damage to the firm &
+Citation verification\index{citation!verification} pipelines and human-in-the-loop review gates for high-stakes outputs; never treat LLM output as factual without independent validation \\
+\addlinespace[2pt]
+Samsung engineers leaked proprietary code via ChatGPT\index{data leakage!Samsung} &
+2023 &
+Intellectual property exposure; company-wide ban on external LLM tools; remediation and policy overhaul costs &
+Data loss prevention\index{data loss prevention} (DLP) controls, input sanitization, and organizational policies governing which data may be sent to external model endpoints \\
+\addlinespace[2pt]
+Healthcare chatbot hallucinated medical advice\index{hallucination!healthcare} &
+2023--24 &
+Patient safety risk; regulatory scrutiny; potential malpractice liability &
+Domain-specific evaluation suites\index{evaluation!domain-specific}, retrieval grounding against vetted medical sources, and mandatory human review for clinical content \\
+\addlinespace[2pt]
+DPD chatbot generated offensive content\index{DPD chatbot} &
+2024 &
+Viral brand damage; system taken offline; public relations crisis &
+Adversarial testing\index{adversarial testing} (red-teaming), output safety filters, and real-time behavioral monitoring\index{monitoring!behavioral} with automated circuit breakers \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+These incidents share a common thread: the failure was not in the model's raw capability, but in the absence of operational safeguards---grounding checks, output filters, access controls, and evaluation gates---that LLMOps practices are designed to provide. As LLM-powered systems expand into higher-stakes domains (legal, medical, financial), the cost of operational gaps will only increase, making the investment in systematic LLMOps practices not merely prudent but economically essential. Table~\ref{tab:ch01_llmops_extends_mlops} articulates how LLMOps extends traditional MLOps across four critical dimensions: scale, complexity, variability, and risk.
+
 % Requires in preamble (once): \usepackage{tabularx,booktabs,threeparttable}
 \begin{table}[t]
 \centering
@@ -786,7 +805,7 @@ By the early 2020s, however, the rise of \textbf{foundation models}—especially
 \label{fig:ch01_mlops_llmops_timeline}
 \end{figure}
 
-The ML community therefore recognized the need for a refined operational discipline tailored to LLMs. The term \textbf{LLMOps} emerged in late 2022 and 2023 as generative AI captured global attention \cite{opendatascience}. Early pioneers had to solve problems such as distributing models across GPUs for inference, implementing prompt management systems, and integrating retrieval-augmented generation (RAG). Companies with large-scale LLM deployments began documenting best practices, and academic work started to formalize the distinctions between MLOps and LLMOps \cite{mdpi}. In short, LLMOps evolved because standard MLOps practices proved insufficient: the unprecedented scale, variability, and risks of LLMs required rethinking operations from the ground up.
+The ML community therefore recognized the need for a refined operational discipline tailored to LLMs. The term \textbf{LLMOps} emerged in late 2022 and 2023 as generative AI captured global attention \cite{opendatascience}. Early pioneers had to solve problems such as distributing models across GPUs for inference, implementing prompt management systems, and integrating retrieval-augmented generation (RAG). Companies with large-scale LLM deployments began documenting best practices, and academic work started to formalize the distinctions between MLOps and LLMOps \cite{mdpi}. Figure~\ref{fig:ch01_mlops_llmops_timeline} illustrates this evolution from classical MLOps to modern LLMOps practices, showing how operational requirements changed as model capabilities advanced. In short, LLMOps evolved because standard MLOps practices proved insufficient: the unprecedented scale, variability, and risks of LLMs required rethinking operations from the ground up.
 
 Today, LLMOps is emerging as a vital sub-discipline of MLOps, focused on lifecycle management of LLM-driven systems. Just as DevOps and MLOps were born from the practical need to bridge development and operations, LLMOps is being driven by the real-world challenges of deploying and maintaining LLMs at scale.
 
@@ -962,7 +981,7 @@ Part~IV addresses rigorous evaluation and responsible deployment, culminating in
 \end{itemize}
 
 \medskip
-\noindent By progressing through these parts, readers will develop both a conceptual framework for LLMOps and a practical toolkit for production deployment. Throughout, checklists, best-practice summaries, and the running \ishtar{} case study provide reusable guidance that can be adapted across domains and operational contexts.
+\noindent By progressing through these parts, readers will develop both a conceptual framework for LLMOps and a practical toolkit for production deployment. Throughout, checklists, best-practice summaries, and the running \ishtar{} case study provide reusable guidance that can be adapted across domains and operational contexts. Table~\ref{tab:ch01_llmops_legend} maps each chapter to its operational purpose, helping readers navigate the book according to their specific interests and needs.
 
 % ----------------------------------------------------------------------
 % TABLE: Chapter roles in the lifecycle (minimal / Springer-clean)
@@ -1143,7 +1162,7 @@ All readers will benefit from following the \ishtar{} case study throughout, as 
 % Restore original maximum width constraint
 \renewcommand{\LLMFigMaxWidth}{1.15\linewidth}
 
-\caption{LLMOps lifecycle demonstrates how operational practices integrate across development stages. The flow progresses from foundations (Part I) through delivery operations (Part II: CI/CD, monitoring, scaling), optimization (Part III: performance, RAG, multi-agent), and governance (Part IV: testing, ethics, case study). A dashed feedback loop connects the case study back to foundational practices, illustrating how real-world experience informs operational improvements.}
+\caption{LLMOps lifecycle demonstrates how operational practices integrate across development stages. The flow progresses from foundations (Part I) through delivery operations (Part II: CI/CD, monitoring, scaling), optimization (Part III: performance, RAG, multi-agent), and governance (Part IV: testing, ethics, case study). A dashed feedback loop connects the case study back to foundational practices, illustrating how real-world experience informs operational improvements. Figure~\ref{fig:ch01_llmops_legend} provides a detailed legend explaining each chapter's operational contribution.}
 \label{fig:ch01_llmops_lifecycle}
 \end{figure}
 
@@ -1247,7 +1266,7 @@ Journalists in conflict zones face an overwhelming flow of information and life-
   \item \textbf{Public health and infrastructure reports:} hospital load, outbreak indicators, and critical infrastructure status (power, water, telecommunications).
 \end{itemize}
 
-The goal is to provide fact-checked, context-aware summaries and answers. For example, a journalist under deadline might ask: \emph{``What is the latest on ceasefire negotiations, and how credible are reports of violations in the northern region?''} \ishtar{} retrieves relevant evidence (official statements, observer reports, incident logs) and generates a structured response with citations. Because misinformation in conflict settings can have severe consequences, \ishtar{} emphasizes safeguards against hallucinations, bias, and inflammatory outputs.
+The goal is to provide fact-checked, context-aware summaries and answers. For example, a journalist under deadline might ask: \emph{``What is the latest on ceasefire negotiations, and how credible are reports of violations in the northern region?''} \ishtar{} retrieves relevant evidence (official statements, observer reports, incident logs) and generates a structured response with citations. Because misinformation in conflict settings can have severe consequences, \ishtar{} emphasizes safeguards against hallucinations, bias, and inflammatory outputs. Figure~\ref{fig:ch01_ishtar_arch_callout} maps the major subsystems of \ishtar{} to the corresponding chapters in this book, helping readers navigate from high-level architecture to detailed operational practices.
 
 % ----------------------------------------------------------------------
 % FIGURE: Call-out band (redesigned with stacked layout and larger boxes)
@@ -1649,11 +1668,6 @@ Generative models are inherently stochastic. Evaluation in LLMOps must combine a
 \subsubsection{Example}
 Before deploying new \ishtar{} models, teams run 100 representative queries. Automated checks confirm citations, length limits, and refusal behavior. Journalists manually review correctness. Only after passing gates do new prompts or weights go live.  
 
-% \subsection{Monitoring and Observability}\label{ch:monitoring}
-% \label{subsec:monitoring}
-
-% Monitoring closes the loop, ensuring post-deployment reliability and continuous improvement. Observability spans both system metrics and model-level signals.
-
 \subsubsection{Systems telemetry}
 \begin{itemize}
     \item \textbf{Health:} Uptime, error rates, GPU/CPU/memory utilization.
@@ -1714,7 +1728,7 @@ Not all stories are cautionary tales. \emph{Character.AI}, a startup platform fo
 
 All these measures paid off. Character.AI handled exponential growth (from $\sim$300 generations/sec to 30,000/sec in 18 months) without major outages or scandals \parencite{zenml2023}. Users reported high engagement, with some even describing addictive usage patterns. Importantly, Character.AI proved that scalability and quality are achievable with smaller, domain-optimized models---if paired with rigorous LLMOps.  
 
-The key lesson is that operational excellence can substitute for sheer model size. By focusing on its domain (conversational personas) and iterating rapidly, Character.AI delivered a popular service with modest models but exceptional infrastructure and feedback loops.  
+The key lesson is that operational excellence can substitute for sheer model size. By focusing on its domain (conversational personas) and iterating rapidly, Character.AI delivered a popular service with modest models but exceptional infrastructure and feedback loops. Table~\ref{tab:ch01_early_llmops_cases} summarizes these cases alongside other early LLM deployments, extracting common lessons about operational discipline and risk management.  
 
 
 % Preamble (once):
@@ -1830,9 +1844,11 @@ This introductory chapter has sketched the landscape of LLMOps and introduced \i
     \item \textbf{Chapter~\ref{ch:ethics} -- Ethics and Responsible Deployment.}  
     This chapter covers governance and societal impacts. Topics include model cards, bias audits, transparency requirements, privacy protection, and security of endpoints. Regulatory considerations (GDPR, emerging AI Acts) are discussed, along with integration into operational pipelines (e.g., ethical review before deployment). \ishtar{} provides examples of how ethical principles must be embedded into workflows.
 
-    \item \textbf{Chapter~\ref{ch:case-study} -- End-to-End Case Study (\ishtar{}).}  
+    \item \textbf{Chapter~\ref{ch:case-study} -- End-to-End Case Study (\ishtar{}).}
     The final chapter ties together all components by walking through \ishtar{}'s full lifecycle: from ingestion and model selection, to RAG integration, prompt orchestration, deployment, monitoring, and iterative refinement. This end-to-end perspective demonstrates how all the pieces fit together and offers lessons learned from applying LLMOps in practice.
 \end{itemize}
+
+Figure~\ref{fig:ch01_llmops_quick_checklist} provides a concise checklist of key monitoring areas that span these chapters, offering practitioners a quick reference for maintaining production reliability.
 
 
 \begin{figure}[t]

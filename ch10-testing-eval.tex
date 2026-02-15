@@ -44,89 +44,6 @@ This chapter introduces a practical testing and evaluation discipline for LLM-po
 \end{itemize}
 \end{tcolorbox}
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Algorithms and Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmalgorithm}{%
-  \newcounter{llmalgorithm}[chapter]
-  \renewcommand{\thellmalgorithm}{\thechapter.\arabic{llmalgorithm}}
-}{}
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-% Environments llmalgobox and llmlistingbox are already defined in Chapter 9
-% If they don't exist (e.g., standalone compilation), define them here
-\@ifundefined{llmalgobox}{%
-  \newenvironment{llmalgobox}[1]{%
-    \refstepcounter{llmalgorithm}%
-    \begin{tcolorbox}[
-      title={\textbf{Algorithm \thellmalgorithm: #1}},
-      colback=gray!4,
-      colframe=gray!60!black,
-      colbacktitle=gray!20,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=2mm
-    ]
-  }{\end{tcolorbox}}%
-}{%
-  \renewenvironment{llmalgobox}[1]{%
-    \refstepcounter{llmalgorithm}%
-    \begin{tcolorbox}[
-      title={\textbf{Algorithm \thellmalgorithm: #1}},
-      colback=gray!4,
-      colframe=gray!60!black,
-      colbacktitle=gray!20,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=2mm
-    ]
-  }{\end{tcolorbox}}%
-}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{%
-  \renewenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}
-\makeatother
-
 
 \section{Introduction}
 \label{sec:ch10-introduction}
@@ -260,8 +177,6 @@ Fig.~\ref{fig:ch10_test_coverage_matrix} visualizes this coverage matrix approac
 
 \begin{figure}[t]
 \centering
-% Temporarily increase maximum width to allow larger figure
-\renewcommand{\LLMFigMaxWidth}{1.4\linewidth}
 \begin{llmfigbox}
 % Color definitions
 \definecolor{coverageblue}{RGB}{44,102,146}
@@ -369,7 +284,6 @@ Fig.~\ref{fig:ch10_test_coverage_matrix} visualizes this coverage matrix approac
 
 \end{tikzpicture}
 \end{llmfigbox}
-\renewcommand{\LLMFigMaxWidth}{1.15\linewidth}
 \caption{Test coverage matrix ensures comprehensive validation beyond aggregate scores. By mapping linguistic capabilities (vocabulary, negation, coreference) against test perturbation types (invariance, directional, minimum), teams can identify gaps in their test suites and ensure behavioral coverage across critical dimensions. This matrix approach prevents optimizing for average performance while missing edge cases.}
 \label{fig:ch10_test_coverage_matrix}
 \end{figure}
@@ -387,7 +301,7 @@ A key benefit of unit tests is fast, targeted feedback during development. If a 
 
 Unit tests for LLM systems should cover both “happy path” cases (expected inputs) and edge cases. This includes adversarial or unusual inputs at the unit level: e.g., test a name parsing prompt with edge cases like empty input or extremely long names, or test a retrieval function with a query containing typos. By building a battery of small tests for each component, we can catch prompt template bugs (such as missing instructions or incorrect few-shot examples), logic errors in data preprocessing, and other issues before they propagate into full system failures \cite{arxivEval}.  
 
-Modern LLMOps tooling supports this: for example, the Promptfoo\index{Promptfoo} framework allows writing unit tests for each step of a LangChain\index{LangChain} or agent workflow, by executing one prompt at a time and checking its output against expectations \cite{promptfoo1,promptfoo2}. Table~\ref{tab:ch10_unit_test_examples} provides concrete examples of unit tests for different component types. Listing~\ref{lst:ch10_unit_test_example} shows a Python implementation example. In sum, unit testing ensures each part of the LLM pipeline "does the right thing" in isolation, laying the groundwork for reliable system assembly.
+Modern LLMOps tooling supports this: for example, the Promptfoo\index{Promptfoo} framework allows writing unit tests for each step of a LangChain\index{LangChain} or agent workflow, by executing one prompt at a time and checking its output against expectations \cite{promptfoo1,promptfoo2}. Listing~\ref{lst:ch10_unit_test_example} shows a Python implementation example. Table~\ref{tab:ch10_unit_test_examples} provides concrete examples of unit tests for different component types, illustrating how to validate prompts, parsers, retrieval functions, and filters in isolation. In sum, unit testing ensures each part of the LLM pipeline "does the right thing" in isolation, laying the groundwork for reliable system assembly.
 
 \begin{llmlistingbox}{Unit test example for prompt template validation (Python)}
 \label{lst:ch10_unit_test_example}
@@ -724,6 +638,75 @@ for case in SEED_CASES:
 
 Metamorphic tests are especially valuable for regression detection in non-deterministic systems: they detect \emph{instabilities} and \emph{fragilities} that are invisible to single-point accuracy tests, and they provide actionable signals for prompt hardening, retrieval tuning, and guardrail design.
 
+\paragraph{Concrete metamorphic relations for LLM testing.}\index{metamorphic testing!relations}
+To make the framework actionable, we detail three metamorphic relations\index{metamorphic testing} with concrete examples, expected invariants, and programmatic checks.
+
+\medskip
+\noindent\textbf{(a) Negation invariance.}\index{metamorphic testing!negation invariance}
+The metamorphic relation is: if the source input contains a factual predicate~$P$, the follow-up input negates it to~$\lnot P$; the model's boolean or sentiment output should reverse.
+
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+    \item \emph{Source test case:} ``Is Paris the capital of France?'' $\;\to\;$ Expected: \texttt{Yes}.
+    \item \emph{Transformed test case:} ``Is Paris NOT the capital of France?'' $\;\to\;$ Expected: \texttt{No}.
+    \item \emph{Invariant:} The boolean/sentiment polarity of the output must flip.
+    \item \emph{Programmatic check:}
+\end{itemize}
+\begin{lstlisting}[language=Python, style=springer, numbers=none]
+assert extract_boolean(base_output) != extract_boolean(negated_output)
+\end{lstlisting}
+
+\noindent\textbf{(b) Paraphrase invariance.}\index{metamorphic testing!paraphrase invariance}
+The metamorphic relation is: if the source input~$q$ is rephrased into a semantically equivalent query~$q'$, the outputs should be semantically equivalent.
+
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+    \item \emph{Source test case:} ``What causes rain?''
+    \item \emph{Transformed test case:} ``What is the reason for precipitation?''
+    \item \emph{Invariant:} Semantic similarity between outputs exceeds a threshold (e.g., $> 0.85$).
+    \item \emph{Programmatic check:}
+\end{itemize}
+\begin{lstlisting}[language=Python, style=springer, numbers=none]
+sim = embedding_similarity(output_q, output_q_prime)
+assert sim >= 0.85, f"Paraphrase invariance violated: sim={sim:.2f}"
+\end{lstlisting}
+
+\noindent\textbf{(c) Subset consistency.}\index{metamorphic testing!subset consistency}
+The metamorphic relation is: if the source input requests $k$ items satisfying a predicate, a follow-up requesting $k' > k$ items should produce a superset of the original items.
+
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+    \item \emph{Source test case:} ``Name 3 European capitals.'' $\;\to\;$ Output: \{Paris, Berlin, Rome\}.
+    \item \emph{Transformed test case:} ``Name 5 European capitals.'' $\;\to\;$ Output: \{Paris, Berlin, Rome, Madrid, Vienna\}.
+    \item \emph{Invariant:} The source output set is a subset of the follow-up output set.
+    \item \emph{Programmatic check:}
+\end{itemize}
+\begin{lstlisting}[language=Python, style=springer, numbers=none]
+assert set(output_3).issubset(set(output_5)), "Subset consistency violated"
+\end{lstlisting}
+
+Table~\ref{tab:ch10_metamorphic_relations} summarizes common metamorphic relations for LLM testing, showing how transformations like negation, paraphrase, and subset expansion can be used to validate model robustness without requiring ground-truth labels.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Summary of metamorphic relations for LLM testing. Each relation defines a transformation, the expected invariant, and representative use cases for quality assurance.}
+\label{tab:ch10_metamorphic_relations}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{22mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{22mm}@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Relation} & \textbf{Transform} & \textbf{Invariant} & \textbf{Use Case} \\
+\midrule
+Negation & Negate key predicate & Output polarity reverses & Factual QA \\
+Paraphrase & Rephrase query & Output semantically equivalent (sim $> 0.85$) & Robustness \\
+Subset & Request superset ($k \to k'>k$) & Original items $\subseteq$ expanded items & List generation \\
+Context monotonicity & Add relevant evidence & Faithfulness does not decrease & RAG pipelines \\
+Order robustness & Shuffle retrieved documents & Key conclusions unchanged & RAG pipelines \\
+Noise robustness & Add minor typos/punctuation & Key facts unchanged & Input resilience \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \section{Evaluation Metrics}
 \label{sec:ch10-evaluation-metrics}
 
@@ -745,7 +728,7 @@ Metamorphic tests are especially valuable for regression detection in non-determ
 \subsection*{At a Glance: Evaluation Metrics}
 To meaningfully assess an LLM system’s performance, we need well-defined evaluation metrics. Metrics translate the complex, often subjective notions of “quality” into quantitative or qualitative measures that can be tracked over time \cite{aimultipleEval}. Unlike traditional software (where metrics might be simple counts of errors or execution speed), LLM evaluation requires capturing the nuances of language generation: factual accuracy, coherence, style, usefulness, safety, and more.  
 
-We categorize metrics into quantitative (numeric measures such as accuracy or latency) and qualitative (human-judgment or categorical measures such as coherence or user satisfaction). Both types are important – and often complementary – in capturing different facets of system performance \cite{arize}.  
+We categorize metrics into quantitative (numeric measures such as accuracy or latency) and qualitative (human-judgment or categorical measures such as coherence or user satisfaction). Both types are important – and often complementary – in capturing different facets of system performance \cite{arize}. Table~\ref{tab:ch10_scorecard} presents a comprehensive evaluation scorecard framework, showing how different quality dimensions map to concrete metrics and release gates.
 
 
 \begin{table}[t]
@@ -984,7 +967,14 @@ Accuracy is crucial in domains like factual Q\&A or information extraction, wher
 
 \textbf{Factual Consistency:} Also called faithfulness or groundedness, this measures whether the model’s output aligns with verified facts or reference sources. Unlike plain accuracy, factual consistency evaluates if each statement is supported by reliable information. In RAG systems or summarization, this can be measured by overlap with input documents or known truth. For instance, the RAGAS evaluation suite defines a Faithfulness metric: the fraction of facts in the generated answer supported by retrieved documents \cite{dkaarthick1,dkaarthick2}.  
 
-If an answer has 4 factual claims and 3 are supported, factual consistency = 75\%. Low scores indicate hallucinations. Automated LLM-as-judge approaches can also be used to assess faithfulness. This metric is especially critical in journalism, law, or healthcare, where incorrect details undermine trust \cite{dkaarthick1}.  
+If an answer has 4 factual claims and 3 are supported, factual consistency = 75\%. Low scores indicate hallucinations. Automated LLM-as-judge approaches can also be used to assess faithfulness. This metric is especially critical in journalism, law, or healthcare, where incorrect details undermine trust \cite{dkaarthick1}.
+
+Formally, faithfulness\index{faithfulness!formal definition} is defined as:
+\begin{equation}
+\text{Faithfulness} = \frac{|\{\text{claims in response supported by context}\}|}{|\{\text{total claims in response}\}|}
+\label{eq:faithfulness}
+\end{equation}
+In practice, computation proceeds in two stages: (1)~\emph{claim decomposition}, where the response is segmented into atomic factual assertions, and (2)~\emph{entailment verification}, where each claim is checked against the retrieved context using an NLI model or LLM-as-judge. Claims rated as ``supported'' or ``entailed'' contribute to the numerator; the denominator counts all extracted claims.
 
 \textbf{Latency:} Latency measures time-to-first-token (TTFT) and total completion time \cite{posta1}. TTFT reflects initial processing, while total latency includes full response generation. These metrics are essential for interactive systems, since LLMs can have variable token-by-token delays influenced by model size, prompt length, and load \cite{bytexEval}. Latency is often reported as average and p95. For example, requiring p95 < 5 seconds ensures predictable performance. Latency metrics also detect regressions if new components slow down responses.  
 
@@ -1930,7 +1920,100 @@ jobs:
 \end{lstlisting}
 \end{llmlistingbox}
 
-Tiered gates, combined with robust observability and rollback, are the operational backbone of safe iteration.
+Tiered gates, combined with robust observability and rollback, are the operational backbone of safe iteration. Figure~\ref{fig:ch10_tiered_gates} illustrates how evaluation gates integrate into the CI/CD pipeline at different stages, while Table~\ref{tab:ch10_tiered_plan} details the specific coverage and runtime characteristics of each gate tier.
+
+\subsection{Evaluation Cost/Benefit Analysis}
+\label{sec:ch10-eval-cost-benefit}
+
+Not every change warrants the same depth of evaluation.\index{evaluation!cost-benefit} Running a full evaluation suite on every commit is prohibitively expensive; conversely, skipping evaluation before a major deployment invites regressions. The appropriate evaluation depth depends on both the \emph{risk} of the change and its \emph{magnitude}:
+
+\begin{equation}
+\text{Evaluation Depth} \;\propto\; \text{Risk} \;\times\; \text{Change Magnitude}
+\label{eq:eval-depth}
+\end{equation}
+
+\paragraph{When full evaluation suites are justified.}
+Full suites---comprising golden datasets, adversarial probes, multi-slice analysis, and human review---are warranted before major deployments (model upgrades, prompt overhauls), after fine-tuning runs, and during quarterly quality audits. These are high-risk, high-magnitude events where undetected regressions carry significant cost.
+
+\paragraph{When smoke tests suffice.}
+Fast smoke tests---schema validation, a handful of canary queries, and basic safety probes---are appropriate for every commit, minor prompt wording changes, dependency updates, and infrastructure patches. These are low-magnitude changes where the primary goal is to catch obvious breakage without blocking developer velocity.
+
+\paragraph{Decision framework.}
+Table~\ref{tab:ch10_eval_tiers} codifies this cost/benefit trade-off into actionable tiers.\index{evaluation!tiers}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Evaluation tier selection based on change risk and magnitude. Higher-risk changes justify deeper, more expensive evaluation; routine changes use fast smoke tests to preserve developer velocity.}
+\label{tab:ch10_eval_tiers}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{22mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{22mm}>{\raggedright\arraybackslash}p{22mm}@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Eval Tier} & \textbf{Triggers} & \textbf{Duration} & \textbf{Approx.\ Cost} \\
+\midrule
+Smoke & Every commit, minor prompt edits, dependency bumps & 2--5\,min & \$0.50--\$2 \\
+Regression & Nightly, after significant prompt or retrieval changes & 30--60\,min & \$10--\$50 \\
+Full suite & Pre-release, model swap, post-fine-tuning & 2--4\,hr & \$50--\$200 \\
+Comprehensive audit & Quarterly, regulatory review, post-incident deep dive & 1--2\,days & \$500--\$2{,}000 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Teams should codify tier selection in their CI/CD configuration (e.g., via labels or path-based triggers) so that evaluation depth is determined automatically rather than left to developer judgment.
+
+\subsection{CI/CD Gate Decision Flowchart}
+\label{sec:ch10-cicd-gate-flowchart}
+
+When evaluation gates detect failures, the response should depend on which category of test failed.\index{CI/CD!gate decisions} Safety failures demand an immediate deployment block; quality regressions require human review; performance warnings may permit deployment with an explicit override. Fig.~\ref{fig:ch10_cicd_decision_flow} illustrates this decision process.
+
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\definecolor{evalblue}{RGB}{44,102,146}
+\definecolor{passgreen}{RGB}{34,139,96}
+\definecolor{safetyred}{RGB}{173,63,60}
+\definecolor{qualityorange}{RGB}{201,111,29}
+\definecolor{perfpurple}{RGB}{123,88,163}
+\definecolor{monitorteal}{RGB}{0,128,128}
+\begin{tikzpicture}[font=\small, node distance=14mm,
+  box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries, minimum width=2.6cm, minimum height=10mm},
+  arrow/.style={-{Latex}, line width=1.2pt, color=black!70},
+  decision/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries, minimum width=2.6cm, minimum height=10mm, diamond, aspect=2}
+]
+% Main flow
+\node[box, fill=evalblue!15] (run) {Run Evals};
+\node[box, fill=evalblue!10, below=of run] (check) {All pass?};
+\node[box, fill=passgreen!15, right=35mm of check] (deploy) {Deploy};
+\node[box, fill=monitorteal!15, right=25mm of deploy] (monitor) {Monitor};
+\node[box, fill=evalblue!10, below=of check] (which) {Which failed?};
+\node[box, fill=safetyred!15, left=25mm of which] (safety) {Safety};
+\node[box, fill=qualityorange!15, below=of which] (quality) {Quality};
+\node[box, fill=perfpurple!15, right=25mm of which] (perf) {Performance};
+
+% Outcomes
+\node[box, fill=safetyred!25, below=of safety] (block) {Block\\deployment};
+\node[box, fill=qualityorange!25, below=of quality] (review) {Flag for\\human review};
+\node[box, fill=perfpurple!25, below=of perf] (warn) {Warn; allow\\with override};
+
+% Arrows
+\draw[arrow] (run) -- (check);
+\draw[arrow, color=passgreen!70!black] (check) -- node[above, font=\footnotesize]{Yes} (deploy);
+\draw[arrow] (deploy) -- (monitor);
+\draw[arrow, color=safetyred!70!black] (check) -- node[right, font=\footnotesize]{No} (which);
+\draw[arrow] (which) -- (safety);
+\draw[arrow] (which) -- (quality);
+\draw[arrow] (which) -- (perf);
+\draw[arrow, color=safetyred!70!black] (safety) -- (block);
+\draw[arrow, color=qualityorange!70!black] (quality) -- (review);
+\draw[arrow, color=perfpurple!70!black] (perf) -- (warn);
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{CI/CD gate decision flowchart. When evaluation failures are detected, the response is categorized by failure type: safety failures block deployment unconditionally, quality regressions are flagged for human review, and performance warnings allow deployment with an explicit override. This tiered response balances velocity with risk management.}
+\label{fig:ch10_cicd_decision_flow}
+\end{figure}
 
 \section{Resilience Strategies}
 \label{sec:ch10-resilience-strategies}
@@ -2117,7 +2200,7 @@ All three are version-controlled and executed through a single evaluation harnes
 \paragraph{Slice design.}
 The multilingual nature of \ishtar{} makes slice coverage essential: a regression that only affects Arabic or Italian summaries may be invisible in aggregate metrics.
 Accordingly, the 500-query suite is stratified by (i) language, (ii) topic cluster (conflict, diplomacy, economy, humanitarian aid), and (iii) ``risk tier'' (queries likely to be published verbatim vs.\ internal analysis).
-Release gates are applied per critical slice, not only globally.
+Release gates are applied per critical slice, not only globally. Figure~\ref{fig:ch10_ishtar_eval_loop} shows how this evaluation workflow forms a continuous improvement cycle, with production logs feeding back into curated datasets that drive systematic quality validation.
 
 \subsection{Outcomes}
 \begin{itemize}

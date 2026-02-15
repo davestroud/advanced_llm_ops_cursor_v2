@@ -44,34 +44,6 @@ This chapter treats CI/CD for LLM systems as an end-to-end quality and risk-mana
 \end{itemize}
 \end{tcolorbox}
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\makeatother
 
 \section{Introduction}
 \label{sec:cicd-intro}
@@ -98,7 +70,7 @@ This chapter shows how to build CI/CD pipelines that catch behavioral regression
 \label{sec:cicd-continuous-eval}
 A cornerstone of LLM CI/CD is integrating automated evaluation suites into the pipeline---not only to catch functional regressions, but to detect hallucinations, safety drift, and retrieval failures before they reach users. Because LLM behavior is stochastic and highly sensitive to prompts, retrieval context, and tool configuration, continuous evaluation must be designed as a staged, cost-aware loop rather than a single offline score \cite{helm2022}.
 
-\noindent\textbf{Design principles.} Effective continuous evaluation tends to follow a few recurring principles:
+\noindent\textbf{Design principles.} Effective continuous evaluation tends to follow a few recurring principles, as summarized in Table~\ref{tab:ch04_eval_design_principles}:
 
 \begin{table}[t]
 \centering
@@ -241,6 +213,12 @@ The staged evaluation approach creates a continuous loop that feeds production i
 \label{fig:ch04_eval_stages_pipeline}
 \end{figure}
 
+\subsubsection{From Failing Slices to Regression Tests}\label{subsec:ch04-failing-slices-regression}
+
+The feedback loop shown in Fig.~\ref{fig:ch04_eval_stages_pipeline} is the engine that converts production incidents into durable test coverage. Concretely, the mechanism works as follows. When an evaluation slice fails during canary or shadow deployment---for example, groundedness drops below threshold on a ``high-stakes policy'' slice---the failing examples (input prompts, retrieved contexts, model outputs, and evaluator scores) are automatically captured and tagged with the failure mode, slice identifier, and timestamp. These examples are then appended to a growing \emph{regression test suite} that lives alongside the golden and adversarial datasets in the CI pipeline.
+
+On every subsequent CI run, the pipeline replays these regression examples against the candidate release. Because the regression suite only grows (new failures are added; passing examples are never removed), it creates a \emph{monotonically improving test baseline}: the system must demonstrate that every previously observed failure mode has been addressed or at minimum not reintroduced. Over time, this transforms ad hoc incident responses into systematic, evidence-backed quality assurance. Teams that adopt this pattern report that within three to six months, their regression suites capture the long tail of domain-specific edge cases that static benchmark suites miss, making the evaluation pipeline increasingly representative of real-world failure modes.
+
 With this staged view in mind, the next section explains why continuous evaluation is non-negotiable and provides a detailed taxonomy of what to evaluate and how to engineer evaluation into an end-to-end LLM delivery pipeline.
 
 \section{Why Continuous Evaluation is Non-Negotiable}
@@ -258,6 +236,28 @@ Finally, models must be grounded: they should remain faithful to retrieved conte
 
 \subsection{Model-Graded Evaluation (LLM-as-Judge): Strengths, Caveats, Mitigations}
 One promising development is the use of strong models (e.g., GPT-4 class) as ``judges.'' These model-graded evaluations approximate human ratings at scale by providing pairwise comparisons or rubric-based scores \cite{zheng2023judge}. While efficient, they are not without weaknesses. Studies show that model judges exhibit position bias, verbosity bias, and a tendency to reward surface polish over factual rigor \cite{chen2024humansJudge,positionBias2024}. To mitigate these effects, best practice is to randomize answer ordering, enforce symmetric prompting, and adopt blind judging protocols. Requiring structured rationales, as in G-Eval-style rubrics, further reduces spurious preference. Using multiple independent judges and analyzing disagreement provides another safeguard, while periodic calibration against human anchor sets helps track drift. For auditability, judge prompts, model versions, seeds, and rationales should be stored, and inter-rater reliability (e.g., Krippendorff's $\alpha$) should be reported.
+
+\subsubsection{Quantifying LLM-as-Judge Biases}\index{LLM-as-judge!bias}
+Empirical studies have identified several systematic biases in model-graded evaluation that practitioners must account for:
+
+\begin{itemize}
+    \item \textbf{Position bias} (approximately 10--15\% score variance): when comparing two answers, judge models systematically prefer the answer presented first (or second, depending on the model). Randomizing presentation order and averaging scores across orderings reduces this effect but does not eliminate it entirely.
+    \item \textbf{Verbosity bias}: longer, more detailed responses receive higher scores even when the additional content is redundant or tangential. This can be mitigated by including explicit rubric criteria that penalize unnecessary verbosity and by normalizing scores by response length.
+    \item \textbf{Self-enhancement bias}: models tend to rate their own outputs higher than outputs from other models, particularly when the judge and the candidate share the same base architecture. Using a different model family for judging, or employing multiple judges from different providers, reduces this confound.
+\end{itemize}
+
+\subsubsection{Judge Calibration Protocol}
+To ensure that model-graded scores are meaningful and stable, teams should implement a calibration protocol before relying on LLM-as-judge in CI gates:
+
+\begin{enumerate}
+    \item \textbf{Anchor set construction.} Assemble a set of 50--200 examples with known quality levels: clearly good examples (human-validated, factually correct, well-cited), clearly bad examples (hallucinated, off-topic, unsafe), and borderline cases. Human annotators should independently score these examples using the same rubric the judge will use.
+    \item \textbf{Judge scoring.} Run the judge model on the anchor set, recording scores, rationales, and confidence signals. Use identical prompting and decoding parameters that will be used in CI.
+    \item \textbf{Correlation analysis.} Compute Pearson or Spearman correlation between judge scores and human scores. A correlation below 0.7 indicates that the rubric or judge model needs adjustment. Report Krippendorff's $\alpha$ or Cohen's $\kappa$ for inter-rater reliability.
+    \item \textbf{Rubric refinement.} If correlation is insufficient, adjust the scoring rubric: add explicit criteria, provide more exemplars in the judge prompt, or switch to a more capable judge model. Re-run until correlation exceeds the threshold.
+    \item \textbf{Periodic re-calibration.} Schedule quarterly re-calibration against fresh human annotations to detect judge drift caused by model version updates or distribution shifts in production traffic.
+\end{enumerate}
+
+\PitfallBox{Over-reliance on model-graded evaluation can create a false sense of quality assurance. LLM judges share systematic biases (position, verbosity, self-enhancement) that can inflate scores by 10--15\% on specific answer types. Never use a single judge model as the sole arbiter of quality in CI gates. Instead, triangulate with classical metrics (ROUGE, exact match), multiple judge models from different providers, and periodic human calibration. Treat judge scores as scalable \emph{signals}, not ground truth---and always report the calibration correlation alongside evaluation results so reviewers can assess confidence.}
 
 \subsection{Evaluating Groundedness and Hallucination in RAG Systems}
 In RAG systems, evaluation must specifically address groundedness. This requires operationalizing three dimensions: context relevance (did retrieval bring the right material?), answer relevance (does the response address the question?), and answer faithfulness (is the response supported by the retrieved evidence?). Emerging frameworks such as RAGAS and ARES formalize reference-free and reference-light metrics, while annotated corpora like RAGTruth enable supervised training of hallucination detectors \cite{ragas,ares,ragtruth}. A best practice is to combine these model-graded scores with retrieval metrics such as hit rate, MRR, or NDCG, and to monitor attribution fidelity through overlap of evidence spans and citations.
@@ -590,55 +590,156 @@ def mcnemar_test(
     )
 
 def evaluate_ci_gate(
-    groundedness_baseline: List[float],
-    groundedness_candidate: List[float],
-    toxicity_baseline: List[bool],
-    toxicity_candidate: List[bool]
-) -> Tuple[GateResult, GateResult]:
+    metrics: Dict[str, Dict],
+    config: Optional[Dict] = None
+) -> Dict[str, GateResult]:
     """
-    Evaluate both gates and return results.
-    
+    Evaluate multiple CI gates with configurable metric types.
+
+    Supports three metric comparison modes:
+      - "exact_match": binary pass/fail per example
+      - "fuzzy_match": continuous scores with bootstrap
+      - "semantic_similarity": embedding-based comparison
+
+    Args:
+        metrics: Dict mapping metric names to their data:
+            {
+              "groundedness": {
+                "type": "fuzzy_match",
+                "baseline": [...], "candidate": [...],
+                "threshold": 0.5, "confidence": 0.95
+              },
+              "toxicity": {
+                "type": "exact_match",
+                "baseline": [...], "candidate": [...],
+                "alpha": 0.05
+              },
+              "semantic_coherence": {
+                "type": "semantic_similarity",
+                "baseline": [...], "candidate": [...],
+                "threshold": 0.02
+              }
+            }
+        config: Optional global config overrides
+
     Returns:
-        Tuple of (groundedness_result, toxicity_result)
+        Dict mapping metric names to GateResult objects
+
+    Raises:
+        ValueError: If metric type is unknown or data invalid
     """
-    groundedness_result = paired_bootstrap_test(
-        groundedness_baseline,
-        groundedness_candidate,
-        min_improvement=0.5
-    )
-    
-    toxicity_result = mcnemar_test(
-        toxicity_baseline,
-        toxicity_candidate
-    )
-    
-    return groundedness_result, toxicity_result
+    results: Dict[str, GateResult] = {}
+
+    for name, spec in metrics.items():
+        metric_type = spec.get("type", "fuzzy_match")
+        baseline = spec.get("baseline", [])
+        candidate = spec.get("candidate", [])
+
+        if not baseline or not candidate:
+            raise ValueError(
+                f"Metric '{name}': baseline and candidate "
+                f"data must be non-empty"
+            )
+        if len(baseline) != len(candidate):
+            raise ValueError(
+                f"Metric '{name}': baseline ({len(baseline)}) "
+                f"and candidate ({len(candidate)}) length mismatch"
+            )
+
+        try:
+            if metric_type == "exact_match":
+                # Binary flags: use McNemar's test
+                result = mcnemar_test(
+                    baseline, candidate,
+                    alpha=spec.get("alpha", 0.05)
+                )
+            elif metric_type == "fuzzy_match":
+                # Continuous scores: use paired bootstrap
+                result = paired_bootstrap_test(
+                    baseline, candidate,
+                    confidence_level=spec.get("confidence", 0.95),
+                    min_improvement=spec.get("threshold", 0.5)
+                )
+            elif metric_type == "semantic_similarity":
+                # Embedding similarity: bootstrap on cosine diffs
+                result = paired_bootstrap_test(
+                    baseline, candidate,
+                    confidence_level=spec.get("confidence", 0.95),
+                    min_improvement=spec.get("threshold", 0.02)
+                )
+            else:
+                raise ValueError(
+                    f"Unknown metric type '{metric_type}' "
+                    f"for metric '{name}'"
+                )
+
+            # Override metric name from config key
+            result.metric_name = name
+            results[name] = result
+
+        except Exception as e:
+            # Return a failing gate on error
+            results[name] = GateResult(
+                passed=False,
+                metric_name=name,
+                baseline_mean=0.0,
+                candidate_mean=0.0,
+                improvement=0.0,
+                confidence_interval=(0.0, 0.0),
+                p_value=None,
+                message=f"ERROR: {str(e)}"
+            )
+
+    return results
+
+def summarize_gate_results(
+    results: Dict[str, GateResult]
+) -> Tuple[bool, str]:
+    """
+    Summarize all gate results into an overall decision.
+
+    Returns:
+        Tuple of (overall_passed, summary_message)
+    """
+    overall = all(r.passed for r in results.values())
+    lines = []
+    for name, r in results.items():
+        status = "PASS" if r.passed else "FAIL"
+        lines.append(f"  [{status}] {name}: {r.message}")
+
+    summary = "\n".join(lines)
+    return overall, summary
 
 # Example usage
 if __name__ == "__main__":
-    # Simulated evaluation results
-    groundedness_baseline = [0.82, 0.85, 0.79, 0.88, ...]  # 1000 scores
-    groundedness_candidate = [0.87, 0.89, 0.84, 0.91, ...]  # 1000 scores
-    
-    toxicity_baseline = [False, False, True, False, ...]  # 1000 flags
-    toxicity_candidate = [False, False, False, False, ...]  # 1000 flags
-    
-    groundedness_result, toxicity_result = evaluate_ci_gate(
-        groundedness_baseline,
-        groundedness_candidate,
-        toxicity_baseline,
-        toxicity_candidate
-    )
-    
-    print(f"Groundedness gate: {'PASSED' if groundedness_result.passed else 'FAILED'}")
-    print(f"  {groundedness_result.message}")
-    
-    print(f"Toxicity gate: {'PASSED' if toxicity_result.passed else 'FAILED'}")
-    print(f"  {toxicity_result.message}")
-    
-    # Overall gate decision
-    overall_passed = groundedness_result.passed and toxicity_result.passed
-    print(f"\nOverall CI gate: {'PASSED' if overall_passed else 'FAILED'}")
+    # Define metrics with types and thresholds
+    gate_metrics = {
+        "groundedness": {
+            "type": "fuzzy_match",
+            "baseline": [0.82, 0.85, 0.79, 0.88],  # 1000 scores
+            "candidate": [0.87, 0.89, 0.84, 0.91],
+            "threshold": 0.5,
+            "confidence": 0.95
+        },
+        "toxicity": {
+            "type": "exact_match",
+            "baseline": [False, False, True, False],  # 1000 flags
+            "candidate": [False, False, False, False],
+            "alpha": 0.05
+        },
+        "semantic_coherence": {
+            "type": "semantic_similarity",
+            "baseline": [0.91, 0.89, 0.93, 0.87],
+            "candidate": [0.93, 0.91, 0.94, 0.90],
+            "threshold": 0.02
+        }
+    }
+
+    results = evaluate_ci_gate(gate_metrics)
+    overall, summary = summarize_gate_results(results)
+
+    print(summary)
+    print(f"\nOverall CI gate: {'PASSED' if overall else 'FAILED'}")
 \end{lstlisting}
 \end{llmlistingbox}
 
@@ -668,12 +769,167 @@ Prompt robustness evaluation extends beyond task prompts to system-level instruc
 
 The overall workflow thus becomes a cycle of targeted adaptation balanced by systematic evaluation. Fine-tuning should not be treated as a one-off event but rather as an iterative process embedded within the CI/CD pipeline: data is curated, models are tuned with parameter-efficient methods when possible, evaluation suites are executed across multiple slices, and results are logged and compared against both domain and general baselines. This perspective reflects the growing consensus that fine-tuning is as much an operational discipline as it is a modeling technique, requiring careful instrumentation, governance, and continuous monitoring.
 
+\section{CI/CD for Fine-Tuned Models}\index{fine-tuning!CI/CD}\index{LoRA!evaluation gates}
+\label{sec:ch04-finetuning-cicd}
+
+When organizations adopt parameter-efficient fine-tuning methods such as LoRA (Low-Rank Adaptation), the CI/CD pipeline must evolve to accommodate a new class of release artifacts: adapter weights. Unlike full model updates, LoRA adapters are small delta files layered on top of a frozen base model, making them fast to train and deploy---but they still carry the same risks of behavioral regression, safety drift, and prompt–evaluation coupling that full fine-tunes do. This section describes the evaluation gates, prompt versioning practices, and pipeline integration patterns needed to ship adapter updates safely.
+
+\subsection{LoRA Update Evaluation Gates}
+\label{subsec:ch04-lora-eval-gates}
+
+Every LoRA adapter update must pass through a series of evaluation gates before it is promoted to production. These gates are designed to catch regressions that are unique to adapter-based fine-tuning, where narrow domain gains can mask broader capability losses.
+
+\begin{enumerate}
+    \item \textbf{Baseline regression tests.}\index{regression testing!LoRA} Before any domain-specific evaluation, the candidate adapter is tested against a general-capability benchmark suite (e.g., a curated subset of MMLU, HellaSwag, or internal reasoning tasks). The goal is to verify that fine-tuning has not degraded the base model's general reasoning, instruction following, or safety behaviors---a phenomenon known as \emph{catastrophic forgetting}. The gate requires that no metric drops by more than a pre-registered threshold (e.g., 1\% absolute on accuracy) relative to the base model without the adapter.
+
+    \item \textbf{Domain-specific evaluation suite.} The adapter is then evaluated on the domain datasets it was trained to improve. These suites should be stratified by difficulty, topic, and risk level, with slice-level reporting. For \ishtar{}, domain slices include conflict-zone reporting, NGO bulletins, and high-stakes policy summaries. Promotion requires statistically significant improvement on the target domain (paired bootstrap, 95\% CI excluding zero) without degradation on adjacent domains.
+
+    \item \textbf{Safety regression check.} Fine-tuning can subtly shift the model's refusal boundaries and toxicity profile. A dedicated safety gate runs adversarial probes (jailbreak attempts, toxic completion prompts, PII extraction scenarios) and compares incident rates against the previous adapter version using McNemar's test at $\alpha = 0.05$. Any statistically significant increase in safety violations blocks promotion.
+
+    \item \textbf{Comparison against previous adapter version.} The candidate adapter is evaluated side-by-side with the currently deployed adapter on the same evaluation sets. This paired comparison prevents ``version drift,'' where incremental improvements against the base model mask regressions relative to the prior production adapter. Reports include per-slice deltas with confidence intervals.
+\end{enumerate}
+
+\subsection{Prompt Versioning Impact on Evaluations}
+\label{subsec:ch04-prompt-versioning-impact}
+
+Prompt templates and LoRA adapters are tightly coupled: changing a prompt can invalidate evaluation results obtained with a previous prompt version, and vice versa. Managing this coupling is critical for reproducible CI/CD.
+
+\medskip
+\noindent\textbf{Prompt--evaluation coupling.} A LoRA adapter trained with prompt template v1.3 may perform differently under prompt template v1.4, even if neither artifact changed in isolation. Evaluation results are therefore valid only for the specific \emph{(adapter, prompt)} pair under which they were obtained. CI pipelines must track and enforce this pairing: an evaluation report should record both the adapter version and the prompt template version used, and promotion gates should reject results produced with mismatched versions.
+
+\medskip
+\noindent\textbf{Prompt versioning strategy.} Adopt semantic versioning for prompt templates, following the convention established in Section~\ref{sec:cicd-structured-prompt-testing}:
+\begin{itemize}
+    \item \textbf{Major version} (breaking): changes to system message structure, output schema, or safety guardrails that require adapter re-evaluation.
+    \item \textbf{Minor version}: additions to few-shot examples, formatting refinements, or expanded instructions that may affect quality but do not break compatibility.
+    \item \textbf{Patch version}: typo fixes, whitespace normalization, or comment-only changes with no behavioral impact.
+\end{itemize}
+Major prompt version bumps should trigger mandatory re-evaluation of all active adapters. Minor bumps should trigger re-evaluation if the adapter's domain overlaps with the changed prompt sections.
+
+\medskip
+\noindent\textbf{Automated re-evaluation triggers.}\index{prompt versioning} When a prompt template change is merged, the CI pipeline should automatically determine whether dependent adapters need re-evaluation. A practical implementation maintains a dependency graph: each adapter declares which prompt template versions it has been validated against. When a prompt template is updated beyond a patch version, the pipeline enqueues re-evaluation jobs for all adapters that depend on that template, blocking their deployment until fresh evaluation results confirm continued compliance with promotion criteria.
+
+\subsection{Fine-Tuning Pipeline Integration}
+\label{subsec:ch04-finetune-pipeline}
+
+Listing~\ref{lst:ch04_lora_eval_pipeline} shows a CI pipeline stage that evaluates a LoRA adapter against all four gates before permitting promotion.
+
+\begin{llmlistingbox}{CI pipeline stage for LoRA adapter evaluation}
+\label{lst:ch04_lora_eval_pipeline}
+\begin{lstlisting}[language=Python, style=springer]
+#!/usr/bin/env python3
+"""
+CI pipeline stage: LoRA adapter evaluation gates.
+Runs baseline regression, domain-specific, safety, and
+version-comparison checks before adapter promotion.
+"""
+from dataclasses import dataclass
+from typing import Dict, List, Optional
+import json
+
+@dataclass
+class AdapterEvalResult:
+    gate_name: str
+    passed: bool
+    metrics: Dict[str, float]
+    details: str
+
+def evaluate_lora_adapter(
+    adapter_path: str,
+    base_model: str,
+    prompt_template_version: str,
+    previous_adapter_path: Optional[str] = None,
+) -> List[AdapterEvalResult]:
+    """Run all four evaluation gates for a LoRA adapter."""
+    results = []
+
+    # Gate 1: Baseline regression (general capabilities)
+    baseline_metrics = run_general_benchmarks(
+        base_model, adapter_path, prompt_template_version,
+        datasets=["mmlu_subset", "hellaswag_subset", "reasoning_v2"]
+    )
+    max_drop = max(
+        base - cand
+        for base, cand in zip(
+            baseline_metrics["base_scores"],
+            baseline_metrics["adapter_scores"]
+        )
+    )
+    results.append(AdapterEvalResult(
+        gate_name="baseline_regression",
+        passed=max_drop <= 0.01,  # 1% absolute threshold
+        metrics=baseline_metrics["summary"],
+        details=f"Max drop: {max_drop:.4f} (threshold: 0.01)"
+    ))
+
+    # Gate 2: Domain-specific evaluation
+    domain_metrics = run_domain_evaluation(
+        base_model, adapter_path, prompt_template_version,
+        slices=["conflict_reports", "ngo_bulletins", "policy"]
+    )
+    ci_excludes_zero = domain_metrics["bootstrap_ci_lower"] > 0
+    results.append(AdapterEvalResult(
+        gate_name="domain_specific",
+        passed=ci_excludes_zero,
+        metrics=domain_metrics["per_slice"],
+        details=f"CI: [{domain_metrics['bootstrap_ci_lower']:.3f}, "
+                f"{domain_metrics['bootstrap_ci_upper']:.3f}]"
+    ))
+
+    # Gate 3: Safety regression check
+    safety_metrics = run_safety_probes(
+        base_model, adapter_path, prompt_template_version,
+        suites=["jailbreak_v2", "toxic_completions", "pii_extraction"]
+    )
+    results.append(AdapterEvalResult(
+        gate_name="safety_regression",
+        passed=safety_metrics["mcnemar_p"] > 0.05,
+        metrics=safety_metrics["incident_rates"],
+        details=f"McNemar p={safety_metrics['mcnemar_p']:.4f}"
+    ))
+
+    # Gate 4: Comparison vs. previous adapter
+    if previous_adapter_path:
+        comparison = run_paired_comparison(
+            base_model, adapter_path, previous_adapter_path,
+            prompt_template_version
+        )
+        results.append(AdapterEvalResult(
+            gate_name="version_comparison",
+            passed=comparison["no_regression"],
+            metrics=comparison["deltas"],
+            details=comparison["summary"]
+        ))
+
+    return results
+
+def promotion_decision(results: List[AdapterEvalResult]) -> bool:
+    """All gates must pass for promotion."""
+    all_passed = all(r.passed for r in results)
+    for r in results:
+        status = "PASS" if r.passed else "FAIL"
+        print(f"  [{status}] {r.gate_name}: {r.details}")
+    return all_passed
+\end{lstlisting}
+\end{llmlistingbox}
+
+\BestPracticeBox{
+\textbf{Key principles for fine-tuning CI/CD:}
+\begin{itemize}[leftmargin=1.5em, itemsep=3pt]
+    \item Always evaluate adapters against both domain-specific and general-capability benchmarks to catch catastrophic forgetting early.
+    \item Track prompt--adapter version pairs explicitly; invalidate stale evaluation results when either artifact changes.
+    \item Use semantic versioning for prompt templates and automate re-evaluation triggers on version bumps.
+    \item Gate promotion on statistical tests (paired bootstrap for continuous metrics, McNemar for binary safety flags), not on point estimates.
+    \item Archive adapter weights, evaluation reports, prompt versions, and training data references as a single auditable promotion artifact.
+\end{itemize}
+}
+
 \section{Deployment Strategies: Canary, Blue-Green, and Rollback}\index{deployment!strategy}\index{canary deployment}\index{blue-green deployment}\index{rollback}
 \label{sec:cicd-deploy-strategies}
 \subsection{Progressive Delivery Controllers for Kubernetes}
 For Kubernetes-native rollouts, progressive delivery controllers provide first-class primitives for canary and blue-green releases, traffic shifting, and automated analysis gates. Argo Rollouts is a widely used controller that extends standard \texttt{Deployment} behavior with canary and blue-green strategies, experiments, and metric-based promotion/rollback hooks \cite{argo_rollouts_overview,argo_rollouts_canary,argo_rollouts_bluegreen}. For LLM services, these controllers are particularly valuable because they can couple release progression to LLM-specific guardrails (e.g., eval pass rates, tool-call success, safety-trigger rates) rather than only CPU/memory health.
 
-Deploying LLMs requires staged risk mitigation:
+Deploying LLMs requires staged risk mitigation, as outlined in Table~\ref{tab:ch04_deployment_risk_mitigation}:
 
 \begin{table}[t]
 \centering
@@ -962,6 +1218,8 @@ Modern observability platforms bridge CI/CD with runtime monitoring. They provid
   \item \textbf{LangGraph:} Explicit graph-based agent orchestration with LangFuse/LangSmith integration for dependency testing.
   \item \textbf{Other tools:} TruLens, Ragas, and PromptLayer provide prompt/version tracking, RAG-focused evaluation, and explainability metrics.
 \end{itemize}
+
+Table~\ref{tab:ch04_obs_tools} compares these observability tools and their roles in CI/CD workflows.
 \end{tcolorbox}
 
 \begin{table}[t]

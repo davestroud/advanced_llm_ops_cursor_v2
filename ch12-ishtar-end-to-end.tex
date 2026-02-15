@@ -45,48 +45,6 @@ This chapter synthesizes all book methods into an end-to-end LLMOps implementati
 \end{itemize}
 \end{tcolorbox}
 
-% Define llmlisting counter and environment if not already defined
-\makeatletter
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{%
-  \renewenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}
-\makeatother
 
 \section{Introduction}
 \label{sec:ch12-introduction}
@@ -646,6 +604,33 @@ Dashboards are built in Grafana to visualize both system-level KPIs and semantic
     \item ingestion lag beyond freshness budgets.
 \end{itemize}
 
+\subsection{On-call runbook}
+\label{sec:ishtar-runbook}
+
+Table~\ref{tab:ch12_runbook} codifies the most common \ishtar{} incidents into a structured runbook\index{runbook}\index{incident response!runbook} that on-call engineers can follow to detect, diagnose, resolve, and prevent recurrence.
+
+\begin{table}[t]
+\centering
+\small
+\caption{On-call runbook for common \ishtar{} incidents. Each row provides a structured response path from detection signal to prevention strategy, enabling rapid and consistent incident handling.}
+\label{tab:ch12_runbook}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{20mm}>{\raggedright\arraybackslash}p{20mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{22mm}@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Incident} & \textbf{Detection} & \textbf{Diagnosis} & \textbf{Resolution} & \textbf{Prevention} \\
+\midrule
+Retrieval failure (no relevant docs) & Faithfulness $< 0.5$ & Check index status, embedding model version, source freshness & Re-index corpus; verify embedding pipeline; restore from snapshot & Automated freshness checks; index health probes \\
+LLM timeout & TTFT $> 5$\,s & Check GPU utilization, inference queue depth, prompt length & Scale up GPU nodes; drain queue; reduce batch size & Autoscaling thresholds; prompt length budgets \\
+Safety filter false positive & High rejection rate ($>15\%$) & Review blocked examples; check filter version and thresholds & Tune filter sensitivity; add allowlist entries & Regular filter calibration with domain experts \\
+Citation hallucination & Source verification fails in audit & Trace retrieval pipeline; check reranker output & Fix retrieval ranking; add citation validation gate & Automated citation-entailment checks \\
+Cost spike & \$/hour $> 2\times$ baseline & Check token usage by route; identify cache misses & Rate-limit high-cost routes; optimize prompts; enable caching & Budget alerts; per-route cost dashboards \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \subsection{Change management for a socio-technical system}
 \label{sec:ishtar-change-mgmt}
 
@@ -728,7 +713,7 @@ The system is designed to support human judgment by surfacing evidence and uncer
 With the system fully implemented, we evaluate performance across latency, quality, and operational dimensions.
 Representative outcomes in the \ishtar{} deployment include:
 
-Table~\ref{tab:ch12_ishtar_outcomes} summarizes representative outcomes observed after full operationalization.
+Table~\ref{tab:ch12_ishtar_metrics} summarizes representative outcomes observed after full operationalization.
 These values are deployment-specific and should be interpreted as \emph{illustrative targets} rather than universal guarantees.
 
 \begin{table}[t]
@@ -757,6 +742,59 @@ Deployment cadence & $\sim$2/week & Evaluation-gated releases; no rollbacks in t
 \end{tabularx}
 \end{table}
 
+\subsection{Metrics evolution across deployment phases}
+\label{sec:ishtar-metrics-evolution}
+
+Fig.~\ref{fig:ch12_metrics_trend} shows how key metrics evolved as \ishtar{} progressed through successive deployment phases.\index{metrics!trend analysis} Each phase introduced an operational improvement---RAG integration, evaluation gates, autoscaling, monitoring, and full production hardening---and the cumulative effect is visible in both latency reduction and accuracy improvement.
+
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.92\linewidth,
+    height=6.5cm,
+    xlabel={Deployment Phase},
+    ylabel={Latency (ms)},
+    axis y line*=left,
+    ymin=500, ymax=3500,
+    xtick={1,2,3,4,5,6},
+    xticklabels={Baseline,{+RAG},{+Eval\\Gates},{+Auto-\\scaling},{+Moni-\\toring},{Full\\Prod.}},
+    xticklabel style={font=\footnotesize, align=center},
+    ylabel style={font=\small, color=blue!70!black},
+    tick label style={font=\footnotesize},
+    legend style={at={(0.5,-0.28)}, anchor=north, legend columns=2, font=\footnotesize},
+    grid=major,
+    grid style={gray!20},
+    every axis plot/.append style={thick, mark size=2.5pt},
+]
+\addplot[color=blue!70!black, mark=square*, mark options={fill=blue!50}]
+    coordinates {(1,3200) (2,2400) (3,2200) (4,1600) (5,1400) (6,1100)};
+\addlegendentry{p90 Latency (ms)}
+\end{axis}
+\begin{axis}[
+    width=0.92\linewidth,
+    height=6.5cm,
+    axis y line*=right,
+    axis x line=none,
+    ylabel={Accuracy (\%)},
+    ymin=55, ymax=100,
+    xtick={1,2,3,4,5,6},
+    ylabel style={font=\small, color=red!70!black},
+    tick label style={font=\footnotesize},
+    legend style={at={(0.5,-0.38)}, anchor=north, legend columns=2, font=\footnotesize},
+    every axis plot/.append style={thick, mark size=2.5pt},
+]
+\addplot[color=red!70!black, mark=triangle*, mark options={fill=red!50}]
+    coordinates {(1,62) (2,78) (3,83) (4,85) (5,89) (6,93)};
+\addlegendentry{Accuracy (\%)}
+\end{axis}
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Evolution of key \ishtar{} metrics across deployment phases. Latency (left axis, blue) decreases as infrastructure optimizations and autoscaling are introduced; accuracy (right axis, red) increases as RAG, evaluation gates, and monitoring drive iterative quality improvements. Each deployment phase contributes measurable gains, illustrating the cumulative benefit of systematic LLMOps practices.}
+\label{fig:ch12_metrics_trend}
+\end{figure}
+
 \subsection{Latency and throughput}
 In a representative deployment, retrieval latency remains in the $\sim$50--100\,ms range for vector search plus reranking at million-scale indices, while LLM inference dominates end-to-end time.
 Optimized serving engines (vLLM/TGI) reduce TTFT\index{TTFT} and improve throughput\index{throughput} (Chapters~\ref{ch:performance} and~\ref{ch:scaling}).
@@ -769,50 +807,60 @@ Verification flags a minority of answers for correction or explicit uncertainty;
 With autoscaling and microservice isolation, availability targets are achievable even under bursty demand.
 Cost-per-query is tracked continuously and informs routing and capacity decisions; non-critical workloads downscale aggressively off-peak.
 
+\paragraph{Cost breakdown by component.}\index{cost!breakdown}
+Table~\ref{tab:ch12_cost_breakdown} provides an illustrative cost breakdown for \ishtar{} in a representative monthly operating window. These figures are approximate and vary with traffic volume, model choice, and infrastructure provider; the key insight is the relative allocation across components and the optimization levers available at each tier.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Illustrative cost breakdown by component for \ishtar{} at steady-state operation. LLM inference dominates total cost; optimization levers exist at every tier to reduce spend without compromising quality.}
+\label{tab:ch12_cost_breakdown}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{30mm}>{\raggedright\arraybackslash}p{18mm}>{\raggedright\arraybackslash}p{20mm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Component} & \textbf{\% of Total} & \textbf{Monthly Est.} & \textbf{Optimization Lever} \\
+\midrule
+LLM Inference & 55\% & \$4{,}400 & Quantization, KV-cache optimization, prompt compression, model routing \\
+Retrieval (embeddings + search) & 20\% & \$1{,}600 & Index optimization, embedding caching, smaller embedding models \\
+Safety / verification pipeline & 10\% & \$800 & Smaller judge models, classifier cascades, sampling-based verification \\
+Infrastructure (K8s, storage) & 10\% & \$800 & Right-sizing, spot instances, scale-to-zero for non-critical services \\
+Monitoring / observability & 5\% & \$400 & Sampling strategies, log retention policies, metric aggregation \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 % ---------------------------------------------------------------------
 \section{Lessons learned}
 \label{sec:ishtar-lessons}
 
-Implementing \ishtar{} end-to-end yielded lessons that generalize to other production LLM systems:
+Implementing \ishtar{} end-to-end yielded lessons that generalize to other production LLM systems.\index{lessons learned} We consolidate them into eight themes.
 
-\begin{itemize}
-    \item \textbf{Design for adaptability:} crisis contexts change rapidly; data and prompts must evolve safely.
-    \item \textbf{Observability is non-negotiable:} without traces and semantic metrics, failures cannot be debugged.
-    \item \textbf{Ethics must be architectural:} safety controls must be embedded, not bolted on.
-\end{itemize}
+\paragraph{1.\ Data quality is the foundation.}
+RAG amplifies the impact of ingestion quality: noisy or duplicated data pollutes retrieval and degrades faithfulness. Early investment in cleaning, normalization, and source curation yields downstream gains across every metric.
 
-\subsubsection{Data quality is paramount}
-RAG amplifies the impact of ingestion quality: noisy or duplicated data pollutes retrieval and degrades faithfulness.
-Early investment in cleaning, normalization, and source curation yields downstream gains.
+\paragraph{2.\ Modular architecture enables velocity and safety.}
+Clear interfaces between ingestion, retrieval, serving, and agents allow independent iteration, safer component swaps, and parallel team development. Modularity also reduces vendor lock-in as serving engines and vector databases evolve rapidly---FAISS offers speed with engineering overhead for metadata, while managed vector DBs\index{vector database} trade cost for operational simplicity.
 
-\subsubsection{Modular architecture enables parallel work}
-Clear interfaces (ingestion, retrieval, serving, agents) allow independent iteration and safer component swaps.
+\paragraph{3.\ Prompts and configurations require governance.}
+Minor prompt edits can cause major regressions (e.g., dropped citations). Treat prompts as code: version, test, canary, and rollback. The same discipline applies to retrieval parameters, tool permissions, and safety thresholds.
 
-\subsubsection{Prompts require governance}
-Minor prompt edits can cause major regressions (e.g., dropped citations).
-Treat prompts as code: version, test, canary, and rollback.
+\paragraph{4.\ Observability is non-negotiable.}
+Multi-stage systems demand fine-grained attribution: is latency caused by retrieval, inference queueing, or verification loops? Without traces and semantic quality metrics, failures cannot be debugged and regressions go unnoticed.
 
-\subsubsection{Monitoring and tracing are indispensable}
-Multi-stage systems demand fine-grained attribution: is latency caused by retrieval, inference queueing, or verification loops?
+\paragraph{5.\ Agentic verification improves quality but increases complexity.}
+Multi-agent verification substantially reduces hallucinations and improves citation fidelity, but only if end-to-end tests cover inter-agent failure modes and citation consistency. Teams must budget for this additional testing surface.
 
-\subsubsection{5.\ Agentic verification improves quality but increases complexity.}
-The benefit is substantial, but only if end-to-end tests cover inter-agent failure modes and citation consistency.
+\paragraph{6.\ User-facing design drives trust.}
+Citations, calibrated uncertainty, and consistent tone matter as much as raw correctness. Users judge the system on perceived reliability, not internal accuracy scores.
 
-\subsubsection{6.\ User interaction drives trust.}
-Citations, calibrated uncertainty, and consistent tone matter as much as raw correctness.
+\paragraph{7.\ Continuous improvement is the default mode.}
+Deployment begins the iterative loop: production feedback, audits, and domain-expert review should directly drive backlog prioritization. Every incident should produce a regression test; every user complaint should inform evaluation criteria.
 
-\subsubsection{7.\ Continuous improvement is the default mode.}
-Deployment begins the iterative loop: feedback signals and audits should directly drive backlog prioritization.
-
-\subsubsection{8.\ Tech-stack choices are trade-offs.}
-FAISS offers speed with engineering overhead for metadata; managed vector DBs\index{vector database} trade cost for operational simplicity.
-Serving engines evolve quickly; modularity reduces lock-in.
-
-\subsubsection{9.\ Domain expertise is required.}
-Journalistic norms and domain review identify subtle failures (framing, missing context) that automated metrics miss.
-
-\subsubsection{10.\ Ethical vigilance is ongoing.}
-Policies and filters require continuous calibration to avoid both under- and over-blocking.
+\paragraph{8.\ Domain expertise and ethical vigilance are ongoing requirements.}
+Journalistic norms and domain review identify subtle failures (framing, missing context) that automated metrics miss. Safety policies and filters require continuous calibration to avoid both under- and over-blocking. Design for adaptability: crisis contexts change rapidly, and the system must evolve safely.
 
 \subsection{End-to-end checklist}
 \label{sec:ishtar-checklist}

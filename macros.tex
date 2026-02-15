@@ -124,6 +124,55 @@
   \par\addvspace{12pt}%
 }
 
+% ----------------------------
+% Numbered listing and algorithm boxes
+% (Centralized here; previously duplicated per chapter.)
+% ----------------------------
+\makeatletter
+\@ifundefined{c@llmalgorithm}{%
+  \newcounter{llmalgorithm}[chapter]
+  \renewcommand{\thellmalgorithm}{\thechapter.\arabic{llmalgorithm}}
+}{}
+\@ifundefined{c@llmlisting}{%
+  \newcounter{llmlisting}[chapter]
+  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
+}{}
+\@ifundefined{llmalgobox}{%
+  \newenvironment{llmalgobox}[1]{%
+    \refstepcounter{llmalgorithm}%
+    \begin{tcolorbox}[
+      title={\textbf{Algorithm \thellmalgorithm: #1}},
+      colback=gray!4,
+      colframe=gray!60!black,
+      colbacktitle=gray!20,
+      coltitle=black,
+      fonttitle=\bfseries,
+      boxrule=0.6pt,
+      arc=3pt,
+      left=3mm, right=3mm, top=2mm, bottom=2mm
+    ]
+  }{\end{tcolorbox}}%
+}{}
+\@ifundefined{llmlistingbox}{%
+  \newenvironment{llmlistingbox}[1]{%
+    \refstepcounter{llmlisting}%
+    \begin{tcolorbox}[
+      title={\textbf{Listing \thellmlisting: #1}},
+      colback=black!2,
+      colframe=black!50,
+      colbacktitle=black!12,
+      coltitle=black,
+      fonttitle=\bfseries,
+      boxrule=0.6pt,
+      arc=3pt,
+      left=3mm, right=3mm, top=2mm, bottom=4mm,
+      breakable,
+      after skip=6pt
+    ]
+  }{\end{tcolorbox}}%
+}{}
+\makeatother
+
 % --- Listings default style (production-safe) ---
 \lstdefinestyle{springer}{
   basicstyle=\ttfamily\small,

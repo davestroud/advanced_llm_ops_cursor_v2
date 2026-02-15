@@ -44,34 +44,6 @@ The chapter closes with benchmarking guidance and \ishtar{} case studies that co
 \end{itemize}
 \end{tcolorbox}
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\makeatother
 
 \section{Introduction}
 \label{sec:ch7-introduction}
@@ -93,6 +65,56 @@ Even the most advanced GPUs and cloud infrastructure have limits. Without optimi
 For \ishtar{}, performance bottlenecks directly translate to reduced utility and diminished trust among journalists relying on timely insights. Optimization is not a matter of premature tuning or vanity; it is often a prerequisite for \emph{viability}---\textit{can we afford to serve this model?}---and \emph{scalability}---\textit{can we handle more users or larger inputs without degradation?} In high-stakes applications, these questions are not theoretical. The answers determine whether the system meets its mission requirements in production.
 
 The following sections explore concrete strategies for optimization across three layers: \textbf{model-level techniques} (such as quantization, pruning, and knowledge distillation), \textbf{inference engine tuning} (including specialized runtimes, operator fusion, and memory management), and \textbf{system-level approaches} (like batching, caching, and concurrency tuning). Each layer offers distinct levers for improving throughput, reducing latency, and lowering cost---and when combined, they can transform an LLM deployment from barely sustainable to highly performant at scale.
+
+Fig.~\ref{fig:ch07_opt_pyramid} illustrates the four-layer optimization framework as a stacked pyramid, where broader, lower-effort techniques form the foundation and progressively specialized techniques build on top. Figure~\ref{fig:ch07_opt_gains_callout} summarizes practical gains achievable from common optimization techniques, while Figure~\ref{fig:ch07_latency_before_after} demonstrates the cumulative impact on latency percentiles.
+
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[font=\small]
+\definecolor{layer1}{RGB}{44,102,146}
+\definecolor{layer2}{RGB}{34,139,96}
+\definecolor{layer3}{RGB}{201,111,29}
+\definecolor{layer4}{RGB}{153,102,204}
+
+% Pyramid layers (bottom to top, widest to narrowest)
+\fill[layer1!20, draw=layer1!60, line width=0.8pt, rounded corners=2pt]
+  (-5.0, 0) -- (5.0, 0) -- (4.0, 1.6) -- (-4.0, 1.6) -- cycle;
+\fill[layer2!20, draw=layer2!60, line width=0.8pt, rounded corners=2pt]
+  (-4.0, 1.8) -- (4.0, 1.8) -- (3.0, 3.4) -- (-3.0, 3.4) -- cycle;
+\fill[layer3!20, draw=layer3!60, line width=0.8pt, rounded corners=2pt]
+  (-3.0, 3.6) -- (3.0, 3.6) -- (2.0, 5.2) -- (-2.0, 5.2) -- cycle;
+\fill[layer4!20, draw=layer4!60, line width=0.8pt, rounded corners=2pt]
+  (-2.0, 5.4) -- (2.0, 5.4) -- (1.2, 6.8) -- (-1.2, 6.8) -- cycle;
+
+% Layer labels (centered in each trapezoid)
+\node[font=\small\bfseries, text=layer1!80!black] at (0, 0.8)
+  {Layer 1: Infrastructure \& Hardware Selection};
+\node[font=\small\bfseries, text=layer2!80!black] at (0, 2.6)
+  {Layer 2: Model Compression \& Quantization};
+\node[font=\small\bfseries, text=layer3!80!black] at (0, 4.4)
+  {Layer 3: Inference Engine Optimization};
+\node[font=\small\bfseries, text=layer4!80!black] at (0, 6.1)
+  {Layer 4: Application-Level};
+
+% Annotations (right side)
+\node[anchor=west, text width=4.5cm, font=\footnotesize, text=layer1!70!black]
+  at (5.3, 0.8) {GPU/TPU selection, cloud instance sizing, multi-GPU topology};
+\node[anchor=west, text width=4.5cm, font=\footnotesize, text=layer2!70!black]
+  at (4.3, 2.6) {INT8/FP8 quantization, pruning, distillation, LoRA adapters};
+\node[anchor=west, text width=4.5cm, font=\footnotesize, text=layer3!70!black]
+  at (3.3, 4.4) {Kernel fusion, FlashAttention, KV-cache paging, continuous batching};
+\node[anchor=west, text width=4.5cm, font=\footnotesize, text=layer4!70!black]
+  at (2.3, 6.1) {Prompt optimization, RAG compression, caching, speculative decoding};
+
+% Arrow indicating effort/impact
+\draw[-Stealth, thick, gray!60] (-6.0, 0) -- (-6.0, 7.0);
+\node[rotate=90, font=\footnotesize\bfseries, gray!70] at (-6.5, 3.5) {Increasing specialization \& effort};
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Four-layer optimization pyramid organizes techniques by scope and effort. The base layer (infrastructure) provides the broadest leverage with the least model-specific effort; each successive layer adds more targeted optimizations. Teams should build upward: ensure the lower layers are well-tuned before investing in higher-layer techniques, as gains compound multiplicatively across layers.}
+\label{fig:ch07_opt_pyramid}
+\end{figure}
 
 \begin{figure}[t]
 \centering
@@ -261,7 +283,7 @@ Lower numerical precision also enables the use of specialized hardware instructi
 \end{itemize}
 \end{tcolorbox}
 
-In modern LLMOps, 8-bit quantization is widely adopted for inference, and research into 4-bit or mixed-precision quantization is rapidly advancing. Recent advances like SmoothQuant \cite{Xiao2023SmoothQuant} and AWQ \cite{Lin2023AWQ} demonstrate that even aggressive low-bit quantization can maintain model accuracy by intelligently rescaling weights or retaining outlier features in higher precision; GPTQ provides a practical post-training path for 4-bit quantization with strong results \cite{Frantar2023GPTQ}. With newer hardware (e.g., NVIDIA H100 GPUs) supporting FP8 arithmetic natively \cite{NVIDIA2023Hopper}, practitioners should experiment with different quantization levels and observe their impact on both speed and task-specific accuracy before committing to a deployment strategy. Additionally, some frameworks mix precisions (combining FP16, FP8, INT8 in different layers) to balance speed and accuracy, tuning each layer's precision for minimal quality impact.
+In modern LLMOps, 8-bit quantization is widely adopted for inference, and research into 4-bit or mixed-precision quantization is rapidly advancing. Recent advances like SmoothQuant \cite{Xiao2023SmoothQuant} and AWQ \cite{Lin2023AWQ} demonstrate that even aggressive low-bit quantization can maintain model accuracy by intelligently rescaling weights or retaining outlier features in higher precision; GPTQ provides a practical post-training path for 4-bit quantization with strong results \cite{Frantar2023GPTQ}. With newer hardware (e.g., NVIDIA H100 GPUs) supporting FP8 arithmetic natively \cite{NVIDIA2023Hopper}, practitioners should experiment with different quantization levels and observe their impact on both speed and task-specific accuracy before committing to a deployment strategy. Additionally, some frameworks mix precisions (combining FP16, FP8, INT8 in different layers) to balance speed and accuracy, tuning each layer's precision for minimal quality impact. Figure~\ref{fig:ch07_quant_throughput_bars} illustrates the throughput gains achievable with different quantization schemes on modern accelerators.
 
 Listing~\ref{lst:ch07_quantization_config} shows a quantization configuration that implements mixed-precision quantization with calibration and quality validation.
 
@@ -563,7 +585,7 @@ Pairs well with long contexts and high concurrency; test for degradation on long
 \label{fig:ch07_quant_throughput_bars}
 \end{figure}
 
-Table~\ref{tab:ch07_mem_vs_precision} shows how precision selection affects memory requirements and deployment feasibility for different model sizes.
+Table~\ref{tab:ch07_mem_vs_precision} shows how precision selection affects memory requirements and deployment feasibility for different model sizes, while Figure~\ref{fig:ch07_memory_cheatsheet} provides a practical sizing cheat-sheet for inference memory planning.
 
 \begin{table}[tb]
 \centering
@@ -950,6 +972,24 @@ During \ishtar{}’s optimization, we implemented an intermediate step: after re
 
 One must monitor that the summarization does not introduce errors—there is a risk of propagating a mistaken summary into the final answer. Our mitigation was to ensure the summarizer was high-quality (fine-tuned on news summarization) and to keep summaries as neutral and fact-oriented as possible (avoiding adding new info). This way, prompt compression remained a safe optimization.
 
+\paragraph{Cost analysis of context compression.}\index{context compression!cost}
+The cost impact of context compression is substantial and often underappreciated. Consider a typical RAG query that retrieves four passages totaling 4{,}000 tokens. Compressing these to 1{,}000 tokens yields a 75\% reduction in input tokens per request. At typical API pricing of \$0.01 per 1{,}000 input tokens, this saves \$0.03 per request---which at 100{,}000 daily requests translates to roughly \$3{,}000/month in input token costs alone. Self-hosted deployments benefit analogously through reduced prefill compute and the ability to serve larger batches within fixed GPU memory.
+
+\paragraph{When to compress vs.\ retrieve fewer chunks.}
+Compression is most valuable when (i) retrieved passages are long but only partially relevant, (ii) the query requires evidence from many sources, or (iii) the model struggles with ``lost in the middle'' effects in long contexts. In contrast, simply retrieving fewer chunks is preferable when (i) retrieval precision is already high, (ii) each chunk is short and tightly focused, or (iii) the compression step itself introduces unacceptable latency. A practical heuristic: if your average passage length exceeds 500 tokens and you retrieve more than four passages, compression is likely beneficial.
+
+\paragraph{Trade-offs: compression quality.}
+Context compression is not lossless. Abstractive summarization may lose nuanced qualifiers, specific numbers, or temporal details that matter for answer correctness. Empirical studies with tools such as LLMLingua\index{LLMLingua} and RECOMP\index{RECOMP} show that aggressive compression (above 4$\times$) can degrade faithfulness by 5--15\% on fact-intensive benchmarks, while moderate compression (2--3$\times$) typically preserves answer quality within 1--3\% of the uncompressed baseline. Extractive approaches (selecting key sentences rather than rewriting) tend to be safer for domains like journalism where factual precision is paramount.
+
+\paragraph{Practical tools.}
+Several open-source tools support context compression in production RAG pipelines:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{LLMLingua / LongLLMLingua}: prompt compression via token pruning guided by perplexity, achieving 2--10$\times$ compression with minimal quality loss.
+  \item \textbf{RECOMP}: trains specialized compressors (extractive or abstractive) that produce query-focused summaries of retrieved passages.
+  \item \textbf{LangChain ContextualCompressionRetriever}: integrates compression into the retrieval pipeline, supporting pluggable compressor backends.
+\end{itemize}
+For \ishtar{}, we found that a lightweight extractive compressor (selecting the top 3--5 sentences per passage by query relevance) provided the best balance of compression ratio, latency, and faithfulness.
+
 \subsection{Speculative Decoding}
 \label{sec:perf-speculative}
 Speculative decoding reduces end-to-end latency by generating multiple \emph{draft} tokens with a smaller, faster model and then verifying those draft tokens with the \emph{target} model. The key observation is that scoring a short continuation can cost roughly the same as sampling a single token from the target model, enabling the target model to accept several draft tokens per forward pass when the draft is accurate \cite{Chen2023SpeculativeSampling}. In favorable regimes (high acceptance), speculative decoding can increase tokens-per-second throughput and reduce tail latency without changing the target model's output distribution.
@@ -1267,6 +1307,42 @@ if __name__ == "__main__":
     print(f"\nOptimization Suggestions:")
     for suggestion in result.optimization_suggestions:
         print(f"  - {suggestion}")
+
+    # Compare with a previous baseline if available
+    baseline_path = Path("./profiling_results/baseline.nsys-rep")
+    if baseline_path.exists():
+        comparison = compare_profiles(
+            str(baseline_path),
+            str(Path("./profiling_results")
+                / f"profile_{int(time.time())}.nsys-rep")
+        )
+        print(f"\n{'='*50}")
+        print(f"Comparison vs. Baseline:")
+        print(f"  Speedup: {comparison['speedup']:.2f}x")
+        print(f"  Baseline total: "
+              f"{comparison['baseline_total_ms']:.1f}ms")
+        print(f"  Optimized total: "
+              f"{comparison['optimized_total_ms']:.1f}ms")
+        print(f"  GPU util. delta: "
+              f"{comparison['gpu_utilization_improvement']:+.1f}%")
+        print(f"  Mem BW delta: "
+              f"{comparison['memory_bandwidth_improvement']:+.2f} GB/s")
+
+    # Write structured JSON report for CI integration
+    report = {
+        "timestamp": int(time.time()),
+        "gpu_utilization_pct": result.gpu_utilization_percent,
+        "memory_bandwidth_gb_s": result.memory_bandwidth_gb_s,
+        "top_kernels": dict(sorted_kernels),
+        "bottlenecks": result.bottleneck_kernels,
+        "suggestions": result.optimization_suggestions,
+        "pass": result.gpu_utilization_percent > 70
+                and len(result.bottleneck_kernels) < 3
+    }
+    report_path = Path("./profiling_results/report.json")
+    report_path.write_text(json.dumps(report, indent=2))
+    print(f"\nReport written to {report_path}")
+    print(f"CI gate: {'PASS' if report['pass'] else 'FAIL'}")
 \end{lstlisting}
 \end{llmlistingbox}
 
@@ -1304,10 +1380,10 @@ Gaps / launch overhead             &  8 &  3 & Larger dynamic batches; async sch
 \label{sec:perf-benchmark}
 Establishing baselines and continuously monitoring performance metrics is vital. Before and after any optimization, you should measure:
 \begin{itemize}
-\item \textbf{End-to-end latency distribution}: track p50/p95/p99 (and max) for full request latency, including queueing and networking. For interactive systems, tail latency (p95/p99) is often the dominant UX driver \cite{Dean2013Tail}.
+\item \textbf{End-to-end latency distribution}: track p50/p95/p99 (and max) for full request latency, including queueing and networking. For interactive systems, tail latency (p95/p99) is often the dominant UX driver \cite{Dean2013Tail}. Figure~\ref{fig:ch07_latency_cdf} illustrates how CDF plots reveal tail latency behavior critical for user experience.
 \item \textbf{Streaming metrics}: measure \emph{time-to-first-token} (TTFT) and \emph{time-between-tokens} (TBT). TTFT is sensitive to prefill compute, queueing delays, and prompt length; TBT reflects steady-state decode speed and batching efficiency.
 \item \textbf{Throughput}: measure tokens processed per second per GPU (tokens/s/GPU) under representative concurrency. Prefer tokens/s over requests/s when outputs vary widely; it penalizes waste (e.g., generating unneeded tokens).
-\item \textbf{Cost per 1,000 tokens}: track dollars per 1k tokens under your deployment model (on-demand vs.\ reserved vs.\ spot/preemptible). This metric links performance to business cost; see Eq.~\eqref{eq:cost-k}.
+\item \textbf{Cost per 1,000 tokens}: track dollars per 1k tokens under your deployment model (on-demand vs.\ reserved vs.\ spot/preemptible). This metric links performance to business cost; see Eq.~\eqref{eq:cost-k} and Figure~\ref{fig:ch07_cost_per_1k_by_engine} for engine-specific cost comparisons.
 \end{itemize}
 
 Benchmarks should simulate realistic traffic patterns for \ishtar{}, including bursts during major events. It is important that testing mimics production: if typical usage has bursts of 100 requests in one minute and idle periods after, performance testing should include bursty loads, not just a constant rate. Bursts often reveal weaknesses in autoscaling, request queueing, or thread pool sizing. We tested \ishtar{} with scenarios such as: 10 requests per second sustained for 5 minutes (normal load), then a burst of 100 requests arriving almost simultaneously (breaking news scenario), then back to idle. We measured how the system coped: did latency spike, did any requests time out, did autoscaling trigger to add more GPUs in time?
@@ -1572,6 +1648,34 @@ The combined effect of these optimizations was significant. After applying the a
 \item \textbf{Quality impact}: Speed optimizations did not degrade answer quality---in fact, summarizing context often improved focus and relevance. INT8 had no observable effect on output quality in our evaluations; 4-bit required careful testing (e.g., with AWQ) but preserved factual accuracy with minimal fluency impact.
 \end{itemize}
 
+Table~\ref{tab:ch07_ishtar_phase_metrics} shows the cumulative impact of each optimization phase on \ishtar{}'s key performance indicators, illustrating how gains compound when optimizations are applied in sequence.
+
+\begin{table}[t]
+\centering
+\small
+\caption{\ishtar{} performance metrics across optimization phases demonstrate how gains compound. Each row adds one optimization to the previous baseline. TTFT = time to first token; Tokens/s = sustained generation throughput per GPU; Cost/Req = estimated cost per average request; P95 Latency = 95th percentile end-to-end latency. Values are representative of a 13B model on A100-80GB with typical news-query workloads.}
+\label{tab:ch07_ishtar_phase_metrics}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.8cm}
+  >{\raggedleft\arraybackslash}p{2.2cm}
+  >{\raggedleft\arraybackslash}p{1.5cm}
+  >{\raggedleft\arraybackslash}p{1.8cm}
+  >{\raggedleft\arraybackslash}p{1.8cm}@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Phase} & \textbf{TTFT (P50\,/\,P99)} & \textbf{Tokens/s} & \textbf{Cost/Request} & \textbf{P95 Latency} \\
+\midrule
+Baseline (no optimization) & 1200\,ms\,/\,3000\,ms & 45 & \$0.032 & 4500\,ms \\
++ Continuous batching       & 800\,ms\,/\,1800\,ms  & 120 & \$0.018 & 2800\,ms \\
++ INT8 quantization         & 600\,ms\,/\,1400\,ms  & 180 & \$0.012 & 2100\,ms \\
++ FlashAttention-2          & 500\,ms\,/\,1100\,ms  & 220 & \$0.010 & 1600\,ms \\
++ Speculative decoding      & 400\,ms\,/\,900\,ms   & 310 & \$0.008 & 1200\,ms \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \subsubsection{Alternate configurations considered.}
 \emph{Hardware upgrade (NVIDIA H100).} Testing H100 with FP8 showed roughly 2$\times$ throughput gains and 30--40\% lower latency vs.\ A100 FP16; median latency decreased from 1.1\,s to about 0.7\,s in a representative benchmark, and throughput-per-dollar also improved as FP8 kernels saturated Tensor Cores more effectively (vendor-reported; see \cite{NVIDIA2023Hopper}).\\
 \emph{Quantization strategy comparison.} We compared AWQ \cite{Lin2023AWQ} vs.\ GPTQ \cite{Frantar2023GPTQ}; both delivered similar speedups, with AWQ preserving accuracy slightly better on some edge cases (handling outliers) at the cost of more preprocessing. We retained GPTQ in production for operational simplicity.\\
@@ -1595,6 +1699,48 @@ Overall, this case study underscores that combining model, system, and prompt op
 \textbf{Quantize and Prune Cautiously} & Reduce precision of weights and activations to cut memory and increase speed, but always test the impact on task quality. \\
 \textbf{Automate Performance Regression Tests} & Integrate performance benchmarks into CI/CD to catch degradations whenever you change the model, code, or infrastructure. \\
 \end{tabularx}
+}
+
+\subsection{Optimization Priority Framework}\index{optimization!priority framework}
+\label{sec:perf-priority-framework}
+When time and engineering resources are limited, practitioners need a principled way to decide which optimization to tackle first.
+The following priority order reflects a combination of \emph{effort required}, \emph{risk of quality regression}, and \emph{expected impact on throughput and cost}.
+Table~\ref{tab:ch07_opt_priority} summarizes the framework.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Optimization priority framework guides practitioners to the highest-impact changes first. Lower-numbered priorities require less effort and carry lower regression risk, while higher-numbered priorities deliver substantial gains but demand more engineering investment. Teams should work top-to-bottom, validating each level before proceeding.}
+\label{tab:ch07_opt_priority}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{0.95\linewidth}{@{}c>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Priority} & \textbf{Optimization} & \textbf{Expected Impact} & \textbf{Effort} & \textbf{Notes} \\
+\midrule
+1 & Batch size tuning + continuous batching & 2--8$\times$ throughput & Low & Near-free performance; enable in vLLM/TGI. Validate latency SLOs. \\
+2 & Quantization (INT8 / FP8) & 1.3--2$\times$ tokens/s; 50\% memory reduction & Moderate & Calibrate on representative data; validate with golden set. \\
+3 & KV-cache optimization (paged attention, quantized KV) & 1.5--3$\times$ effective batch capacity & Moderate & Critical for long contexts and high concurrency. \\
+4 & Model distillation & 2--10$\times$ smaller model; proportional cost reduction & High & Requires teacher--student training pipeline; best for stable workloads. \\
+5 & Custom kernels / FlashAttention & 10--30\% end-to-end speedup & High & Hardware-specific; requires kernel expertise or framework support. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent The rationale is straightforward: batching and continuous batching are configuration changes that require no model modification and carry essentially zero quality risk; quantization is a one-time calibration step with well-understood trade-offs; KV-cache optimization enables higher concurrency without additional hardware; distillation and custom kernels deliver the largest gains but require significant engineering investment and ongoing maintenance.
+
+\BestPracticeBox{%
+\textbf{Optimization priority order (when time is limited):}
+\begin{enumerate}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Batch size + continuous batching} --- free throughput gains.
+  \item \textbf{INT8/FP8 quantization} --- high impact, moderate effort.
+  \item \textbf{KV-cache optimization} --- unlock longer contexts and larger batches.
+  \item \textbf{Model distillation} --- high effort, high reward for stable production workloads.
+  \item \textbf{Custom kernels / FlashAttention} --- hardware-specific, requires specialized expertise.
+\end{enumerate}
+Always validate each level with regression tests before proceeding to the next. The first two levels alone can deliver 3--5$\times$ improvement for most deployments.
 }
 
 Performance optimization is not a one-time task—it is an ongoing process that must adapt to changing workloads, hardware, and user expectations. For \ishtar{}, the combination of model, system, and prompt optimizations delivers the speed and cost-effectiveness needed for real-time, high-impact journalism. Table~\ref{tab:ch07_ishtar_kpis} summarizes the measurable improvements achieved through systematic optimization.
@@ -1809,7 +1955,7 @@ These formulas link low-level engineering decisions (e.g., quantization, batchin
 \subsection{Inference Engines and Serving Runtimes}
 \label{sec:inference-engines}
 
-A number of specialized inference engines have been developed to serve LLMs efficiently. Here we compare three widely used runtimes for decoder-based LLM inference in the cloud: vLLM, Hugging Face Text Generation Inference (TGI), and NVIDIA TensorRT-LLM. Each runtime embodies a distinct approach to batching, memory management, and kernel optimization. Table~\ref{tab:ch07_runtimes} provides a qualitative comparison, focused on decoder-only use cases since they remain the most challenging to serve at scale. Table~\ref{tab:ch07_runtimes} provides a qualitative comparison drawn from public documentation and reported benchmarks; validate with your own workloads.
+A number of specialized inference engines have been developed to serve LLMs efficiently. Here we compare three widely used runtimes for decoder-based LLM inference in the cloud: vLLM, Hugging Face Text Generation Inference (TGI), and NVIDIA TensorRT-LLM. Each runtime embodies a distinct approach to batching, memory management, and kernel optimization. Table~\ref{tab:ch07_runtimes} provides a qualitative comparison drawn from public documentation and reported benchmarks, focused on decoder-only use cases since they remain the most challenging to serve at scale; validate with your own workloads.
 
 Listing~\ref{lst:ch07_inference_engine} shows a vLLM inference engine configuration that optimizes batching, KV-cache management, and throughput.
 

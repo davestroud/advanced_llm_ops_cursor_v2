@@ -89,12 +89,44 @@ Base LLMs cannot directly access private corpora (e.g., internal policies, incid
 \subsection{When RAG Is Not Enough}
 RAG is not a universal solution. It can fail when (i) the corpus is incomplete or low quality, (ii) retrieval misses the relevant passage (low recall), (iii) sources conflict, or (iv) the task requires complex transformation beyond what retrieved text provides. These cases often require a combination of stronger retrieval (hybrid + reranking), better curation, structured data sources, and targeted fine-tuning for reasoning or format compliance \cite{Thakur2021BEIR,Borgeaud2022RETRO}.
 
+\paragraph{Fine-tuning as an alternative.}\index{fine-tuning!vs RAG}
+When domain knowledge is stable, deeply specialized, and needs to be integrated into the model's reasoning style (not just recalled as facts), fine-tuning may outperform RAG. Fine-tuned models internalize domain patterns---terminology, reasoning heuristics, output formatting---without requiring retrieval at inference time. This eliminates retrieval latency and the risk of retrieval misses. However, fine-tuning requires curated training data, is expensive to update, and cannot easily incorporate knowledge that changes daily. For \ishtar{}, fine-tuning is appropriate for learning journalistic writing style and domain-specific reasoning patterns, while RAG handles the fast-changing factual layer.
+
+\paragraph{Structured knowledge bases.}\index{knowledge graph}
+When queries demand precise, structured answers---exact counts, relationships between entities, or data that lives naturally in tables and graphs---RAG over unstructured text may be suboptimal. Knowledge graphs and SQL databases can answer ``How many incidents occurred in Region X between March 1 and March 15?'' with exact precision, while RAG would need to retrieve and parse multiple passages hoping the answer is stated explicitly. Hybrid architectures that route structured queries to databases and open-ended queries to RAG often outperform either approach alone.
+
+\paragraph{Decision framework: choosing the right approach.}
+The choice between RAG, fine-tuning, structured retrieval, and hybrid approaches depends on the nature of the knowledge, the query patterns, and operational constraints. Table~\ref{tab:ch08_rag_alternatives} provides a decision framework to guide this choice:
+
+\begin{table}[t]
+\centering
+\small
+\caption{Decision framework for choosing between RAG, fine-tuning, and structured retrieval. The right approach depends on knowledge volatility, query precision requirements, and operational constraints. Most production systems benefit from a hybrid that combines multiple approaches.}
+\label{tab:ch08_rag_alternatives}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+\rowcolor{gray!10}
+\textbf{Scenario} & \textbf{Recommended Approach} & \textbf{Rationale} \\
+\midrule
+Frequently changing knowledge & RAG & Corpus updates propagate without retraining; freshness is a first-class property. \\
+Stable domain knowledge + style adaptation & Fine-tuning (+ optional RAG) & Model internalizes domain reasoning; RAG supplements with specific facts. \\
+Precise structured queries (counts, joins, lookups) & Knowledge graph / SQL & Exact answers from structured data; no retrieval ambiguity. \\
+Mixed query types & Hybrid: RAG for open-ended + structured retrieval for precise queries & Router classifies query type and selects the appropriate backend. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent For \ishtar{}, the production system uses a hybrid approach: RAG handles open-ended questions grounded in recent reporting, a fine-tuned model provides the journalistic reasoning style, and structured queries against incident databases answer precise quantitative questions. This layered design ensures each knowledge access pattern is served by the most appropriate mechanism.
+
 \subsubsection*{Summary}
 RAG is essential to LLMOps because it makes knowledge \emph{updatable}, answers \emph{auditable}, and domain specialization \emph{practical}. Operational excellence depends less on a single "best model" and more on the quality, freshness, and governance of the retrieval pipeline.
 
 \section{Core Components of a RAG System}
 \label{sec:rag-core-components-of-a-rag-system}
-A production RAG system\index{RAG!system} consists of \emph{offline} components (ingestion\index{ingestion}, cleaning\index{cleaning}, chunking\index{chunking}, embedding\index{embedding}, indexing\index{indexing}) and \emph{online} components (query processing\index{query processing}, retrieval\index{retrieval}, reranking\index{reranking}, context construction\index{context!construction}, and generation\index{generation}). Fig.~\ref{fig:ch08_rag_querytime} summarizes the online query-time loop.
+A production RAG system\index{RAG!system} consists of \emph{offline} components (ingestion\index{ingestion}, cleaning\index{cleaning}, chunking\index{chunking}, embedding\index{embedding}, indexing\index{indexing}) and \emph{online} components (query processing\index{query processing}, retrieval\index{retrieval}, reranking\index{reranking}, context construction\index{context!construction}, and generation\index{generation}). As shown in Figure~\ref{fig:ch08_rag_querytime}, the online query-time loop orchestrates these components to produce grounded, verifiable answers.
 
 \begin{figure}[tb]
 \centering
@@ -402,6 +434,25 @@ Multi-stage RAG introduces iteration: the system decomposes a query into sub-que
     \item \textbf{Planner--researcher:} a planner controls a sequence of retrieval and synthesis steps.
 \end{itemize}
 Multi-stage systems often increase recall and reasoning depth, but require careful termination criteria and caching to control latency and cost.
+
+\subsubsection{When to Use Multi-Stage vs.\ Single-Stage Retrieval}\index{RAG!multi-hop}
+The choice between single-stage and multi-stage retrieval is an engineering decision driven by query complexity, knowledge distribution, and latency constraints.
+
+\paragraph{Decision criteria.}
+Single-stage retrieval suffices when: (i) answers are localized in one or two passages, (ii) the query is self-contained (no implicit sub-questions), and (iii) latency budgets are tight (single-stage adds no retrieval overhead). Multi-stage retrieval is justified when: (i) answering requires synthesizing evidence from multiple, non-adjacent documents, (ii) the initial query is underspecified and needs decomposition, or (iii) first-pass retrieval has low precision and iterative refinement improves the evidence set.
+
+\paragraph{Multi-hop patterns.}
+Three common patterns for multi-hop retrieval have emerged in practice:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Iterative retrieval:} Retrieve, generate a partial answer, identify knowledge gaps, retrieve again to fill gaps, and repeat. This pattern works well when the model can self-assess its own uncertainty. The system converges when no new relevant evidence is found or a maximum iteration count is reached.
+  \item \textbf{Query decomposition:} Break a complex question into atomic sub-questions (e.g., ``What aid reached Region X?'' $\rightarrow$ ``What organizations are active in Region X?'' + ``How much aid was delivered this week?''), retrieve evidence for each sub-question independently, then synthesize. This pattern is especially effective for comparison and aggregation queries.
+  \item \textbf{Chain-of-retrieval:} Use the output of one retrieval step as input to the next. For example, retrieve documents about an event, extract entity names, then retrieve background information about those entities. This pattern supports deep investigative queries where context builds incrementally.
+\end{itemize}
+
+\paragraph{Trade-offs: latency vs.\ recall.}
+Each retrieval hop adds 50--200\,ms of latency (embedding + ANN search + reranking) plus the cost of any intermediate LLM calls for query reformulation. For a two-hop system, this typically adds 200--500\,ms to end-to-end latency. Three or more hops can push latency beyond interactive thresholds (>2\,s) unless aggressive caching and parallelization are applied. However, multi-hop retrieval can improve recall by 15--40\% on complex queries compared to single-stage, because each hop surfaces evidence that the initial query alone would miss. The optimal number of hops depends on the workload: for \ishtar{}, a two-stage approach (initial retrieval + targeted follow-up for entity-specific details) provides the best balance of quality and responsiveness.
+
+\PitfallBox{Multi-hop retrieval can amplify errors: if the first retrieval step returns irrelevant context, subsequent hops may ``drift'' further from the correct evidence. Always validate intermediate retrieval quality and implement early termination when retrieval confidence drops below a threshold.}
 
 \subsection{Agent-Enhanced RAG}
 Agent-enhanced RAG treats retrieval as one tool among many. An agent decides when to retrieve, how to reformulate queries, and whether additional tools (web search, calculators, structured DB queries) are needed. This can improve flexibility, but increases the risk surface (prompt injection, tool misuse) and requires stronger guardrails and observability.
@@ -1005,6 +1056,22 @@ Query transformations can significantly improve retrieval quality:
 \end{itemize}
 These techniques are particularly valuable when user queries are underspecified or when relevant evidence is scattered across documents.
 
+\subsection{Adaptive Retrieval}\index{RAG!adaptive retrieval}
+\label{sec:rag-adaptive-retrieval}
+Not every query benefits from retrieval. Adaptive retrieval systems decide \emph{when} to retrieve rather than retrieving on every request, optimizing both latency and cost.
+
+\paragraph{Self-RAG: model-driven retrieval decisions.}
+Self-RAG trains the model to generate special tokens indicating whether retrieval is needed for a given query. When the model is confident in its parametric knowledge (e.g., well-known facts, common definitions), it generates directly; when uncertainty is detected, it triggers retrieval. This approach reduces unnecessary retrieval calls by 30--50\% on typical workloads while maintaining answer quality on knowledge-intensive queries.
+
+\paragraph{Confidence-based retrieval.}
+A simpler production pattern uses the model's output probability distribution as a confidence signal. When the maximum token probability falls below a threshold during generation, the system pauses, retrieves relevant context, and restarts generation with the augmented prompt. This approach requires no special training---it works with any autoregressive model---but adds engineering complexity for mid-generation interruption and restart.
+
+\paragraph{Cost optimization.}
+Skipping retrieval for simple queries provides direct cost and latency savings: no embedding computation, no vector search, no reranking. For workloads where 40--60\% of queries are answerable from parametric knowledge (e.g., general knowledge questions, style guidance, or previously discussed topics), adaptive retrieval can reduce average latency by 30\% and retrieval infrastructure costs proportionally.
+
+\paragraph{When to apply adaptive retrieval.}
+Adaptive retrieval is most beneficial when: (i) the query distribution is heterogeneous (mixing simple and complex questions), (ii) retrieval latency is a significant fraction of total response time, and (iii) the base model has strong parametric coverage for a subset of expected queries. For \ishtar{}, adaptive retrieval could skip retrieval for common definitional questions (``What is an IDP?'') while always retrieving for event-specific queries (``What happened in Region X yesterday?''). The key risk is false confidence: the model may skip retrieval when it should not, producing a fluent but unsupported answer. Monitoring abstention rates and faithfulness metrics is essential when deploying adaptive retrieval.
+
 \FloatBarrier
 \section{Augmenting the Prompt}
 \label{sec:rag-augmenting-the-prompt}
@@ -1030,6 +1097,19 @@ Common ordering strategies include:
 \end{itemize}
 
 In practice, two additional heuristics are often helpful. First, prefer a \emph{diverse} evidence set: avoid packing near-duplicate passages by applying deduplication or Maximal Marginal Relevance (MMR) so each chunk contributes distinct facts. Second, place the single most answer-bearing passage either at the beginning or the end of the context, and keep secondary passages nearby; this ``sandwich'' layout often improves robustness on long-context models.
+
+\paragraph{The ``lost in the middle'' bias.}\index{lost in the middle}
+Research on long-context language models has consistently shown that models attend more strongly to information at the \emph{beginning} and \emph{end} of the context window, while evidence placed in the middle receives less attention \cite{Liu2024LostInTheMiddle}. This positional bias means that a naively ordered context---simply concatenating passages in retrieval rank order---may cause the model to underweight critical evidence that falls in the middle positions. The effect becomes more pronounced as context length grows: at 8K+ tokens, middle-positioned facts can be effectively invisible to the generator.
+
+\paragraph{Mitigation strategies.}
+Several practical strategies address positional bias in prompt construction:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Strategic placement:} Place the single most answer-bearing passage at position 1 (beginning) and the second-most relevant at the final position (end). Secondary evidence fills the middle.
+  \item \textbf{Key fact repetition:} For critical facts (dates, quantities, named entities), repeat them in both the passage context and a summary preamble before the passages. This redundancy ensures the model encounters the fact in a high-attention position regardless of where the source passage falls.
+  \item \textbf{Summary-first pattern:} Prepend a brief (2--3 sentence) extractive summary of the key facts from all passages before listing the full passages. The model uses the summary for primary reasoning and the full passages for citation and verification. This pattern adds a small number of tokens but significantly improves answer accuracy on long contexts.
+  \item \textbf{Diversity-based ordering:} Instead of pure relevance ranking, interleave passages from different sources or covering different aspects of the query. This prevents the model from fixating on a single narrative thread and improves coverage of multi-faceted questions.
+\end{itemize}
+For \ishtar{}, the summary-first pattern proved especially effective: a 50-token extractive summary prepended to 4--6 source passages improved answer completeness by 12\% on internal evaluations without meaningful latency increase.
 
 Finally, always separate passages clearly (delimiters, document IDs, and optional ``BEGIN/END SOURCE'' markers) to reduce accidental blending. The generator should be able to unambiguously associate each claim with a specific evidence block, which is a prerequisite for reliable citations. Table~\ref{tab:ch08_prompt_patterns} summarizes common prompt augmentation patterns and their use cases.
 

@@ -5,7 +5,7 @@
 % ----------------------------
 % Chapter 9 — Abstract (online)
 % ----------------------------
-\abstract*{This chapter examines multi-agent architectures as a mechanism for extending LLM systems beyond single-turn generation into coordinated, tool-augmented workflows. We introduce core components—specialized agents, an orchestration layer, shared memory (episodic and semantic), and external tools/APIs—and show how these elements enable task decomposition, modularity, and verifiable handoffs. We compare communication patterns (direct messaging, message bus, and blackboard-style collaboration) and analyze orchestration strategies ranging from rule-based pipelines to dd
+\abstract*{This chapter examines multi-agent architectures as a mechanism for extending LLM systems beyond single-turn generation into coordinated, tool-augmented workflows. We introduce core components---specialized agents, an orchestration layer, shared memory (episodic and semantic), and external tools/APIs---and show how these elements enable task decomposition, modularity, and verifiable handoffs. We compare communication patterns (direct messaging, message bus, and blackboard-style collaboration) and analyze orchestration strategies ranging from rule-based pipelines to dynamic (LLM-driven) and hierarchical controllers, emphasizing the trade-off between adaptability and auditability. Because agentic systems introduce new failure modes, we detail error handling and fallback design, performance and cost governance (loop detection, step budgets), and security controls such as least-privilege tool access and traceable policy enforcement. The Ishtar AI case study illustrates an operationally grounded agent pipeline (ingestion, retrieval, synthesis, verification, safety) and highlights how observability and contract testing convert agent coordination from ad hoc behavior into a manageable production system.}
 
 \epigraph{\emph{"One agent can be powerful; a team of agents can be unstoppable."}}{David Stroud}
 
@@ -45,54 +45,6 @@ This chapter examines multi-agent architectures as a mechanism for extending LLM
 
 
 
-% ------------------------------------------------------------
-% Chapter-local numbered boxes for Algorithms and Listings
-% (Defined here to avoid preamble dependencies.)
-% ------------------------------------------------------------
-\makeatletter
-\@ifundefined{c@llmalgorithm}{%
-  \newcounter{llmalgorithm}[chapter]
-  \renewcommand{\thellmalgorithm}{\thechapter.\arabic{llmalgorithm}}
-}{}
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
-\@ifundefined{llmalgobox}{%
-  \newenvironment{llmalgobox}[1]{%
-    \refstepcounter{llmalgorithm}%
-    \begin{tcolorbox}[
-      title={\textbf{Algorithm \thellmalgorithm: #1}},
-      colback=gray!4,
-      colframe=gray!60!black,
-      colbacktitle=gray!20,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=2mm
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
-\makeatother
 
 \section{Introduction}
 \label{sec:ch9-introduction}
@@ -185,15 +137,15 @@ Scalability & Scaling is tied to a single inference workload. & Individual agent
 \end{tabularx}
 \end{table}
 
-\noindent In practice, many production systems adopt a \emph{hybrid} approach: a small number of well-scoped agents (typically 3--8) arranged in a mostly deterministic workflow, with limited dynamic branching where the benefit justifies the additional variance.
+\noindent In practice, many production systems adopt a \emph{hybrid} approach: a small number of well-scoped agents (typically 3--8) arranged in a mostly deterministic workflow, with limited dynamic branching where the benefit justifies the additional variance. Table~\ref{tab:ch09_monolithic_vs_multiagent} summarizes the key trade-offs between monolithic and multi-agent approaches.
 
-In essence, multi-agent systems introduce internal checks and balances, reducing the chance that a single point of failure (one model’s mistake) will propagate directly to the user. By dividing responsibilities among specialized agents and orchestrating their collaboration, we achieve a system that is more robust, scalable, and easier to manage than any single large model alone \cite{learnMicrosoft}.  
+In essence, multi-agent systems introduce internal checks and balances, reducing the chance that a single point of failure (one model's mistake) will propagate directly to the user. By dividing responsibilities among specialized agents and orchestrating their collaboration, we achieve a system that is more robust, scalable, and easier to manage than any single large model alone \cite{learnMicrosoft}.  
 
 The following sections delve into how such systems are constructed and orchestrated in practice, with \ishtar{} AI as a guiding example.
 
 \section{Core Components of Multi-Agent Architectures}
 
-Designing a multi-agent LLM system involves several core components that together enable agents to work collaboratively and interact with their environment. Figure~1.1 in \emph{Advanced LLMOps} provides a high-level reference architecture for \ishtar{} AI, highlighting key components like the orchestrator (LangGraph router \cite{langchain}), memory layers, and tool integrations. In general, the essential building blocks are:  
+Designing a multi-agent LLM system involves several core components that together enable agents to work collaboratively and interact with their environment. Figure~\ref{fig:ch01_ishtar_arch_main} provides a high-level reference architecture for \ishtar{} AI, highlighting key components like the orchestrator (LangGraph router \cite{langchain}), memory layers, and tool integrations. In general, the essential building blocks are:  
 
 
 
@@ -365,7 +317,7 @@ This separation is essential for compliance and safety reviews, because policies
 Contemporary agent frameworks support increasingly rich orchestration abstractions: declarative graphs (e.g., LangGraph) for stateful routing and loops, and conversable multi-agent patterns (e.g., AutoGen) for role-based dialogue and iterative refinement \cite{Wu2023AutoGen}.
 For long-running or asynchronous tasks (e.g., ingestion, large batch verification), production systems often pair agent orchestration with a workflow engine (such as Temporal or Airflow) to manage retries, schedules, and durable state; the LLM orchestrator then occupies the ``cognitive'' layer while the workflow engine provides durable execution semantics.
 
-Practical orchestrators can be built via workflow engines or frameworks. LangGraph is a prime example: it encodes agents as nodes and transitions as edges, supporting branching, loops, and stateful orchestration \cite{langchain}. In \ishtar{}, the LangGraph Router serves as the orchestration layer, deployed as a service (e.g., FastAPI), routing user queries to retrieval, synthesis, verification, safety, and optional translation agents.  
+Practical orchestrators can be built via workflow engines or frameworks. LangGraph is a prime example: it encodes agents as nodes and transitions as edges, supporting branching, loops, and stateful orchestration \cite{langchain}. In \ishtar{}, the LangGraph Router serves as the orchestration layer (illustrated in Figure~\ref{fig:ch09_agentic_control_plane}), deployed as a service (e.g., FastAPI), routing user queries to retrieval, synthesis, verification, safety, and optional translation agents.  
 
 \subsection{Memory: Episodic and Semantic Memory}
 Memory enables continuity across interactions. Two types are typically employed:  
@@ -505,6 +457,42 @@ Verification outputs can follow a similar envelope, explicitly marking which cla
 }
 \end{lstlisting}
 \end{llmlistingbox}
+
+\subsection{Schema Evolution and Versioning}\index{schema evolution}\index{contract!versioning}
+Agent contracts must evolve as the system grows. Two principles govern safe schema evolution:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Additive changes are safe:} Adding optional fields to an output schema is backward-compatible. Downstream agents that do not recognize the new field simply ignore it. For example, adding an optional \texttt{confidence\_breakdown} field to the verification envelope does not break the safety agent.
+  \item \textbf{Breaking changes require versioning:} Removing fields, changing types, or altering invariants constitutes a breaking change. These must be introduced via explicit schema versioning (e.g., \texttt{contract\_version: "2.0"}) with a migration window during which both old and new schemas are accepted. The orchestrator routes based on the declared version.
+\end{itemize}
+In practice, treat agent schemas like API versions: maintain backward compatibility within a major version and use feature flags or gradual rollouts for breaking changes.
+
+\subsection{Input/Output Validation}\index{contract!validation}
+Every agent boundary should include deterministic validation. JSON Schema provides a practical, language-neutral mechanism for specifying required fields, types, value ranges, and enum constraints. Validation should occur at two points:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Input validation} (before agent execution): reject malformed inputs early, before consuming model tokens or tool calls.
+  \item \textbf{Output validation} (after agent execution): ensure the agent's response conforms to its declared output schema. If validation fails, the orchestrator may re-prompt (with stricter formatting instructions) or route to a fallback.
+\end{itemize}
+For LLM-generated outputs, validation must tolerate minor formatting variations (e.g., extra whitespace, slightly different key ordering) while enforcing structural correctness. Tools like Pydantic (Python) or Zod (TypeScript) combine schema definition with runtime validation and are widely used in production agent frameworks.
+
+\subsection{Error Contracts}\index{contract!error}
+Standardized error responses across agents enable the orchestrator to make consistent decisions without agent-specific error-handling logic. A minimal error contract specifies:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Error type} (enum): \texttt{timeout}, \texttt{rate\_limit}, \texttt{schema\_invalid}, \texttt{tool\_error}, \texttt{policy\_violation}, \texttt{insufficient\_evidence}.
+  \item \textbf{Retryable} (boolean): whether the orchestrator should retry or escalate.
+  \item \textbf{Retry-after} (milliseconds): suggested backoff duration for retryable errors.
+  \item \textbf{Partial result} (optional): any useful intermediate output that downstream agents can use despite the error.
+\end{itemize}
+This error taxonomy (aligned with Table~\ref{tab:ch09_agent_failure_taxonomy}) converts ad hoc exception handling into a systematic, testable policy.
+
+\subsection{Interface Testing: Contract Tests}\index{contract tests}
+Contract tests verify that agent interfaces remain compatible across updates. Unlike end-to-end tests (which are expensive and non-deterministic), contract tests are fast, deterministic, and can run in CI on every commit. A contract test for the retrieval agent, for example, would:
+\begin{enumerate}[leftmargin=1.5em, itemsep=2pt]
+  \item Provide a fixed query and stub the vector store to return known results.
+  \item Verify that the output conforms to the context pack schema (Listing~\ref{lst:ch09_context_pack_schema}).
+  \item Check that citation IDs are stable, delimiters are present, and metadata fields are populated.
+  \item Verify that error conditions (empty results, timeout) produce the standardized error envelope.
+\end{enumerate}
+Maintaining a suite of contract tests per agent ensures that model updates, prompt changes, or schema modifications do not silently break downstream consumers. For \ishtar{}, contract tests caught a regression where a prompt update caused the synthesis agent to omit citation markers---a change that would have silently broken the verification agent's claim-checking logic.
 
 \subsection{Traceability and Deterministic Replay}
 When multiple agents participate in a response, debugging requires end-to-end traceability across services.
@@ -690,9 +678,9 @@ Needs write coordination and termination conditions; may serialize work; shared-
 \end{table}
 
 \noindent Regardless of pattern, production systems benefit from \textbf{idempotent} agent operations (safe to retry) and \textbf{explicit ordering} semantics for shared state writes.
-Without these guarantees, retries and concurrent updates can create subtle inconsistencies (e.g., a verification correction being overwritten by a late-arriving synthesis draft).
+Without these guarantees, retries and concurrent updates can create subtle inconsistencies (e.g., a verification correction being overwritten by a late-arriving synthesis draft). Table~\ref{tab:ch09_comm_patterns} summarizes the characteristics and trade-offs of the major communication patterns.
 
-  
+
 
 \subsection*{Summary}
 Communication patterns must be matched to system scale and requirements. Direct messaging is ideal for small, fixed pipelines; message buses suit distributed, dynamic environments; blackboards enable collaborative reasoning. Many production systems, including \ishtar{}, blend these approaches under an orchestrator that manages complexity.  
@@ -754,7 +742,7 @@ Key Kubernetes features:
 \subsection*{Combining Strategies}
 In practice, systems blend strategies. For example, \ishtar{} is largely rule-based, but the verification agent may include dynamic behavior (e.g., iterative fact-checking). A hierarchical design could further combine dynamic orchestration at sub-levels.  
 
-The goal is to choose the simplest strategy that meets requirements, adding complexity (dynamic, hierarchical orchestration) only when necessary, since dynamism increases overhead and unpredictability.  
+The goal is to choose the simplest strategy that meets requirements, adding complexity (dynamic, hierarchical orchestration) only when necessary, since dynamism increases overhead and unpredictability. Figure~\ref{fig:ch09_orchestration_strategies} illustrates these three orchestration approaches and their trade-offs.
 
 \medskip
 \noindent\textbf{Orchestration Strategies and Operational Requirements.} The choice of orchestration strategy directly impacts testing and governance requirements. Dynamic orchestration, while flexible, introduces variability that demands rigorous testing: orchestrator decisions must be validated through regression tests, adversarial scenarios must verify that the LLM controller makes safe routing choices, and workflow traces must be auditable to ensure reproducibility (Chapter~\ref{ch:testing}). Similarly, tool permissions and agent security---discussed in Section~\ref{sec:errorhandling} and the Security section below---are foundational to governance frameworks: ensuring that agents only access authorized tools, that inter-agent communication is authenticated, and that audit logs capture all tool invocations are prerequisites for responsible deployment (Chapter~\ref{ch:ethics}). The operational discipline required for production multi-agent systems---monitoring orchestrator decisions, validating tool access patterns, and maintaining security boundaries---complements the governance frameworks needed for ethical LLM operations.
@@ -1044,7 +1032,7 @@ Abstention / escalation rate & Measures how often the system fails safely (absta
 \end{table}
 
 \subsection*{Performance Considerations in Multi-Agent Orchestration}
-Employing multiple agents introduces performance considerations that single-agent systems might not face. We need to ensure the benefits of multi-agent parallelism and specialization are not negated by overheads like communication latency or redundant computation. Some key performance factors:
+Employing multiple agents introduces performance considerations that single-agent systems might not face. We need to ensure the benefits of multi-agent parallelism and specialization are not negated by overheads like communication latency or redundant computation. Table~\ref{tab:ch09_agent_performance_metrics} summarizes key performance metrics for monitoring multi-agent systems. Some key performance factors:
 
 \subsubsection*{Inter-Agent Communication Latency}
 Every time agents exchange information (especially if via network calls), there is overhead. In a sequential chain (analysis $\rightarrow$ verification $\rightarrow$ conversation), these become serial latencies that add up. Minimizing serialization is key. Techniques include:
@@ -1134,6 +1122,36 @@ In addition to standard service metrics (latency, errors), teams should log:
 and (iv) final outcomes (abstain/refuse/answer).
 When combined with distributed tracing, these artifacts enable deterministic replay of failures and dramatically reduce mean time to resolution (MTTR) during incidents \cite{OpenTelemetryTraces}.
 
+\subsection{Distributed Tracing for Multi-Agent Systems}\index{distributed tracing!multi-agent}\index{OpenTelemetry!agents}
+\label{sec:ch09-distributed-tracing}
+
+Multi-agent systems require distributed tracing that extends beyond traditional microservice spans to capture agent-specific semantics. This subsection connects to the observability foundations in Chapter~\ref{ch:monitoring} and adapts them for agentic workflows.
+
+\paragraph{Propagating trace context across agent boundaries.}
+Each agent invocation should inherit the parent trace context (trace ID, parent span ID) from the orchestrator. When the orchestrator calls an agent, it creates a child span; when the agent calls a tool, the tool call becomes a grandchild span. This hierarchy must be propagated through all transport mechanisms---HTTP headers, message bus metadata, or shared state annotations---so that a single trace captures the entire workflow from user query to final response. OpenTelemetry's context propagation API (via \texttt{W3C Traceparent} headers or baggage) provides a vendor-neutral mechanism for this.
+
+\paragraph{Span hierarchy for agentic workflows.}
+A well-structured trace for a multi-agent request should follow a three-level hierarchy:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Orchestrator span} (root): captures end-to-end latency, total token count, workflow outcome (success/failure/degraded), and the sequence of agents invoked.
+  \item \textbf{Agent span} (child of orchestrator): captures per-agent latency, input/output token counts, model version, number of retries, and the agent's status (ok/error/needs\_review).
+  \item \textbf{Tool call span} (child of agent): captures tool name, arguments (redacted if sensitive), response latency, and tool status. For LLM calls, record the prompt template ID, temperature, and token counts.
+\end{itemize}
+
+\paragraph{Key attributes to record.}
+Standardize span attributes across all agents for consistent querying and alerting:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \texttt{agent.name}: the agent's role identifier (e.g., ``retrieval'', ``synthesis'', ``verification'').
+  \item \texttt{agent.model\_version}: the model and version used by this agent.
+  \item \texttt{llm.tokens\_in}, \texttt{llm.tokens\_out}: token counts for cost attribution.
+  \item \texttt{tool.name}, \texttt{tool.status}: tool invocation details.
+  \item \texttt{decision.type}: the orchestrator's routing decision (e.g., ``proceed'', ``retry'', ``fallback'', ``escalate'').
+  \item \texttt{context\_pack.version}: the index version of retrieved evidence, enabling correlation between retrieval quality and answer quality.
+\end{itemize}
+
+\paragraph{Integration with OpenTelemetry.}
+OpenTelemetry baggage provides a mechanism for propagating cross-cutting context (user ID, tenant ID, experiment variant) across agent boundaries without modifying agent interfaces. This is particularly useful for: (i) cost attribution by user or tenant, (ii) A/B testing of agent configurations, and (iii) correlating retrieval quality metrics with generation quality metrics across the full pipeline. For \ishtar{}, baggage carries the journalist's role and clearance level, enabling access-control enforcement to be traced end-to-end alongside performance metrics.
+
 \section{Security in Multi-Agent Systems}\label{sec:ch09-security}
 \begin{itemize}
     \item Authenticate agent requests to the orchestrator.
@@ -1201,7 +1219,7 @@ global:
 \end{llmlistingbox}
 
 \subsection*{Security and Governance in Multi-Agent Systems}
-Security in multi-agent LLM systems spans authentication, authorization, and auditing of agent interactions, as well as safeguarding data and compliance with policies. With multiple components communicating, the attack surface can increase, so we must design with a defense-in-depth mindset. Table~\ref{tab:ch09_security_governance_controls} summarizes the key security and governance controls that should be implemented. Key aspects include:
+Security in multi-agent LLM systems spans authentication, authorization, and auditing of agent interactions, as well as safeguarding data and compliance with policies. With multiple components communicating, the attack surface can increase, so we must design with a defense-in-depth mindset. Beyond the failure taxonomy discussed earlier (see Table~\ref{tab:ch09_agent_failure_taxonomy}), security threats require systematic mitigation. Table~\ref{tab:ch09_agentic_threats} identifies common security threats and countermeasures specific to multi-agent architectures. Key aspects include:
 
 \begin{table}[t]
 \centering
@@ -1326,7 +1344,7 @@ To ground the concepts above, let's walk through the orchestration pipeline of I
 \label{fig:ch09_ishtar_agent_pipeline}
 \end{figure}
 
-In this example, a user's request is routed first to a "Researcher" agent which gathers information (possibly using tools like web search), then handed to a "Chart Generator" agent to produce a visual, before delivering a final answer. Similarly, Ishtar's orchestrator routes tasks to Retrieval, Synthesis, Verification, Safety, and optional Translation agents in sequence or in parallel as needed.
+In this example, a user's request is routed first to a "Researcher" agent which gathers information (possibly using tools like web search), then handed to a "Chart Generator" agent to produce a visual, before delivering a final answer. Similarly, Ishtar's orchestrator (Figure~\ref{fig:ch09_ishtar_agent_pipeline}) routes tasks to Retrieval, Synthesis, Verification, Safety, and optional Translation agents in sequence or in parallel as needed.
 
 \textbf{Step 0: Continuous Data Ingestion.} Independently of any user query, the ingestion agent is running (possibly on a schedule or event-triggered). For instance, every hour it checks for new reports from sources A, B, C. Suppose at 9:00 AM it fetched a new conflict report about Region X and updated the vector store. By 9:05 AM, the vector store is refreshed with this latest info, and the ingestion agent logs an event “New document on Region X ingested.” This means when a query comes about “Region X”, the system is prepared to answer with up-to-date data. The orchestrator doesn’t actively do anything in this step; it’s a background process. If one wanted, the ingestion could publish an event that gets logged or triggers a pre-analysis, but in our straightforward design, it simply updates memory.
 
@@ -1372,7 +1390,7 @@ In our example, if the verified answer contains coordinates or specific names th
 
 \textbf{Step 7: Delivery to User.} The orchestrator (or API gateway) receives the final answer from the safety agent (or translation agent if invoked) and returns it to the user's interface. The user sees the answer, with sources cited, within a couple of seconds from asking the question.
 
-\textbf{Parallel and Background Activities:} While steps 2–7 were sequential, note that ingestion (step 0) runs in parallel continuously. Also, if multiple queries come in, orchestrator can handle them concurrently (spinning separate threads or tasks). If orchestrator was more advanced, some steps could be parallel: e.g., if multiple synthesis sub-tasks, etc., but in the straightforward pipeline they were sequential. The sequential flow and parallel ingestion process are illustrated in Fig.~\ref{fig:ch09_ishtar_sequential_flow}.
+\textbf{Parallel and Background Activities:} While steps 2–7 were sequential, note that ingestion (step 0) runs in parallel continuously. Also, if multiple queries come in, orchestrator can handle them concurrently (spinning separate threads or tasks). If orchestrator was more advanced, some steps could be parallel: e.g., if multiple synthesis sub-tasks, etc., but in the straightforward pipeline they were sequential. Figure~\ref{fig:ch09_ishtar_sequential_flow} illustrates this complete end-to-end flow, showing how the orchestrator coordinates agent execution and manages data flow through the pipeline.
 
 \begin{figure}[t]
 \centering
@@ -1512,6 +1530,99 @@ Designing and operating a multi-agent LLM system is complex, but following best 
 \end{table}
 
 By adhering to these practices, one can manage the complexity of multi-agent systems and harness their power effectively. Multi-agent LLM systems, as exemplified by Ishtar AI, combine specialization with orchestration to deliver better results than a monolithic approach. The journey involves careful planning, iterative tuning, and vigilant operation, but the end result is a more powerful and reliable AI application that can tackle sophisticated, real-world tasks in a robust manner.
+
+\section{Failure Modes and Resilience Patterns}\label{sec:ch09-failure-modes}\index{failure modes!multi-agent}\index{resilience patterns}
+
+Multi-agent systems introduce failure modes that do not exist in single-model deployments. Understanding these failure modes and implementing systematic resilience patterns is essential for production reliability.
+
+\subsection{Common Failure Modes}
+
+\paragraph{Agent loops.}\index{agent loops}
+An agent---or a pair of agents---can enter a cycle where the same state is revisited indefinitely. For example, a synthesis agent produces a draft that the verification agent rejects, the synthesis agent regenerates a nearly identical draft, and the cycle repeats. Loops are especially likely when the agent lacks sufficient context to satisfy the verifier's criteria or when the verification prompt is overly strict. In \ishtar{}, loop detection is implemented by hashing the shared state after each agent step and comparing against a sliding window of recent state hashes. If a repeated signature is detected within five steps, the orchestrator terminates the loop and escalates to human review.
+
+\paragraph{Cascading failures.}\index{cascading failures}
+When agents are arranged in a pipeline, one agent's failure can propagate downstream. A retrieval agent that returns empty results causes the synthesis agent to hallucinate (no evidence), which causes the verification agent to reject, which triggers retries that consume budget. Cascading failures are particularly insidious because each downstream agent may mask the root cause with its own error. Mitigation requires fail-fast semantics: if retrieval returns no results, the orchestrator should immediately return an abstention rather than propagating an empty context pack through the pipeline.
+
+\paragraph{Resource exhaustion.}\index{resource exhaustion}
+Agents that operate autonomously can consume excessive tokens, API calls, or wall-clock time---especially in dynamic orchestration where the LLM planner decides the workflow. Without explicit budgets, a single complex query can generate dozens of tool calls and hundreds of thousands of tokens, crowding out other requests and inflating costs. Budget governance (token budgets, step budgets, tool-call limits) must be enforced at the orchestrator level, not delegated to individual agents.
+
+\paragraph{Stale context.}
+In long-running workflows, agents may operate on information that has become outdated during execution. For example, if the ingestion agent updates the vector store while a query is in flight, the verification agent may cross-check against newer data than the retrieval agent originally retrieved, creating inconsistencies. Production systems should attach version identifiers to context packs and validate version consistency across agents.
+
+\paragraph{Tool misuse.}\index{tool misuse}
+Agents may call tools with incorrect parameters, invoke tools that are inappropriate for the current task, or misinterpret tool outputs. This is particularly common with dynamically orchestrated agents that select tools at runtime. Argument validation (type checking, range checking, allowlists) and tool-level rate limiting provide the primary defenses.
+
+\subsection{Resilience Patterns}
+
+\paragraph{Retry semantics.}\index{retry semantics}
+Not all failures warrant the same retry strategy. Infrastructure failures (timeouts, rate limits) benefit from exponential backoff with jitter to avoid thundering herds. Semantic failures (malformed output, policy violations) benefit from re-prompting with stricter instructions rather than simple retry. Idempotency is a prerequisite for safe retries: agent calls must produce equivalent results when retried with the same input. In practice, set a maximum of 2--3 retries per agent call, with a total workflow retry budget that prevents unbounded retry cascades.
+
+\paragraph{Circuit breakers.}\index{circuit breaker}
+The circuit breaker pattern\index{circuit breaker!pattern}, borrowed from distributed systems engineering, prevents an agent from repeatedly calling a failing dependency. The circuit breaker operates in three states (Fig.~\ref{fig:ch09_circuit_breaker}):
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Closed} (normal operation): requests flow through; failures are counted.
+  \item \textbf{Open} (failure threshold exceeded): requests are immediately rejected or routed to a fallback; no calls reach the failing dependency.
+  \item \textbf{Half-open} (recovery testing): after a cooldown period, a single probe request is allowed through. If it succeeds, the circuit closes; if it fails, the circuit reopens.
+\end{itemize}
+For \ishtar{}, circuit breakers protect against external dependency failures (web search APIs, fact-checking databases) and against internal agent failures (a synthesis model that consistently produces malformed JSON).
+
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[
+  node distance=40mm,
+  state/.style={circle, draw=black!60, line width=1pt, minimum size=22mm, align=center, font=\small\bfseries, inner sep=2pt},
+  arrow/.style={-Stealth, thick, line width=1pt}
+]
+\definecolor{closedgreen}{RGB}{34,139,96}
+\definecolor{openred}{RGB}{173,63,60}
+\definecolor{halforange}{RGB}{201,111,29}
+
+\node[state, fill=closedgreen!15, draw=closedgreen!60] (closed) {Closed\\{\footnotesize (normal)}};
+\node[state, fill=openred!15, draw=openred!60, right=of closed] (open) {Open\\{\footnotesize (rejecting)}};
+\node[state, fill=halforange!15, draw=halforange!60, below right=25mm and 20mm of closed] (half) {Half-Open\\{\footnotesize (probing)}};
+
+\draw[arrow, closedgreen!70!black] (closed) -- node[above, font=\footnotesize]{failure threshold exceeded} (open);
+\draw[arrow, openred!70!black] (open) -- node[right, font=\footnotesize, text width=2.5cm, align=center]{cooldown\\expires} (half);
+\draw[arrow, halforange!70!black] (half) -- node[below left, font=\footnotesize]{probe succeeds} (closed);
+\draw[arrow, halforange!70!black] (half) to[bend right=30] node[below right, font=\footnotesize]{probe fails} (open);
+
+% Self-loops
+\draw[arrow, closedgreen!50!black] (closed) to[loop above, looseness=5] node[above, font=\footnotesize]{success / minor failure} (closed);
+\draw[arrow, openred!50!black] (open) to[loop above, looseness=5] node[above, font=\footnotesize]{reject / fallback} (open);
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Circuit breaker state machine prevents cascading failures in multi-agent systems. In the \emph{Closed} state, requests flow normally and failures are counted. When failures exceed a threshold, the circuit \emph{Opens}, immediately rejecting requests and routing to fallbacks. After a cooldown, the \emph{Half-Open} state tests recovery with a single probe. This pattern is essential for protecting agent pipelines from external dependency outages and internal agent failures.}
+\label{fig:ch09_circuit_breaker}
+\end{figure}
+
+\paragraph{Graceful degradation.}\index{graceful degradation}
+When a component fails and retries are exhausted, the system should degrade gracefully rather than fail completely. Practical degradation strategies include:
+\begin{itemize}[leftmargin=1.5em, itemsep=2pt]
+  \item \textbf{Fallback to a simpler agent:} If the primary synthesis agent (using a large model) fails, route to a lighter model that produces a shorter, less nuanced answer.
+  \item \textbf{Reduce capabilities:} Skip optional pipeline stages (e.g., translation, detailed verification) and deliver a partial result with an explicit disclaimer.
+  \item \textbf{Return partial results:} If retrieval succeeds but synthesis fails, return the retrieved passages directly with a note that automated synthesis was unavailable.
+  \item \textbf{Human escalation:} Queue the request for human review and return an acknowledgment to the user rather than an incorrect answer.
+\end{itemize}
+The key principle is that a degraded answer with a clear disclaimer is almost always preferable to no answer or a confidently wrong answer.
+
+\paragraph{Timeout budgets.}\index{timeout budgets}
+Production multi-agent systems require hierarchical timeouts: a per-tool timeout (e.g., 5\,s for a web search API), a per-agent timeout (e.g., 15\,s for the synthesis agent including retries), and a per-orchestrator timeout (e.g., 30\,s for the entire workflow). Each level should be strictly shorter than the sum of its children to leave headroom for orchestrator logic. When a timeout fires, the orchestrator should invoke the appropriate degradation path rather than waiting indefinitely.
+
+\paragraph{Dead letter queues.}\index{dead letter queue}
+Failed agent interactions---requests that exhausted retries, timed out, or produced policy violations---should be captured in a dead letter queue for later analysis. Each entry should include the full request context, intermediate agent outputs, error details, and trace identifiers. Dead letter queues serve dual purposes: they enable post-incident debugging (``Why did this query fail?'') and provide training signal for improving agent prompts and tool configurations. For \ishtar{}, dead letter analysis revealed that 60\% of verification failures were caused by a specific class of ambiguous entity references, leading to a targeted prompt improvement that reduced the failure rate by half.
+
+\BestPracticeBox{%
+\textbf{Resilience principles for multi-agent systems:}
+\begin{enumerate}[leftmargin=1.5em, itemsep=2pt]
+  \item Implement \textbf{circuit breakers} on all external dependencies and inter-agent calls.
+  \item Enforce \textbf{hierarchical timeout budgets} (per-tool $<$ per-agent $<$ per-workflow).
+  \item Design \textbf{graceful degradation paths} for every agent: what happens when it fails?
+  \item Use \textbf{dead letter queues} to capture and learn from failures.
+  \item Detect \textbf{agent loops} via state hashing and enforce step budgets.
+  \item Make all agent calls \textbf{idempotent} so retries are safe.
+\end{enumerate}
+}
 
 \medskip
 \noindent\textbf{Connecting orchestration to evaluation and governance.}
