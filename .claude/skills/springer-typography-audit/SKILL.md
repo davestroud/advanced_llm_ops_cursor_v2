@@ -14,6 +14,17 @@ description: Audits font sizes in graphics, artifact widths, sectioning depth, v
 4. No manual vertical-spacing hacks outside tables/TikZ/boxes
    (`\vspace`, `\vfill`, `\smallskip`, `\medskip`, `\bigskip`).
 5. Raster graphics flagged (prefer vector per book-rules.mdc).
+6. **Listing length:**
+   - `minted` body > 80 lines → **WARN** (consider compression)
+   - `minted` body > 150 lines → **FAIL** (split, compress, or convert to algorithm)
+7. **Listings per chapter:**
+   - more than 8 `codebox` instances in one chapter → **WARN** (chapter
+     carries too much code weight)
+8. **Stray inline minted:** `\begin{minted}` blocks not wrapped by
+   `\begin{codebox}` AND ≤ 5 lines body → **WARN** (should be inline
+   `\verb|...|` or `\texttt{...}`)
+9. **Total listing count:** book-wide target is **40–45** `codebox`
+   instances. Reports current total and over/under/within status.
 
 ## Output
 
