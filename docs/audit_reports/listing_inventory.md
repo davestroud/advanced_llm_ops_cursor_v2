@@ -130,6 +130,29 @@ After curator overrides:
 
 **Curator-override projection:** 61 - 4 = **57 listings**.
 
+## Post-pass amendment (April 20, 2026): Fig-7.2 callout conversions
+
+After completing the listing-reduction pass, seven YAML configurations
+in chapters 7 and 8 were further reclassified as `CONVERT_TO_FIGURE`
+and re-rendered as colored callout-card figures matching the visual
+idiom of `fig:ch07_opt_gains_callout`. These were not "code" in the
+copy-paste sense; the reader was reading them as taxonomies.
+
+| Chapter | Old label | New label | Cards |
+|---|---|---|---:|
+| ch07 | `lst:ch07_quantization_config` | `fig:ch07_quantization_callout` | 5 |
+| ch07 | `lst:ch07_caching_config` | `fig:ch07_caching_callout` | 5 |
+| ch07 | `lst:ch07_inference_engine` | `fig:ch07_inference_engine_callout` | 5 |
+| ch08 | `lst:ch08_vector_index_config` | `fig:ch08_vector_index_callout` | 5 |
+| ch08 | `lst:ch08_rag_pipeline_config` | `fig:ch08_rag_pipeline_callout` | 5 |
+| ch08 | `lst:ch08_chunking_config` | `fig:ch08_chunking_callout` | 5 |
+| ch08 | `lst:ch08_retrieval_config` | `fig:ch08_retrieval_callout` | 5 |
+
+**Final state after callout pass:** 57 - 7 = **50 codebox listings**,
+62 + 7 = **69 figures**. The 40--45 codebox target is now within
+plausible reach (only 5--10 more conversions or merges needed), but
+no further reductions are planned in this pass.
+
 ## Honest assessment vs. the 40-45 target
 
 The book's actual structural design — paired `llmalgobox` (procedure) + `codebox` (concrete realization) for nearly every concept in chapters 9 and 10 — means hitting **40-45** requires deleting paired codeboxes (sacrificing the dual-presentation pedagogy) or merging multiple chapters' configs.

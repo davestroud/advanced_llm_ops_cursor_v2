@@ -377,6 +377,46 @@ in listing volume. Substantive `Float too large for page` warnings
 (lines 217, 445, 499, 784, 1507) are bit-for-bit identical to the
 pre-pass baseline.
 
+### Follow-up: Fig-7.2 callout conversions (chs 7 & 8)
+After the main pass landed, seven YAML configurations in chapters 7
+and 8 were reclassified as didactic taxonomies rather than copy-paste
+code, and converted to colored callout-card figures that mirror
+`fig:ch07_opt_gains_callout` (Fig 7.2). Each conversion replaced a
+single `codebox` with a 5-card `\begin{figure}` containing a stack of
+`\colorbox{llm*!10}` parboxes inside an `llmfigbox`/TikZ wrapper.
+
+| Chapter | Commit | Conversion |
+|---------|--------|------------|
+| ch07 | `b8add02` | `lst:ch07_quantization_config` → `fig:ch07_quantization_callout` |
+| ch07 | `b8add02` | `lst:ch07_caching_config` → `fig:ch07_caching_callout` |
+| ch07 | `b8add02` | `lst:ch07_inference_engine` → `fig:ch07_inference_engine_callout` |
+| ch08 | `1a5631f` | `lst:ch08_vector_index_config` → `fig:ch08_vector_index_callout` |
+| ch08 | `1a5631f` | `lst:ch08_rag_pipeline_config` → `fig:ch08_rag_pipeline_callout` |
+| ch08 | `1a5631f` | `lst:ch08_chunking_config` → `fig:ch08_chunking_callout` |
+| ch08 | `1a5631f` | `lst:ch08_retrieval_config` → `fig:ch08_retrieval_callout` |
+
+**Cumulative state after the callout pass:**
+
+| Metric | Before pass | After pass | After callout follow-up | Δ vs. before |
+|---|---:|---:|---:|---:|
+| `codebox` total | 61 | 57 | **50** | -11 |
+| `minted` total  | 61 | 57 | **50** | -11 |
+| `figure` total  | 62 | 62 | **69** | +7 |
+| `llmalgobox` total | 11 | 13 | 13 | +2 |
+| FAIL-length listings (>150 lines) | 6 | 0 | **0** | -6 |
+| WARN-length listings (81–150) | ~16 | 8 | **5** | -11 |
+| LaTeX/Package warnings | 15 | 16 | 17 | +2 |
+| Over/Underfull boxes | 224 | 226 | 285 | +61 |
+
+The +1 LaTeX/pkg warning over the previous pass is a benign
+`OMS/ntxtt/m/n` font-shape substitution where math symbols ($\geq$,
+$\sigma$, $\rightarrow$, $\in$) appear inside `\texttt{}` in callout
+body text; NFSS substitutes the regular family automatically. The
++59 box delta is dominated by intrinsic underfull-last-line boxes
+in the new `\colorbox`/`\parbox` cards (each card terminates with
+a short final line, ×5 cards × 7 figures ≈ 35) plus pagination drift
+from removing roughly 530 lines of YAML.
+
 ### Why 40–45 was not reached
 The original target band (40–45 listings) was not achieved. Hitting it
 would have required deleting ~13 of the paired codeboxes in chapters 9,
