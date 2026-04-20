@@ -111,10 +111,14 @@ The choice between RAG, fine-tuning, structured retrieval, and hybrid approaches
 \rowcolor{gray!15}
 \textbf{Scenario} & \textbf{Recommended Approach} & \textbf{Rationale} \\
 \midrule
-Frequently changing knowledge & RAG & Corpus updates propagate without retraining; freshness is a first-class property. \\
-Stable domain knowledge + style adaptation & Fine-tuning (+ optional RAG) & Model internalizes domain reasoning; RAG supplements with specific facts. \\
-Precise structured queries (counts, joins, lookups) & Knowledge graph / SQL & Exact answers from structured data; no retrieval ambiguity. \\
-Mixed query types & Hybrid: RAG for open-ended + structured retrieval for precise queries & Router classifies query type and selects the appropriate backend. \\
+\rowcolor{blue!8}
+Frequently changing knowledge & \textbf{RAG} & Corpus updates propagate without retraining; freshness is a first-class property. \\
+\rowcolor{green!10}
+Stable domain knowledge + style adaptation & \textbf{Fine-tuning} (+ optional RAG) & Model internalizes domain reasoning; RAG supplements with specific facts. \\
+\rowcolor{orange!10}
+Precise structured queries (counts, joins, lookups) & \textbf{Knowledge graph / SQL} & Exact answers from structured data; no retrieval ambiguity. \\
+\rowcolor{cyan!10}
+Mixed query types & \textbf{Hybrid}: RAG for open-ended + structured retrieval for precise queries & Router classifies query type and selects the appropriate backend. \\
 \bottomrule
 \end{tabularx}
 \end{table}
