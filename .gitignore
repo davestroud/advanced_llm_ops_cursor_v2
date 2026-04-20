@@ -38,3 +38,8 @@ overleaf-upload.zip
 # Temporary files
 *.tmp
 
+# Audit reports — regenerable; track only the two canonical files
+docs/audit_reports/*
+!docs/audit_reports/BASELINE_SUMMARY.md
+!docs/audit_reports/LATEST_SUMMARY.md
+

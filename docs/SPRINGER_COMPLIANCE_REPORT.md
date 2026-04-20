@@ -290,3 +290,28 @@ that new figures can honor by construction.
       5 package warnings, 36 overfull, 187 underfull, 9 missing-char, 0
       undefined refs, 0 undefined citations.
 
+
+## Automated Compliance Audit System (April 20, 2026)
+
+Added `.claude/skills/` with seven audit skills + master runner. Skills
+are deterministic bash, compatible with Claude Code and Codex CLI via the
+Agent Skills open standard (December 2025).
+
+### Skills
+- `springer-structure-audit` — parts, chapters, abstracts, front matter
+- `springer-float-audit` — figures, tables, listings
+- `springer-typography-audit` — fonts, widths, sectioning, grayscale
+- `springer-citation-audit` — bib hygiene
+- `springer-cross-ref-audit` — labels ↔ refs
+- `springer-accessibility-audit` — caption takeaways, index density
+- `springer-ai-declaration-audit` — Springer AI policy
+- `run-full-compliance-audit` — master runner
+
+### Workflow
+1. `make audit-quick` before any structural commit
+2. `make audit` before every Overleaf sync
+3. `make audit` + manual review of MANUAL rows before Springer submission
+4. Author periodically runs the same audit in Codex to verify determinism
+
+### Baseline
+See `docs/audit_reports/BASELINE_SUMMARY.md`.
