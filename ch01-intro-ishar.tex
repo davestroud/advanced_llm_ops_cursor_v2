@@ -581,7 +581,10 @@ control stack spanning input handling, retrieval governance, tool security, and 
     flow/.style ={llm/arrow, color=llmblue!75!black,  line width=0.9pt},
     maps/.style ={llm/arrow/dashed, color=llmorange!80!black},
     mits/.style ={llm/arrow, color=llmgreen!70!black, line width=0.9pt},
-    trace/.style={llm/arrow/dashed, color=llmpurple!70!black, dash pattern=on 1pt off 1.5pt},
+    % Audit tap: thin solid connector (no arrowhead) + small "port" dot on the
+    % audit band. Reads as a bus-tap rather than directional flow.
+    tap/.style  ={line width=0.55pt, color=llmpurple!70!black},
+    port/.style ={circle, fill=llmpurple!70!black, inner sep=0pt, minimum size=1.3mm},
   ]
     % --- Layout grid (5 columns, 3 functional rows + 1 cross-cutting band) ---
     \def\colA{0}    \def\colB{3.6}  \def\colC{7.2}  \def\colD{10.8} \def\colE{14.4}
@@ -617,9 +620,12 @@ control stack spanning input handling, retrieval governance, tool security, and 
        (prompt IDs, retrieved doc IDs, tool calls, policy decisions)
        enable incident response and rollback across every layer.};
 
-    % Tracing taps every threat (dotted purple, no arrowhead on top end)
-    \foreach \t in {inj, bypass, exfil, misuse, leak}
-      \draw[trace] (\t.south) -- (\t.south |- tracing.north);
+    % Tracing taps every threat column: short solid connector down to the
+    % audit band + small filled "port" dot at the tap point (bus-tap motif).
+    \foreach \t in {inj, bypass, exfil, misuse, leak}{
+      \draw[tap] (\t.south) -- (\t.south |- tracing.north);
+      \node[port] at (\t.south |- tracing.north) {};
+    }
 
     % --- Row 4: controls (what you implement) ---
     \node[control] (sanitize)   at (\colA,\rowC) {\textbf{Input sanitization}\\Separate user vs\\system content\\Block known patterns};
@@ -638,15 +644,16 @@ control stack spanning input handling, retrieval governance, tool security, and 
     \node[lanelabel, text=llmpurple!70!black] at (-2.8, \rowX) {Audit lane};
     \node[lanelabel, text=llmgreen!60!black]  at (-2.8, \rowC) {Controls\\\textnormal{\scriptsize what you implement}};
 
-    % --- Legend (top-right, compact) ---
-    \node[llm/box/gray, align=left, font=\scriptsize,
-          anchor=north east, inner sep=3pt, text width=44mm]
-          (legend) at (17.3,8.8)
-      {\textbf{Legend}\\
-       \tikz[baseline=-0.6ex]{\draw[flow]  (0,0) -- (6mm,0);} data flow\\
-       \tikz[baseline=-0.6ex]{\draw[maps]  (0,0) -- (6mm,0);} surface $\rightarrow$ threat\\
-       \tikz[baseline=-0.6ex]{\draw[mits]  (0,0) -- (6mm,0);} threat $\rightarrow$ control\\
-       \tikz[baseline=-0.6ex]{\draw[trace] (0,0) -- (6mm,0);} audit tap};
+    % --- Legend: horizontal strip centered below the controls row ---
+    \node[llm/box/gray, align=center, font=\scriptsize,
+          inner sep=4pt, minimum width=170mm,
+          anchor=north] (legend) at (7.2,-0.4)
+      {\textbf{Legend:}\;\;
+       \tikz[baseline=-0.6ex]{\draw[flow]  (0,0) -- (7mm,0);}\;data flow\quad
+       \tikz[baseline=-0.6ex]{\draw[maps]  (0,0) -- (7mm,0);}\;surface $\rightarrow$ threat\quad
+       \tikz[baseline=-0.6ex]{\draw[mits]  (0,0) -- (7mm,0);}\;threat $\rightarrow$ control\quad
+       \tikz[baseline=-0.6ex]{\draw[tap]   (0,0) -- (7mm,0);
+                               \node[port] at (3.5mm,0) {};}\;audit tap};
   \end{tikzpicture}
   \end{llmfigbox}
   \caption{Security architecture\index{security!architecture} for tool- and retrieval-augmented LLM systems requires defense-in-depth\index{defense-in-depth}. Threats (prompt injection, policy bypass\index{policy bypass}, retrieval-based exfiltration\index{data exfiltration}, tool misuse\index{tool misuse}, and output leakage\index{output leakage}) map to concrete controls (input sanitization\index{input sanitization}, instruction hierarchy\index{instruction hierarchy}, retrieval governance\index{retrieval!governance}, tool sandboxing\index{sandboxing}, and output redaction\index{output redaction}), with audit-grade tracing\index{audit trail} as a cross-cutting requirement for incident response and rollback. This threat model guides security architecture decisions and demonstrates why traditional application security is insufficient for LLM systems.}
