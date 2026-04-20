@@ -425,13 +425,6 @@ Listing~\ref{lst:ch04_ci_gate} implements the statistical gate logic described a
 
 \begin{codebox}{CI gate implementation combining paired bootstrap confidence intervals for continuous metrics (e.g., groundedness scores) with McNemar's test for binary safety metrics (e.g., toxicity flags). This statistical gating logic ensures that model promotions are backed by rigorous evidence rather than point estimates, preventing regressions from reaching production.}{lst:ch04_ci_gate}
 \begin{minted}{python}
-#!/usr/bin/env python3
-"""
-CI gate implementation with statistical control for LLM evaluation.
-Implements paired bootstrap for continuous metrics and McNemar's test
-for binary safety metrics.
-"""
-
 import numpy as np
 from scipy import stats
 from typing import Tuple, List, Dict
@@ -439,7 +432,6 @@ from dataclasses import dataclass
 
 @dataclass
 class GateResult:
-    """Result of a CI gate check"""
     passed: bool
     metric_name: str
     baseline_mean: float
@@ -456,51 +448,26 @@ def paired_bootstrap_test(
     n_bootstrap: int = 10000,
     min_improvement: float = 0.5
 ) -> GateResult:
-    """
-    Paired bootstrap test for continuous metrics.
-    
-    Args:
-        baseline_scores: Scores from baseline version
-        candidate_scores: Scores from candidate version
-        confidence_level: Confidence level for CI
-        n_bootstrap: Number of bootstrap samples
-        min_improvement: Minimum improvement required
-    
-    Returns:
-        GateResult indicating whether gate passed
-    """
     if len(baseline_scores) != len(candidate_scores):
         raise ValueError("Baseline and candidate must have same length")
-    
+
     n = len(baseline_scores)
     differences = np.array(candidate_scores) - np.array(baseline_scores)
     mean_diff = np.mean(differences)
-    
-    # Bootstrap sampling
+
     bootstrap_means = []
     for _ in range(n_bootstrap):
         indices = np.random.choice(n, size=n, replace=True)
-        bootstrap_diff = np.mean(differences[indices])
-        bootstrap_means.append(bootstrap_diff)
-    
-    # Calculate confidence interval
+        bootstrap_means.append(np.mean(differences[indices]))
+
     alpha = 1 - confidence_level
     lower_bound = np.percentile(bootstrap_means, 100 * alpha / 2)
     upper_bound = np.percentile(bootstrap_means, 100 * (1 - alpha / 2))
-    
-    # Gate logic: CI must exclude zero AND improvement >= threshold
+
     ci_excludes_zero = (lower_bound > 0) or (upper_bound < 0)
     meets_improvement = mean_diff >= min_improvement
-    
     passed = ci_excludes_zero and meets_improvement
-    
-    message = (
-        f"Mean improvement: {mean_diff:.3f} "
-        f"(CI: [{lower_bound:.3f}, {upper_bound:.3f}]). "
-        f"Required: {min_improvement:.3f}. "
-        f"CI excludes zero: {ci_excludes_zero}"
-    )
-    
+
     return GateResult(
         passed=passed,
         metric_name="groundedness",
@@ -508,240 +475,27 @@ def paired_bootstrap_test(
         candidate_mean=np.mean(candidate_scores),
         improvement=mean_diff,
         confidence_interval=(lower_bound, upper_bound),
-        p_value=None,  # Bootstrap doesn't provide p-value
-        message=message
+        p_value=None,
+        message=f"diff={mean_diff:.3f} CI=[{lower_bound:.3f},{upper_bound:.3f}]",
     )
 
-def mcnemar_test(
-    baseline_flags: List[bool],
-    candidate_flags: List[bool],
-    alpha: float = 0.05
-) -> GateResult:
-    """
-    McNemar's test for binary metrics (e.g., toxicity flags).
-    
-    Args:
-        baseline_flags: Binary flags from baseline (True = violation)
-        candidate_flags: Binary flags from candidate
-        alpha: Significance level
-    
-    Returns:
-        GateResult indicating whether gate passed
-    """
-    if len(baseline_flags) != len(candidate_flags):
-        raise ValueError("Baseline and candidate must have same length")
-    
-    # Contingency table
-    both_negative = sum(
-        (not b) and (not c) 
-        for b, c in zip(baseline_flags, candidate_flags)
-    )
-    baseline_positive = sum(
-        b and (not c) 
-        for b, c in zip(baseline_flags, candidate_flags)
-    )
-    candidate_positive = sum(
-        (not b) and c 
-        for b, c in zip(baseline_flags, candidate_flags)
-    )
-    both_positive = sum(
-        b and c 
-        for b, c in zip(baseline_flags, candidate_flags)
-    )
-    
-    # McNemar's test (discordant pairs only)
-    contingency = [[both_negative, baseline_positive],
-                   [candidate_positive, both_positive]]
-    
-    # Calculate statistic
-    b = baseline_positive
-    c = candidate_positive
-    
-    if b + c == 0:
-        # No discordant pairs - no change
-        p_value = 1.0
-        passed = True
-    else:
-        # McNemar's chi-squared statistic
-        chi2 = ((b - c) ** 2) / (b + c)
-        p_value = 1 - stats.chi2.cdf(chi2, df=1)
-        
-        # Gate: must not increase (candidate_positive <= baseline_positive)
-        # AND p-value must be > alpha (not significantly worse)
-        passed = (candidate_positive <= baseline_positive) and (p_value > alpha)
-    
-    baseline_rate = sum(baseline_flags) / len(baseline_flags)
-    candidate_rate = sum(candidate_flags) / len(candidate_flags)
-    
-    message = (
-        f"Baseline violation rate: {baseline_rate:.3f}, "
-        f"Candidate: {candidate_rate:.3f}. "
-        f"McNemar p-value: {p_value:.4f}. "
-        f"Required: no increase (p > {alpha})"
-    )
-    
-    return GateResult(
-        passed=passed,
-        metric_name="toxicity",
-        baseline_mean=baseline_rate,
-        candidate_mean=candidate_rate,
-        improvement=baseline_rate - candidate_rate,
-        confidence_interval=None,
-        p_value=p_value,
-        message=message
-    )
+def mcnemar_test(baseline_flags, candidate_flags, alpha=0.05) -> GateResult:
+    # ... (analogous: count discordant pairs (b, c), compute chi2 = (b-c)^2/(b+c),
+    #      p_value = 1 - chi2.cdf(chi2, df=1); pass if rate non-increasing AND
+    #      p_value > alpha. Full source in companion repo.) ...
+    ...
 
-def evaluate_ci_gate(
-    metrics: Dict[str, Dict],
-    config: Optional[Dict] = None
-) -> Dict[str, GateResult]:
-    """
-    Evaluate multiple CI gates with configurable metric types.
+def evaluate_ci_gate(metrics: Dict[str, Dict]) -> Dict[str, GateResult]:
+    # Dispatcher: routes "fuzzy_match"/"semantic_similarity" -> paired_bootstrap_test,
+    # "exact_match" -> mcnemar_test. See companion repo for the dispatcher body and
+    # error envelope. Returns one GateResult per metric.
+    ...
 
-    Supports three metric comparison modes:
-      - "exact_match": binary pass/fail per example
-      - "fuzzy_match": continuous scores with bootstrap
-      - "semantic_similarity": embedding-based comparison
-
-    Args:
-        metrics: Dict mapping metric names to their data:
-            {
-              "groundedness": {
-                "type": "fuzzy_match",
-                "baseline": [...], "candidate": [...],
-                "threshold": 0.5, "confidence": 0.95
-              },
-              "toxicity": {
-                "type": "exact_match",
-                "baseline": [...], "candidate": [...],
-                "alpha": 0.05
-              },
-              "semantic_coherence": {
-                "type": "semantic_similarity",
-                "baseline": [...], "candidate": [...],
-                "threshold": 0.02
-              }
-            }
-        config: Optional global config overrides
-
-    Returns:
-        Dict mapping metric names to GateResult objects
-
-    Raises:
-        ValueError: If metric type is unknown or data invalid
-    """
-    results: Dict[str, GateResult] = {}
-
-    for name, spec in metrics.items():
-        metric_type = spec.get("type", "fuzzy_match")
-        baseline = spec.get("baseline", [])
-        candidate = spec.get("candidate", [])
-
-        if not baseline or not candidate:
-            raise ValueError(
-                f"Metric '{name}': baseline and candidate "
-                f"data must be non-empty"
-            )
-        if len(baseline) != len(candidate):
-            raise ValueError(
-                f"Metric '{name}': baseline ({len(baseline)}) "
-                f"and candidate ({len(candidate)}) length mismatch"
-            )
-
-        try:
-            if metric_type == "exact_match":
-                # Binary flags: use McNemar's test
-                result = mcnemar_test(
-                    baseline, candidate,
-                    alpha=spec.get("alpha", 0.05)
-                )
-            elif metric_type == "fuzzy_match":
-                # Continuous scores: use paired bootstrap
-                result = paired_bootstrap_test(
-                    baseline, candidate,
-                    confidence_level=spec.get("confidence", 0.95),
-                    min_improvement=spec.get("threshold", 0.5)
-                )
-            elif metric_type == "semantic_similarity":
-                # Embedding similarity: bootstrap on cosine diffs
-                result = paired_bootstrap_test(
-                    baseline, candidate,
-                    confidence_level=spec.get("confidence", 0.95),
-                    min_improvement=spec.get("threshold", 0.02)
-                )
-            else:
-                raise ValueError(
-                    f"Unknown metric type '{metric_type}' "
-                    f"for metric '{name}'"
-                )
-
-            # Override metric name from config key
-            result.metric_name = name
-            results[name] = result
-
-        except Exception as e:
-            # Return a failing gate on error
-            results[name] = GateResult(
-                passed=False,
-                metric_name=name,
-                baseline_mean=0.0,
-                candidate_mean=0.0,
-                improvement=0.0,
-                confidence_interval=(0.0, 0.0),
-                p_value=None,
-                message=f"ERROR: {str(e)}"
-            )
-
-    return results
-
-def summarize_gate_results(
-    results: Dict[str, GateResult]
-) -> Tuple[bool, str]:
-    """
-    Summarize all gate results into an overall decision.
-
-    Returns:
-        Tuple of (overall_passed, summary_message)
-    """
+def summarize_gate_results(results) -> Tuple[bool, str]:
     overall = all(r.passed for r in results.values())
-    lines = []
-    for name, r in results.items():
-        status = "PASS" if r.passed else "FAIL"
-        lines.append(f"  [{status}] {name}: {r.message}")
-
-    summary = "\n".join(lines)
-    return overall, summary
-
-# Example usage
-if __name__ == "__main__":
-    # Define metrics with types and thresholds
-    gate_metrics = {
-        "groundedness": {
-            "type": "fuzzy_match",
-            "baseline": [0.82, 0.85, 0.79, 0.88],  # 1000 scores
-            "candidate": [0.87, 0.89, 0.84, 0.91],
-            "threshold": 0.5,
-            "confidence": 0.95
-        },
-        "toxicity": {
-            "type": "exact_match",
-            "baseline": [False, False, True, False],  # 1000 flags
-            "candidate": [False, False, False, False],
-            "alpha": 0.05
-        },
-        "semantic_coherence": {
-            "type": "semantic_similarity",
-            "baseline": [0.91, 0.89, 0.93, 0.87],
-            "candidate": [0.93, 0.91, 0.94, 0.90],
-            "threshold": 0.02
-        }
-    }
-
-    results = evaluate_ci_gate(gate_metrics)
-    overall, summary = summarize_gate_results(results)
-
-    print(summary)
-    print(f"\nOverall CI gate: {'PASSED' if overall else 'FAILED'}")
+    lines = [f"  [{'PASS' if r.passed else 'FAIL'}] {n}: {r.message}"
+             for n, r in results.items()]
+    return overall, "\n".join(lines)
 \end{minted}
 \end{codebox}
 
@@ -969,7 +723,6 @@ spec:
   replicas: 5
   strategy:
     canary:
-      # Canary traffic percentages
       steps:
       - setWeight: 1
       - pause: {}
@@ -982,8 +735,7 @@ spec:
       - setWeight: 50
       - pause: {duration: 30m}
       - setWeight: 100
-      
-      # Analysis configuration for LLM-specific metrics
+
       analysis:
         templates:
         - templateName: llm-quality-analysis
@@ -992,94 +744,15 @@ spec:
           value: ishtar-llm-inference-canary
         - name: baseline-name
           value: ishtar-llm-inference-stable
-        
         startingStep: 2  # Start analysis at 5% traffic
-        
         successCondition: |
           result[0].groundedness.passed == true &&
           result[0].toxicity.passed == true &&
           result[0].latency.passed == true
-        
-        failureCondition: |
-          result[0].groundedness.passed == false ||
-          result[0].toxicity.passed == false ||
-          result[0].latency.passed == false
-        
-        metrics:
-        - name: groundedness
-          interval: 5m
-          count: 3
-          successCondition: result[0].mean >= 0.85
-          failureCondition: result[0].mean < 0.80
-          provider:
-            prometheus:
-              address: http://prometheus:9090
-              query: |
-                avg(
-                  ishtar_groundedness_score{
-                    service="ishtar-llm-inference-canary"
-                  }
-                )
-        
-        - name: toxicity
-          interval: 5m
-          count: 3
-          successCondition: result[0].rate <= 0.05
-          failureCondition: result[0].rate > 0.10
-          provider:
-            prometheus:
-              address: http://prometheus:9090
-              query: |
-                sum(
-                  rate(ishtar_toxicity_flags_total{
-                    service="ishtar-llm-inference-canary"
-                  }[5m])
-                ) /
-                sum(
-                  rate(ishtar_requests_total{
-                    service="ishtar-llm-inference-canary"
-                  }[5m])
-                )
-        
-        - name: latency
-          interval: 5m
-          count: 3
-          successCondition: result[0].p95 <= 600
-          failureCondition: result[0].p95 > 1000
-          provider:
-            prometheus:
-              address: http://prometheus:9090
-              query: |
-                histogram_quantile(0.95,
-                  sum(rate(ishtar_ttft_seconds_bucket{
-                    service="ishtar-llm-inference-canary"
-                  }[5m])) by (le)
-                ) * 1000
-  
-  selector:
-    matchLabels:
-      app: ishtar-llm
-      component: inference
-  
-  template:
-    metadata:
-      labels:
-        app: ishtar-llm
-        component: inference
-        version: v1.4.0
-    spec:
-      containers:
-      - name: inference-server
-        image: ishtar/llm-inference:v1.4.0
-        resources:
-          requests:
-            nvidia.com/gpu: 1
-            memory: "40Gi"
-            cpu: "8"
-          limits:
-            nvidia.com/gpu: 1
-            memory: "45Gi"
-            cpu: "16"
+        # ... (failureCondition is the symmetric negation; omitted) ...
+  # ... (selector, template, container resources omitted; standard Argo
+  #      Rollout pod spec referencing image ishtar/llm-inference:v1.4.0
+  #      with 1 GPU + 40 GiB memory request) ...
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
@@ -1102,41 +775,10 @@ spec:
               service="{{args.service-name}}"
             }
           )
-  
-  - name: toxicity
-    interval: 5m
-    count: 3
-    successCondition: result[0].rate <= 0.05
-    failureCondition: result[0].rate > 0.10
-    provider:
-      prometheus:
-        address: http://prometheus:9090
-        query: |
-          sum(
-            rate(ishtar_toxicity_flags_total{
-              service="{{args.service-name}}"
-            }[5m])
-          ) /
-          sum(
-            rate(ishtar_requests_total{
-              service="{{args.service-name}}"
-            }[5m])
-          )
-  
-  - name: latency
-    interval: 5m
-    count: 3
-    successCondition: result[0].p95 <= 600
-    failureCondition: result[0].p95 > 1000
-    provider:
-      prometheus:
-        address: http://prometheus:9090
-        query: |
-          histogram_quantile(0.95,
-            sum(rate(ishtar_ttft_seconds_bucket{
-              service="{{args.service-name}}"
-            }[5m])) by (le)
-          ) * 1000
+  # ... (toxicity metric: sum(rate(toxicity_flags)) / sum(rate(requests)),
+  #      pass <= 0.05, fail > 0.10. Latency metric: histogram_quantile(0.95, ttft),
+  #      pass <= 600 ms, fail > 1000 ms. Same provider/interval/count shape as
+  #      groundedness above; full source in companion repo.) ...
 \end{minted}
 \end{codebox}
 
