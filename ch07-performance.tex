@@ -392,7 +392,7 @@ Mixed Precision & Variable & Variable & Tunable trade-off & Framework-dependent;
 \end{tabularx}
 \end{table}
 
-\subsection{Pruning}
+\subsection{Pruning}\index{pruning}
 Pruning involves removing weights, neurons, or entire attention heads that contribute little to model output. By zeroing out or deleting these insignificant parameters, we obtain a smaller, sparser model.
 
 Two common approaches are:
@@ -410,7 +410,7 @@ In the context of LLMs, distillation has been used to create compact models that
 
 Distillation is especially useful when inference hardware is highly constrained (e.g., deploying a model on CPU or mobile device): a well-distilled model can outperform larger models that are pruned or quantized, because the student’s architecture itself may be optimized for speed (fewer layers or smaller embedding size). A production consequence of distillation is the need to maintain the teacher model during development for generating training data, which can be resource-intensive. But once the student is trained, the teacher can be retired from inference.
 
-\subsection{Efficient Fine-Tuning}
+\subsection{Efficient Fine-Tuning}\index{fine-tuning!parameter-efficient}
 Efficient fine-tuning methods, such as LoRA or QLoRA, adapt large models to new tasks without updating all parameters. These approaches insert small trainable adapters or apply low-rank updates to the base model, significantly reducing the number of parameters that need to be tuned. In some cases, they also quantize the base model to reduce compute and memory usage, enabling task-specific tuning even on resource-constrained hardware.
 
 A prime example is LoRA (Low-Rank Adaptation) \cite{Hu2022LoRA}, which freezes the original model weights and learns small rank-decomposition matrices for each layer’s weight update. The number of trainable parameters is only a tiny fraction (often $<0.1\%$) of the full model’s parameters. This means fine-tuning can be done with much less GPU memory and faster training times, and at inference, the overhead of LoRA is minimal (just an extra add-matrix multiply per layer for the learned delta). QLoRA \cite{Dettmers2023QLoRA} takes this further by quantizing the model to 4-bit during fine-tuning and using LoRA on top, enabling the fine-tuning of a 65B-parameter model on a single 48\,GB GPU. The end result is a model that, at inference, runs in 4-bit mode with a few low-rank adjustments---highly efficient in memory and nearly as fast as a fully 4-bit model.
@@ -695,7 +695,7 @@ TensorRT-LLM (INT8/FP8)  & 420  & 410 & 18  & Fused GPU kernels; Tensor Core uti
 \end{table}
 
 \FloatBarrier
-\section{System-Level Optimization}
+\section{System-Level Optimization}\index{optimization!system-level}
 \label{sec:perf-system}
 System-level optimizations improve the overall throughput and latency of the serving system by better handling how requests are scheduled and executed on the available hardware. These techniques treat the model as a black box and focus on orchestrating multiple inference calls efficiently. Key methods include batching, asynchronous request handling, and caching of results.
 
@@ -914,7 +914,7 @@ monitoring:
 One of the hardest parts of caching is invalidation---deciding when a cached entry should be discarded or refreshed. In LLMOps, this could mean invalidating when the model is updated (since a new model might produce a different answer), when the knowledge sources have changed (for instance, new articles have come in), or after a certain time to ensure freshness. A practical strategy is to include a version tag in the cache key that incorporates the model ID or data timestamp. For example, key by \verb|model_v3::[prompt hash]|. When you deploy model v4, it automatically does not hit v3’s cache. Another strategy is time-based: e.g., any summary older than 24 hours for a ``latest news'' query is probably stale. Ultimately, imperfect invalidation is tolerated; it might occasionally serve an answer that is a bit outdated, but in exchange for large performance gains. System designers should monitor for cache accuracy and have a mechanism (like a feature flag or admin API) to flush caches if a problem is discovered.
 
 \FloatBarrier
-\section{Prompt Optimization}
+\section{Prompt Optimization}\index{prompt optimization}
 \label{sec:perf-prompt}
 The content and format of prompts directly affect the amount of computation the model performs. By optimizing prompts, we can reduce unnecessary work per query. These are “software” optimizations that do not change the model or system, but rather how we use the model.
 
