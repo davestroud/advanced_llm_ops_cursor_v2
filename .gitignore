@@ -43,4 +43,5 @@ docs/audit_reports/*
 !docs/audit_reports/BASELINE_SUMMARY.md
 !docs/audit_reports/LATEST_SUMMARY.md
 !docs/audit_reports/AI_DECLARATION_REVIEW.md
+!docs/audit_reports/listing_inventory.md
 
