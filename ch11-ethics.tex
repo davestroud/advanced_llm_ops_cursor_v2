@@ -997,13 +997,17 @@ Table~\ref{tab:ch11_escalation_sla} defines four priority levels\index{escalatio
 \rowcolor{gray!15}
 \textbf{Priority} & \textbf{Response SLA} & \textbf{Trigger Criteria} & \textbf{Required Action} \\
 \midrule
-\textbf{P1} & 15 minutes & Imminent safety risk (self-harm, violence incitement, source exposure); toxicity score $> 0.9$ & Immediate human takeover; output blocked; incident commander notified; system may be paused \\
+\rowcolor{red!10}
+\textcolor{red!70!black}{\textbf{P1}} & \textcolor{red!70!black}{\textbf{15 minutes}} & Imminent safety risk (self-harm, violence incitement, source exposure); toxicity score $> 0.9$ & Immediate human takeover; output blocked; incident commander notified; system may be paused \\
 \addlinespace[2pt]
-\textbf{P2} & 1 hour & Moderate safety concern; bias score $> 0.15$; unverified sensitive claim & Output flagged with warning; human review before delivery; content moderator alerted \\
+\rowcolor{orange!10}
+\textcolor{orange!70!black}{\textbf{P2}} & \textcolor{orange!70!black}{\textbf{1 hour}} & Moderate safety concern; bias score $> 0.15$; unverified sensitive claim & Output flagged with warning; human review before delivery; content moderator alerted \\
 \addlinespace[2pt]
+\rowcolor{yellow!15}
 \textbf{P3} & 4 hours & Low-confidence output; user complaint; borderline content & Logged for review; delivered with disclaimer; ethics officer reviews in batch \\
 \addlinespace[2pt]
-\textbf{P4} & 24 hours & Pattern-based concern (aggregate metrics trending toward thresholds); minor quality issues & Aggregated in weekly report; reviewed in scheduled ethics stand-up \\
+\rowcolor{green!10}
+\textcolor{green!70!black}{\textbf{P4}} & \textcolor{green!70!black}{\textbf{24 hours}} & Pattern-based concern (aggregate metrics trending toward thresholds); minor quality issues & Aggregated in weekly report; reviewed in scheduled ethics stand-up \\
 \bottomrule
 \end{tabularx}
 \end{table}
