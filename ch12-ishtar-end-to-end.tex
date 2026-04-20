@@ -810,11 +810,16 @@ Table~\ref{tab:ch12_cost_breakdown} provides an illustrative cost breakdown for 
 \rowcolor{gray!15}
 \textbf{Component} & \textbf{\% of Total} & \textbf{Monthly Est.} & \textbf{Optimization Lever} \\
 \midrule
-LLM Inference & 55\% & \$4{,}400 & Quantization, KV-cache optimization, prompt compression, model routing \\
+\rowcolor{orange!10}
+\textbf{LLM Inference} & \textcolor{orange!70!black}{\textbf{55\%}} & \textcolor{orange!70!black}{\textbf{\$4{,}400}} & Quantization, KV-cache optimization, prompt compression, model routing \\
+\rowcolor{blue!8}
 Retrieval (embeddings + search) & 20\% & \$1{,}600 & Index optimization, embedding caching, smaller embedding models \\
+\rowcolor{blue!8}
 Safety / verification pipeline & 10\% & \$800 & Smaller judge models, classifier cascades, sampling-based verification \\
+\rowcolor{blue!8}
 Infrastructure (K8s, storage) & 10\% & \$800 & Right-sizing, spot instances, scale-to-zero for non-critical services \\
-Monitoring / observability & 5\% & \$400 & Sampling strategies, log retention policies, metric aggregation \\
+\rowcolor{green!10}
+Monitoring / observability & \textcolor{green!70!black}{\textbf{5\%}} & \$400 & Sampling strategies, log retention policies, metric aggregation \\
 \bottomrule
 \end{tabularx}
 \end{table}
