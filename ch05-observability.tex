@@ -214,7 +214,7 @@ Beyond live gates, replay evaluators on logged QA pairs to surface long-horizon 
 \noindent\textbf{Implementation note.}
 Integrate tracing (LangSmith \cite{langsmith_home}/Langfuse) with OpenTelemetry \cite{otel_spec} so retrieval spans, evaluator outputs, and groundedness scores co-live with infra metrics (Prometheus \cite{prometheus_instrumentation}/Grafana \cite{grafana_dashboards}), enabling a unified, drill-down workflow from a faithfulness alert to the exact retrieval and generation steps responsible. This "glass-box" approach turns RAG evaluation from an offline exercise into a first-class, real-time operational control.
 
-\section{Advanced Instrumentation and Logging for LLM Applications}
+\section{Advanced Instrumentation and Logging for LLM Applications}\index{instrumentation!LLM}
 \label{sec:advanced-instrumentation-and-logging-for-llm-applications}
 Instrumentation in LLMOps extends traditional logging. At minimum, logs must capture:
 \begin{itemize}
@@ -224,7 +224,7 @@ Instrumentation in LLMOps extends traditional logging. At minimum, logs must cap
     \item Error traces for tool calls, parsers, and API timeouts.
 \end{itemize}
 
-\subsection{Standardizing Telemetry: OpenTelemetry and OpenMetrics}\label{sec:otel-openmetrics}
+\subsection{Standardizing Telemetry: OpenTelemetry and OpenMetrics}\index{OpenTelemetry}\index{OpenMetrics}\label{sec:otel-openmetrics}
 A practical observability baseline for LLM applications is to standardize telemetry across \emph{traces}, \emph{metrics}, and \emph{logs} using OpenTelemetry (OTel). Traces represent each request as a tree of spans (e.g., retrieval $\rightarrow$ rerank $\rightarrow$ model call $\rightarrow$ tool execution $\rightarrow$ post-processing), enabling engineers to attribute latency, failures, and cost to specific stages \cite{otel_traces,otel_spec}. OpenTelemetry also provides APIs and SDKs for producing log records and for correlating events with trace context and resource attributes (service name, deployment environment, and version), which is especially valuable when debugging multi-component LLM pipelines \cite{otel_logs_concepts}.
 
 For metrics, Prometheus remains a common substrate in cloud-native environments. The Prometheus/OpenMetrics text exposition format is widely supported by client libraries and exporters, making it well-suited for scraping token usage, latency histograms (TTFT and end-to-end), retrieval hit-rate, tool error rates, and safety-trigger counters from LLM services \cite{openmetrics_spec,prometheus_instrumentation,prometheus_clientlibs}. In many architectures, an OpenTelemetry Collector \cite{otel_collector} receives telemetry from services and fans out to one or more backends (for example: Prometheus-compatible storage for metrics and a tracing backend for spans), while preserving consistent semantic conventions and labels for analysis \cite{otel_spec}.
@@ -933,7 +933,7 @@ Logs & Structured JSON/OTel logs \cite{otel_logs_concepts} + centralized store &
 
 In practice, \ishtar exports traces and evaluator artifacts to an OpenTelemetry Collector, uses exemplars to link Grafana panels to representative Jaeger traces, and curates ``golden replay'' datasets from production traces to feed back into CI/CD gates (Chapter~\ref{ch:cicd}). The result is a single operational loop that spans detection, diagnosis, and regression prevention.
 
-\section{Tracing Complex Prompt Flows and Multi-Agent Interactions}
+\section{Tracing Complex Prompt Flows and Multi-Agent Interactions}\index{tracing!prompt flows}
 \label{sec:tracing-complex-prompt-flows-and-multi-agent-interactions}
 Tracing captures the \emph{execution waterfall} of an LLM application. Each span in a trace corresponds to a model call, retrieval step, or tool execution, and can be correlated back to the originating user query.
 
@@ -1117,7 +1117,7 @@ Finally, treat traces as executable documentation. Runbooks should link symptom 
 \medskip
 % (Duplicate removed)
 
-\section{Real-Time Dashboards and Live Metrics}
+\section{Real-Time Dashboards and Live Metrics}\index{dashboards!real-time}
 \label{sec:real-time-dashboards-and-live-metrics}
 High-value metrics for LLM observability include:
 \begin{itemize}
@@ -1258,7 +1258,7 @@ Store evaluator prompts, versions, and seeds alongside results. Every dashboard 
 
 In combination, these practices transform passive scoring into an \emph{engine of continuous improvement}: evaluations trigger targeted edits; edits are validated against controlled gates; and results feed back into both prompts and training data—establishing a virtuous cycle where quality trends are measurable, attributable, and, crucially, durable in production.
 
-\section{Alerts, Incident Response, and Resilience}
+\section{Alerts, Incident Response, and Resilience}\index{incident response}\index{alerting}
 \label{sec:alerts-incident-response-and-resilience}
 Alerting strategies must balance sensitivity with operator fatigue. Recommended practices include:
 \begin{itemize}
