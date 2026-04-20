@@ -219,18 +219,10 @@ Listing~\ref{lst:ch03_cost_calculation} provides a Python script for calculating
 
 \begin{codebox}{Python script for calculating cost per token based on GPU hardware configuration and utilization levels, with multi-GPU comparison support. This utility enables infrastructure teams to model the cost implications of different GPU choices and utilization targets before committing to provisioning decisions, making the cost-throughput trade-off explicit and data-driven.}{lst:ch03_cost_calculation}
 \begin{minted}{python}
-#!/usr/bin/env python3
-"""
-Calculate cost per token for LLM inference based on GPU utilization
-and throughput metrics.
-"""
-
 from dataclasses import dataclass
-from typing import Optional
 
 @dataclass
 class GPUConfig:
-    """GPU hardware configuration"""
     name: str
     hourly_cost_usd: float
     max_throughput_tokens_per_sec: float
@@ -238,100 +230,35 @@ class GPUConfig:
 
 @dataclass
 class CostResult:
-    """Cost calculation result"""
     cost_per_1k_tokens_usd: float
     cost_per_second_usd: float
     effective_throughput_tokens_per_sec: float
     utilization_percent: float
 
-def calculate_cost_per_token(
-    gpu: GPUConfig,
-    utilization_percent: float = 100.0,
-    tokens_per_request: Optional[int] = None
-) -> CostResult:
-    """
-    Calculate cost per token based on GPU utilization.
-
-    Args:
-        gpu: GPU configuration
-        utilization_percent: GPU utilization (0-100)
-        tokens_per_request: Optional average tokens per request
-
-    Returns:
-        CostResult with cost metrics
-    """
+def calculate_cost_per_token(gpu: GPUConfig,
+                             utilization_percent: float = 100.0) -> CostResult:
     if not 0 <= utilization_percent <= 100:
         raise ValueError("Utilization must be between 0 and 100")
-
-    # Effective throughput scales with utilization
+    # Effective throughput scales linearly with utilization;
+    # cost-per-token = (USD/sec) / (tokens/sec).
     effective_throughput = (
-        gpu.max_throughput_tokens_per_sec * (utilization_percent / 100.0)
-    )
-
-    # Cost per second
+        gpu.max_throughput_tokens_per_sec * (utilization_percent / 100.0))
     cost_per_second = gpu.hourly_cost_usd / 3600.0
-
-    # Cost per token
     cost_per_token = cost_per_second / effective_throughput
-
-    # Cost per 1k tokens
-    cost_per_1k_tokens = cost_per_token * 1000.0
-
     return CostResult(
-        cost_per_1k_tokens_usd=cost_per_1k_tokens,
+        cost_per_1k_tokens_usd=cost_per_token * 1000.0,
         cost_per_second_usd=cost_per_second,
         effective_throughput_tokens_per_sec=effective_throughput,
-        utilization_percent=utilization_percent
+        utilization_percent=utilization_percent,
     )
 
-def compare_gpu_options(
-    gpus: list[GPUConfig],
-    utilization_percent: float = 100.0
-) -> dict[str, CostResult]:
-    """
-    Compare cost across multiple GPU options.
+def compare_gpu_options(gpus, utilization_percent: float = 100.0):
+    return {g.name: calculate_cost_per_token(g, utilization_percent)
+            for g in gpus}
 
-    Args:
-        gpus: List of GPU configurations
-        utilization_percent: Utilization to compare at
-
-    Returns:
-        Dictionary mapping GPU name to CostResult
-    """
-    results = {}
-    for gpu in gpus:
-        results[gpu.name] = calculate_cost_per_token(
-            gpu, utilization_percent
-        )
-    return results
-
-# Example usage
-if __name__ == "__main__":
-    # Define GPU configurations
-    a100_80gb = GPUConfig(
-        name="A100-80GB",
-        hourly_cost_usd=3.80,
-        max_throughput_tokens_per_sec=8000.0,
-        memory_gb=80
-    )
-
-    h100_80gb = GPUConfig(
-        name="H100-80GB",
-        hourly_cost_usd=5.00,
-        max_throughput_tokens_per_sec=12000.0,
-        memory_gb=80
-    )
-
-    # Compare at different utilization levels
-    print("Cost comparison at 100% utilization:")
-    results_100 = compare_gpu_options([a100_80gb, h100_80gb], 100.0)
-    for name, result in results_100.items():
-        print(f"{name}: ${result.cost_per_1k_tokens_usd:.4f} per 1k tokens")
-
-    print("\nCost comparison at 50% utilization:")
-    results_50 = compare_gpu_options([a100_80gb, h100_80gb], 50.0)
-    for name, result in results_50.items():
-        print(f"{name}: ${result.cost_per_1k_tokens_usd:.4f} per 1k tokens")
+# ... (driver block: defines A100-80GB ($3.80/h, 8k tok/s) and
+#      H100-80GB ($5.00/h, 12k tok/s); prints cost/1k tokens at
+#      100% and 50% utilization. Full source in companion repo.) ...
 \end{minted}
 \end{codebox}
 
@@ -732,64 +659,23 @@ Listing~\ref{lst:ch03_terraform_module} shows a reusable Terraform module for pr
 
 \begin{codebox}{Reusable Terraform module for provisioning GPU-enabled EKS node groups with configurable instance types, autoscaling limits, Kubernetes taints and labels for workload isolation, and least-privilege IAM roles. This module encapsulates the GPU infrastructure pattern so that teams can stamp out consistent node groups across environments without duplicating configuration or risking security policy drift.}{lst:ch03_terraform_module}
 \begin{minted}{terraform}
-# modules/gpu-node-group/main.tf
-# Reusable module for GPU-enabled Kubernetes node groups
+# modules/gpu-node-group/main.tf -- reusable GPU EKS node group.
 
-variable "cluster_name" {
-  description = "Name of the EKS cluster"
-  type        = string
-}
+variable "cluster_name"    { type = string }
+variable "node_group_name" { type = string }
+variable "instance_type"   { type = string  default = "g5.2xlarge" }
+variable "min_size"        { type = number  default = 1 }
+variable "max_size"        { type = number  default = 10 }
+variable "desired_size"    { type = number  default = 2 }
 
-variable "node_group_name" {
-  description = "Name of the node group"
-  type        = string
-}
-
-variable "instance_type" {
-  description = "EC2 instance type (e.g., g5.2xlarge)"
-  type        = string
-  default     = "g5.2xlarge"
-}
-
-variable "min_size" {
-  description = "Minimum number of nodes"
-  type        = number
-  default     = 1
-}
-
-variable "max_size" {
-  description = "Maximum number of nodes"
-  type        = number
-  default     = 10
-}
-
-variable "desired_size" {
-  description = "Desired number of nodes"
-  type        = number
-  default     = 2
-}
-
+# Taint defaults isolate GPU workloads; labels target llm-inference pods.
 variable "taints" {
-  description = "Kubernetes taints for node isolation"
-  type = list(object({
-    key    = string
-    value  = string
-    effect = string
-  }))
-  default = [{
-    key    = "gpu"
-    value  = "true"
-    effect = "NO_SCHEDULE"
-  }]
+  type    = list(object({ key = string, value = string, effect = string }))
+  default = [{ key = "gpu", value = "true", effect = "NO_SCHEDULE" }]
 }
-
 variable "labels" {
-  description = "Kubernetes node labels"
-  type        = map(string)
-  default = {
-    nodeType = "gpu"
-    workload = "llm-inference"
-  }
+  type    = map(string)
+  default = { nodeType = "gpu", workload = "llm-inference" }
 }
 
 resource "aws_eks_node_group" "gpu_nodes" {
@@ -797,9 +683,10 @@ resource "aws_eks_node_group" "gpu_nodes" {
   node_group_name = var.node_group_name
   node_role_arn   = aws_iam_role.node_group.arn
   subnet_ids      = var.subnet_ids
-
-  instance_types = [var.instance_type]
-  capacity_type  = "ON_DEMAND"
+  instance_types  = [var.instance_type]
+  capacity_type   = "ON_DEMAND"
+  ami_type        = "AL2_x86_64_GPU"   # ships NVIDIA drivers
+  disk_size       = 100
 
   scaling_config {
     desired_size = var.desired_size
@@ -807,71 +694,42 @@ resource "aws_eks_node_group" "gpu_nodes" {
     max_size     = var.max_size
   }
 
-  # GPU-specific configuration
-  ami_type       = "AL2_x86_64_GPU"
-  disk_size      = 100
+  labels          = var.labels
+  update_config   { max_unavailable = 1 }
+  remote_access   { ec2_ssh_key = var.ssh_key_name }
 
-  labels = var.labels
-
-  taint {
-    for_each = { for t in var.taints : t.key => t }
-    key      = each.value.key
-    value    = each.value.value
-    effect   = each.value.effect
+  dynamic "taint" {
+    for_each = var.taints
+    content { key = taint.value.key; value = taint.value.value
+              effect = taint.value.effect }
   }
 
-  # Update configuration
-  update_config {
-    max_unavailable = 1
-  }
-
-  # Ensure NVIDIA drivers are installed
-  remote_access {
-    ec2_ssh_key = var.ssh_key_name
-  }
-
-  tags = {
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Purpose     = "LLM-Inference"
-  }
+  tags = { Environment = var.environment, ManagedBy = "Terraform",
+           Purpose = "LLM-Inference" }
 }
 
-# IAM role for node group
+# Least-privilege node role: assumed by EC2; attaches the three EKS-managed
+# policies required for worker registration, CNI, and ECR pulls.
 resource "aws_iam_role" "node_group" {
   name = "${var.node_group_name}-node-role"
-
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
-    }]
+    Statement = [{ Action = "sts:AssumeRole", Effect = "Allow",
+                   Principal = { Service = "ec2.amazonaws.com" } }]
   })
 }
-
-# Attach required policies
 resource "aws_iam_role_policy_attachment" "node_group" {
   for_each = toset([
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
   ])
-
   role       = aws_iam_role.node_group.name
   policy_arn = each.value
 }
 
-output "node_group_arn" {
-  value = aws_eks_node_group.gpu_nodes.arn
-}
-
-output "node_group_id" {
-  value = aws_eks_node_group.gpu_nodes.id
-}
+output "node_group_arn" { value = aws_eks_node_group.gpu_nodes.arn }
+output "node_group_id"  { value = aws_eks_node_group.gpu_nodes.id  }
 \end{minted}
 \end{codebox}
 
@@ -900,226 +758,82 @@ Listing~\ref{lst:ch03_iac_pipeline} shows a GitHub Actions workflow that impleme
 \begin{minted}{yaml}
 # .github/workflows/terraform-infra.yml
 name: Infrastructure CI/CD
-
 on:
-  pull_request:
-    paths:
-      - 'infrastructure/**'
-  push:
-    branches:
-      - main
-    paths:
-      - 'infrastructure/**'
-
+  pull_request: { paths: ['infrastructure/**'] }
+  push:         { branches: [main], paths: ['infrastructure/**'] }
 env:
   TF_VERSION: '1.6.0'
   AWS_REGION: 'us-east-1'
 
 jobs:
+  # 1) Validate: fmt, init -backend=false, validate, TFLint.
   validate:
-    name: Validate Terraform
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Init
-        working-directory: ./infrastructure
-        run: terraform init -backend=false
-
-      - name: Terraform Validate
-        working-directory: ./infrastructure
-        run: terraform validate
-
-      - name: Run TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: latest
-
-      - name: TFLint Check
-        working-directory: ./infrastructure
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: '${{ env.TF_VERSION }}' }
+      - run: terraform fmt -check -recursive
+      - working-directory: ./infrastructure
+        run: terraform init -backend=false && terraform validate
+      - uses: terraform-linters/setup-tflint@v4
+      - working-directory: ./infrastructure
         run: tflint --init && tflint
 
+  # 2) Security: Checkov scan against the Terraform sources.
   security-scan:
-    name: Security Scan
     runs-on: ubuntu-latest
     needs: validate
     steps:
       - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@master
+        with: { directory: ./infrastructure, framework: terraform,
+                soft_fail: false }
 
-      - name: Run Checkov
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: ./infrastructure
-          framework: terraform
-          soft_fail: false
-
+  # 3) Dev plan on PR; uploads tfplan artifact for the apply step.
   plan-dev:
-    name: Plan Dev Environment
     runs-on: ubuntu-latest
     needs: [validate, security-scan]
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Init
-        working-directory: ./infrastructure
+          aws-region:            ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: '${{ env.TF_VERSION }}' }
+      - working-directory: ./infrastructure
         run: |
-          terraform init \
-            -backend-config="bucket=ishtar-terraform-state" \
-            -backend-config="key=dev/terraform.tfstate"
+          terraform init -backend-config="bucket=ishtar-terraform-state" \
+                         -backend-config="key=dev/terraform.tfstate"
+          terraform plan -var-file="environments/dev.tfvars" \
+                         -out=tfplan -no-color
+      - uses: actions/upload-artifact@v4
+        with: { name: terraform-plan-dev, path: infrastructure/tfplan }
 
-      - name: Terraform Plan
-        working-directory: ./infrastructure
-        run: |
-          terraform plan \
-            -var-file="environments/dev.tfvars" \
-            -out=tfplan \
-            -no-color
-
-      - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan-dev
-          path: infrastructure/tfplan
-
+  # 4) Apply Dev on push to main, gated by the `dev` GitHub environment.
   apply-dev:
-    name: Apply Dev Environment
     runs-on: ubuntu-latest
     needs: plan-dev
     if: github.ref == 'refs/heads/main'
-    environment:
-      name: dev
+    environment: { name: dev }
     steps:
       - uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Download Plan Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan-dev
-
-      - name: Terraform Init
-        working-directory: ./infrastructure
+      - uses: actions/download-artifact@v4
+        with: { name: terraform-plan-dev }
+      # ... (configure-aws-credentials + setup-terraform identical to plan-dev) ...
+      - working-directory: ./infrastructure
         run: |
-          terraform init \
-            -backend-config="bucket=ishtar-terraform-state" \
-            -backend-config="key=dev/terraform.tfstate"
+          terraform init -backend-config="bucket=ishtar-terraform-state" \
+                         -backend-config="key=dev/terraform.tfstate"
+          terraform apply -auto-approve tfplan
 
-      - name: Terraform Apply
-        working-directory: ./infrastructure
-        run: terraform apply -auto-approve tfplan
-
-  plan-prod:
-    name: Plan Production Environment
-    runs-on: ubuntu-latest
-    needs: apply-dev
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Init
-        working-directory: ./infrastructure
-        run: |
-          terraform init \
-            -backend-config="bucket=ishtar-terraform-state-prod" \
-            -backend-config="key=prod/terraform.tfstate"
-
-      - name: Terraform Plan
-        working-directory: ./infrastructure
-        run: |
-          terraform plan \
-            -var-file="environments/prod.tfvars" \
-            -out=tfplan \
-            -no-color
-
-      - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan-prod
-          path: infrastructure/tfplan
-
-  apply-prod:
-    name: Apply Production Environment
-    runs-on: ubuntu-latest
-    needs: plan-prod
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Download Plan Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan-prod
-
-      - name: Terraform Init
-        working-directory: ./infrastructure
-        run: |
-          terraform init \
-            -backend-config="bucket=ishtar-terraform-state-prod" \
-            -backend-config="key=prod/terraform.tfstate"
-
-      - name: Terraform Apply
-        working-directory: ./infrastructure
-        run: terraform apply -auto-approve tfplan
+  # 5/6) plan-prod and apply-prod mirror plan-dev/apply-dev with prod-scoped
+  #      AWS_*_PROD secrets, the `production` environment (manual approval
+  #      gate), and the bucket=ishtar-terraform-state-prod / key=prod/...
+  #      backend. Full workflow in companion repo.
 \end{minted}
 \end{codebox}
 
@@ -1215,34 +929,21 @@ kind: Deployment
 metadata:
   name: ishtar-llm-inference
   namespace: production
-  labels:
-    app: ishtar-llm
-    component: inference
-    version: v1.3.0
+  labels: { app: ishtar-llm, component: inference, version: v1.3.0 }
 spec:
   replicas: 3
   selector:
-    matchLabels:
-      app: ishtar-llm
-      component: inference
+    matchLabels: { app: ishtar-llm, component: inference }
   template:
     metadata:
-      labels:
-        app: ishtar-llm
-        component: inference
-        version: v1.3.0
+      labels: { app: ishtar-llm, component: inference, version: v1.3.0 }
     spec:
-      # Node selection and taints
-      nodeSelector:
-        nodeType: gpu
-        workload: llm-inference
+      # Schedule onto GPU nodes (taint set by the Terraform module above).
+      nodeSelector: { nodeType: gpu, workload: llm-inference }
       tolerations:
-      - key: "gpu"
-        operator: "Equal"
-        value: "true"
-        effect: "NoSchedule"
+      - { key: "gpu", operator: "Equal", value: "true", effect: "NoSchedule" }
 
-      # Affinity rules for high availability
+      # Spread replicas across hosts for HA.
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -1250,89 +951,48 @@ spec:
             podAffinityTerm:
               labelSelector:
                 matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - ishtar-llm
+                - { key: app, operator: In, values: [ishtar-llm] }
               topologyKey: kubernetes.io/hostname
 
       containers:
       - name: inference-server
         image: ishtar/llm-inference:v1.3.0
         imagePullPolicy: Always
-
-        # GPU resource requests
         resources:
-          requests:
-            nvidia.com/gpu: 1
-            memory: "40Gi"
-            cpu: "8"
-          limits:
-            nvidia.com/gpu: 1
-            memory: "45Gi"
-            cpu: "16"
-
-        # Environment variables
+          requests: { nvidia.com/gpu: 1, memory: "40Gi", cpu: "8"  }
+          limits:   { nvidia.com/gpu: 1, memory: "45Gi", cpu: "16" }
         env:
-        - name: MODEL_NAME
-          value: "llama-2-13b-chat"
-        - name: MODEL_PATH
-          value: "/models/llama-2-13b"
-        - name: MAX_BATCH_SIZE
-          value: "8"
-        - name: PORT
-          value: "8000"
-
-        # Health probes
+        - { name: MODEL_NAME,    value: "llama-2-13b-chat"   }
+        - { name: MODEL_PATH,    value: "/models/llama-2-13b" }
+        - { name: MAX_BATCH_SIZE, value: "8" }
+        - { name: PORT,           value: "8000" }
+        # Readiness gives the model 120s to load before serving traffic.
         livenessProbe:
-          httpGet:
-            path: /health/live
-            port: 8000
+          httpGet: { path: /health/live, port: 8000 }
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 3
-
         readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 8000
-          initialDelaySeconds: 120  # Allow model loading time
+          httpGet: { path: /health/ready, port: 8000 }
+          initialDelaySeconds: 120
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
-
-        # Volume mounts for model storage
         volumeMounts:
-        - name: model-storage
-          mountPath: /models
-          readOnly: true
-
+        - { name: model-storage, mountPath: /models, readOnly: true }
       volumes:
       - name: model-storage
-        persistentVolumeClaim:
-          claimName: ishtar-models-pvc
-
-      # Security context
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
+        persistentVolumeClaim: { claimName: ishtar-models-pvc }
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
 
 ---
 apiVersion: v1
 kind: Service
-metadata:
-  name: ishtar-llm-inference
-  namespace: production
+metadata: { name: ishtar-llm-inference, namespace: production }
 spec:
-  selector:
-    app: ishtar-llm
-    component: inference
-  ports:
-  - port: 80
-    targetPort: 8000
-    protocol: TCP
+  selector: { app: ishtar-llm, component: inference }
+  ports: [ { port: 80, targetPort: 8000, protocol: TCP } ]
   type: ClusterIP
 \end{minted}
 \end{codebox}
