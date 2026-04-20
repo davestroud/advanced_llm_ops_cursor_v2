@@ -190,34 +190,25 @@ Listing~\ref{lst:ch06_capacity_planning} provides a Python script for capacity p
 
 \begin{codebox}{SLO-driven capacity planning script for LLM deployments that estimates token demand from workload profiles, calculates required GPU replicas with utilization headroom, decomposes end-to-end latency into prefill, decode, and queueing components, and validates the plan against service level objectives. This structured approach prevents common scaling failures caused by incomplete workload analysis or missing latency components.}{lst:ch06_capacity_planning}
 \begin{minted}{python}
-#!/usr/bin/env python3
-"""
-Capacity planning script for LLM deployments.
-Implements SLO-driven capacity estimation with validation.
-"""
-
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict
 import numpy as np
 
 @dataclass
 class SLO:
-    """Service Level Objective"""
     p95_ttft_ms: float
     p95_tbt_ms: float
     context_class: str  # "short" or "long"
 
 @dataclass
 class WorkloadProfile:
-    """Workload characteristics"""
-    arrival_rate_rps: float  # requests per second
+    arrival_rate_rps: float
     avg_prompt_tokens: float
     avg_decode_tokens: float
-    context_class_distribution: Dict[str, float]  # {"short": 0.7, "long": 0.3}
+    context_class_distribution: Dict[str, float]
 
 @dataclass
 class GPUConfig:
-    """GPU hardware configuration"""
     name: str
     throughput_tokens_per_sec: float
     memory_gb: int
@@ -225,7 +216,6 @@ class GPUConfig:
 
 @dataclass
 class CapacityResult:
-    """Capacity planning result"""
     required_replicas: int
     estimated_cost_per_hour_usd: float
     utilization_percent: float
@@ -233,210 +223,53 @@ class CapacityResult:
     validation_passed: bool
 
 def estimate_token_demand(workload: WorkloadProfile) -> float:
-    """
-    Estimate token demand per second.
-    
-    Args:
-        workload: Workload profile
-    
-    Returns:
-        Token demand in tokens/second
-    """
-    avg_total_tokens = (
-        workload.avg_prompt_tokens + workload.avg_decode_tokens
-    )
+    avg_total_tokens = workload.avg_prompt_tokens + workload.avg_decode_tokens
     return workload.arrival_rate_rps * avg_total_tokens
 
-def calculate_required_replicas(
-    token_demand: float,
-    gpu: GPUConfig,
-    headroom: float = 0.7
-) -> int:
-    """
-    Calculate required number of replicas.
-    
-    Args:
-        token_demand: Token demand in tokens/second
-        gpu: GPU configuration
-        headroom: Utilization headroom (0.7 = 70% max utilization)
-    
-    Returns:
-        Required number of replicas
-    """
+def calculate_required_replicas(token_demand, gpu: GPUConfig, headroom=0.7):
     effective_throughput = gpu.throughput_tokens_per_sec * headroom
-    required_replicas = np.ceil(token_demand / effective_throughput)
-    return int(required_replicas)
+    return int(np.ceil(token_demand / effective_throughput))
 
-def decompose_latency(
-    prompt_tokens: float,
-    decode_tokens: float,
-    gpu: GPUConfig,
-    batch_size: int = 8
-) -> Dict[str, float]:
-    """
-    Decompose end-to-end latency into components.
-    
-    Args:
-        prompt_tokens: Average prompt tokens
-        decode_tokens: Average decode tokens
-        gpu: GPU configuration
-        batch_size: Expected batch size
-    
-    Returns:
-        Dictionary with latency components in milliseconds
-    """
-    # Prefill latency (scales with prompt length)
-    prefill_latency_ms = (prompt_tokens / gpu.throughput_tokens_per_sec) * 1000
-    
-    # Decode latency (scales with decode length, benefits from batching)
-    effective_decode_throughput = gpu.throughput_tokens_per_sec * batch_size
-    decode_latency_ms = (decode_tokens / effective_decode_throughput) * 1000
-    
-    # Queueing latency (estimated based on utilization)
-    utilization = 0.7  # Assume 70% utilization
-    queueing_latency_ms = 50 * utilization  # Simple model
-    
-    total_latency_ms = prefill_latency_ms + decode_latency_ms + queueing_latency_ms
-    
+def decompose_latency(prompt_tokens, decode_tokens, gpu, batch_size=8):
+    # Prefill scales with prompt length; decode benefits from batching;
+    # queueing is approximated from a fixed 70% utilization assumption.
+    prefill_ms = (prompt_tokens / gpu.throughput_tokens_per_sec) * 1000
+    decode_ms = (decode_tokens / (gpu.throughput_tokens_per_sec * batch_size)) * 1000
+    queueing_ms = 50 * 0.7
     return {
-        "prefill_ms": prefill_latency_ms,
-        "decode_ms": decode_latency_ms,
-        "queueing_ms": queueing_latency_ms,
-        "total_ms": total_latency_ms
+        "prefill_ms": prefill_ms,
+        "decode_ms": decode_ms,
+        "queueing_ms": queueing_ms,
+        "total_ms": prefill_ms + decode_ms + queueing_ms,
     }
 
-def validate_capacity(
-    result: CapacityResult,
-    slo: SLO,
-    latency_components: Dict[str, float]
-) -> bool:
-    """
-    Validate that capacity plan meets SLOs.
-    
-    Args:
-        result: Capacity planning result
-        slo: Service Level Objective
-        latency_components: Latency breakdown
-    
-    Returns:
-        True if validation passes
-    """
-    # Check TTFT (prefill + queueing)
-    ttft_ms = latency_components["prefill_ms"] + latency_components["queueing_ms"]
-    ttft_passed = ttft_ms <= slo.p95_ttft_ms
-    
-    # Check TBT (decode latency)
-    tbt_passed = latency_components["decode_ms"] <= slo.p95_tbt_ms
-    
-    # Check utilization (should be reasonable)
-    utilization_passed = result.utilization_percent <= 0.85
-    
-    return ttft_passed and tbt_passed and utilization_passed
+def validate_capacity(result: CapacityResult, slo: SLO, lat: Dict[str, float]) -> bool:
+    ttft_ms = lat["prefill_ms"] + lat["queueing_ms"]
+    return (ttft_ms <= slo.p95_ttft_ms
+            and lat["decode_ms"] <= slo.p95_tbt_ms
+            and result.utilization_percent <= 0.85)
 
-def plan_capacity(
-    workload: WorkloadProfile,
-    gpu: GPUConfig,
-    slo: SLO,
-    headroom: float = 0.7
-) -> CapacityResult:
-    """
-    Perform capacity planning for LLM deployment.
-    
-    Args:
-        workload: Workload profile
-        gpu: GPU configuration
-        slo: Service Level Objective
-        headroom: Utilization headroom
-    
-    Returns:
-        Capacity planning result
-    """
-    # Step 1: Estimate demand
+def plan_capacity(workload, gpu, slo, headroom=0.7) -> CapacityResult:
     token_demand = estimate_token_demand(workload)
-    
-    # Step 2: Calculate required replicas
-    required_replicas = calculate_required_replicas(
-        token_demand, gpu, headroom
-    )
-    
-    # Step 3: Decompose latency
-    latency_components = decompose_latency(
-        workload.avg_prompt_tokens,
-        workload.avg_decode_tokens,
-        gpu
-    )
-    
-    # Step 4: Calculate cost
-    cost_per_hour = required_replicas * gpu.cost_per_hour_usd
-    
-    # Step 5: Calculate utilization
-    effective_throughput = gpu.throughput_tokens_per_sec * headroom
-    utilization = token_demand / (required_replicas * effective_throughput)
-    
+    replicas = calculate_required_replicas(token_demand, gpu, headroom)
+    lat = decompose_latency(workload.avg_prompt_tokens,
+                            workload.avg_decode_tokens, gpu)
+    eff_throughput = gpu.throughput_tokens_per_sec * headroom
+    utilization = token_demand / (replicas * eff_throughput)
     result = CapacityResult(
-        required_replicas=required_replicas,
-        estimated_cost_per_hour_usd=cost_per_hour,
+        required_replicas=replicas,
+        estimated_cost_per_hour_usd=replicas * gpu.cost_per_hour_usd,
         utilization_percent=utilization * 100,
-        latency_components=latency_components,
-        validation_passed=False
+        latency_components=lat,
+        validation_passed=False,
     )
-    
-    # Step 6: Validate
-    result.validation_passed = validate_capacity(
-        result, slo, latency_components
-    )
-    
+    result.validation_passed = validate_capacity(result, slo, lat)
     return result
 
-# Example usage
-if __name__ == "__main__":
-    # Define SLOs
-    slo_short = SLO(
-        p95_ttft_ms=300,
-        p95_tbt_ms=50,
-        context_class="short"
-    )
-    
-    # Define workload
-    workload = WorkloadProfile(
-        arrival_rate_rps=50.0,
-        avg_prompt_tokens=500.0,
-        avg_decode_tokens=200.0,
-        context_class_distribution={"short": 0.7, "long": 0.3}
-    )
-    
-    # Define GPU options
-    a100_80gb = GPUConfig(
-        name="A100-80GB",
-        throughput_tokens_per_sec=8000.0,
-        memory_gb=80,
-        cost_per_hour_usd=3.80
-    )
-    
-    h100_80gb = GPUConfig(
-        name="H100-80GB",
-        throughput_tokens_per_sec=12000.0,
-        memory_gb=80,
-        cost_per_hour_usd=5.00
-    )
-    
-    # Plan capacity for both options
-    print("Capacity Planning Results:")
-    print("=" * 60)
-    
-    for gpu in [a100_80gb, h100_80gb]:
-        result = plan_capacity(workload, gpu, slo_short)
-        
-        print(f"\nGPU: {gpu.name}")
-        print(f"  Required Replicas: {result.required_replicas}")
-        print(f"  Cost per Hour: ${result.estimated_cost_per_hour_usd:.2f}")
-        print(f"  Utilization: {result.utilization_percent:.1f}%")
-        print(f"  Latency Breakdown:")
-        print(f"    Prefill: {result.latency_components['prefill_ms']:.1f}ms")
-        print(f"    Decode: {result.latency_components['decode_ms']:.1f}ms")
-        print(f"    Queueing: {result.latency_components['queueing_ms']:.1f}ms")
-        print(f"    Total: {result.latency_components['total_ms']:.1f}ms")
-        print(f"  Validation: {'PASSED' if result.validation_passed else 'FAILED'}")
+# ... (driver block: defines SLO(p95_ttft=300ms, p95_tbt=50ms),
+#      WorkloadProfile(50 rps, 500 prompt, 200 decode), and compares
+#      A100-80GB vs H100-80GB by calling plan_capacity for each.
+#      Full source in companion repo.) ...
 \end{minted}
 \end{codebox}
 
@@ -857,115 +690,48 @@ Listing~\ref{lst:ch06_model_parallelism} shows a configuration for hybrid tensor
 
 \begin{codebox}{Hybrid tensor and pipeline parallelism configuration for deploying a 70B-parameter model across 32 GPUs, specifying tensor parallelism groups with NVLink communication, pipeline stage assignments with microbatch scheduling, paged attention KV-cache management, and performance tuning options including Flash Attention and dynamic batching. This configuration demonstrates how production systems combine parallelism strategies to serve large models within memory and latency constraints.}{lst:ch06_model_parallelism}
 \begin{minted}{yaml}
-# Model Parallelism Configuration
-# For LLaMA-3.1-70B deployment with hybrid tensor + pipeline parallelism
+# Hybrid TP+PP for LLaMA-3.1-70B on 32 GPUs (TP=8 x PP=4)
+model_config: { name: "llama-3.1-70b", num_layers: 80, hidden_size: 8192 }
 
-model_config:
-  name: "llama-3.1-70b"
-  total_parameters: 70_000_000_000
-  num_layers: 80
-  hidden_size: 8192
-  num_attention_heads: 64
-  vocab_size: 128256
-
-# Tensor Parallelism Configuration
 tensor_parallelism:
   enabled: true
-  tp_size: 8  # Split attention and FFN across 8 GPUs
-  tp_group:
-    - [0, 1, 2, 3, 4, 5, 6, 7]  # First TP group (NVLink domain)
-  
-  # Communication configuration
-  communication:
-    backend: "nccl"
-    collective_type: "ring_allreduce"
-    enable_async: true
-  
-  # Layer partitioning
-  partition_strategy: "column_parallel"  # Column-parallel for attention
-  attention_partition: "column"
-  ffn_partition: "row"
+  tp_size: 8                          # Split attn/FFN within an NVLink domain
+  partition_strategy: "column_parallel"  # column for attn, row for FFN
+  communication: { backend: "nccl", collective_type: "ring_allreduce",
+                   enable_async: true }
 
-# Pipeline Parallelism Configuration
 pipeline_parallelism:
   enabled: true
-  pp_size: 4  # Split model into 4 stages
+  pp_size: 4                          # 4 stages of 20 contiguous layers each
   pp_stages:
-    - stage: 0
-      layers: [0, 19]   # Layers 0-19 on GPU group 0
-      gpus: [0, 1]
-    - stage: 1
-      layers: [20, 39]  # Layers 20-39 on GPU group 1
-      gpus: [2, 3]
-    - stage: 2
-      layers: [40, 59]  # Layers 40-59 on GPU group 2
-      gpus: [4, 5]
-    - stage: 3
-      layers: [60, 79]  # Layers 60-79 on GPU group 3
-      gpus: [6, 7]
-  
-  # Microbatch configuration
+    - { stage: 0, layers: [0, 19],   gpus: [0, 1] }
+    - { stage: 1, layers: [20, 39],  gpus: [2, 3] }
+    - { stage: 2, layers: [40, 59],  gpus: [4, 5] }
+    - { stage: 3, layers: [60, 79],  gpus: [6, 7] }
   microbatch_size: 4
   num_microbatches: 8
-  
-  # Pipeline scheduling
-  schedule: "1F1B"  # One Forward One Backward (for training)
-  # For inference: "gpipe" or "interleaved"
+  schedule: "1F1B"                    # inference variants: gpipe, interleaved
 
-# Combined Parallelism (3D Parallelism)
-parallelism_strategy: "hybrid"
-total_gpus: 32  # 8 TP * 4 PP = 32 GPUs total
+parallelism_strategy: "hybrid"        # 8 TP * 4 PP = 32 GPUs total
+total_gpus: 32
 
-# Memory Management
 memory:
   kv_cache_strategy: "paged_attention"
   max_context_length: 32768
   kv_cache_memory_gb_per_gpu: 20
-  
-  # Offloading (if needed)
-  cpu_offload: false
-  disk_offload: false
 
-# Communication Topology
 topology:
-  # NVLink connections (within TP group)
-  nvlink_groups:
-    - [0, 1, 2, 3, 4, 5, 6, 7]  # Full mesh via NVSwitch
-  
-  # InfiniBand for cross-node (if multi-node)
-  infiniband_enabled: false
-  
-  # Pipeline stage communication
-  stage_communication:
-    type: "p2p"  # Point-to-point between stages
-    overlap: true  # Overlap communication with computation
+  nvlink_groups: [[0, 1, 2, 3, 4, 5, 6, 7]]  # full mesh via NVSwitch
+  stage_communication: { type: "p2p", overlap: true }
 
-# Performance Tuning
 performance:
-  # Batch configuration
   max_batch_size: 32
   dynamic_batching: true
   batching_timeout_ms: 50
-  
-  # Attention optimization
   attention_implementation: "flash_attention_v2"
-  enable_flash_attention: true
-  
-  # Quantization (if applicable)
-  quantization:
-    enabled: false
-    dtype: "fp16"  # or "int8", "int4"
-  
-  # Compilation
   enable_torch_compile: true
-  enable_triton_kernels: true
 
-# Monitoring
-monitoring:
-  track_tp_communication_time: true
-  track_pp_bubble_time: true
-  track_memory_usage: true
-  log_latency_breakdown: true
+# (Monitoring + quantization knobs elided; see companion repo.)
 \end{minted}
 \end{codebox}
 
@@ -1216,146 +982,58 @@ Listing~\ref{lst:ch06_hpa_config} shows a Kubernetes Horizontal Pod Autoscaler c
 \begin{minted}{yaml}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
-metadata:
-  name: ishtar-llm-inference-hpa
-  namespace: production
+metadata: { name: ishtar-llm-inference-hpa, namespace: production }
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: ishtar-llm-inference
-  
   minReplicas: 2
   maxReplicas: 30
-  
-  # Target tracking with multiple metrics
-  metrics:
-  # Primary metric: Token demand rate
-  - type: Pods
-    pods:
-      metric:
-        name: token_demand_rate
-      target:
-        type: AverageValue
-        averageValue: "8000"  # tokens/second per pod
-    
-    # Secondary metric: Queue depth
-  - type: Pods
-    pods:
-      metric:
-        name: request_queue_depth
-      target:
-        type: AverageValue
-        averageValue: "10"  # requests per pod
-  
-  # LLM-specific metrics
-  - type: Pods
-    pods:
-      metric:
-        name: p95_ttft_ms
-      target:
-        type: AverageValue
-        averageValue: "300"  # milliseconds
-  
-  - type: Pods
-    pods:
-      metric:
-        name: gpu_utilization_percent
-      target:
-        type: AverageValue
-        averageValue: "70"  # percent
-  
-  # Behavior configuration
+
+  metrics:                              # All four are per-pod averages.
+  - { type: Pods, pods: { metric: { name: token_demand_rate },
+        target: { type: AverageValue, averageValue: "8000" } } }   # tokens/s
+  - { type: Pods, pods: { metric: { name: request_queue_depth },
+        target: { type: AverageValue, averageValue: "10" } } }     # requests
+  - { type: Pods, pods: { metric: { name: p95_ttft_ms },
+        target: { type: AverageValue, averageValue: "300" } } }    # ms
+  - { type: Pods, pods: { metric: { name: gpu_utilization_percent },
+        target: { type: AverageValue, averageValue: "70" } } }     # percent
+
+  # Asymmetric: conservative scale-down (5 min stabilize, max 25% or 2 pods),
+  # aggressive scale-up (0s stabilize, can double or +5 pods every 30s).
   behavior:
     scaleDown:
-      stabilizationWindowSeconds: 300  # Wait 5min before scaling down
+      stabilizationWindowSeconds: 300
       policies:
-      - type: Percent
-        value: 25  # Scale down by max 25% at a time
-        periodSeconds: 60
-      - type: Pods
-        value: 2  # Or scale down by max 2 pods
-        periodSeconds: 60
-      selectPolicy: Min  # Use most conservative policy
-    
+      - { type: Percent, value: 25, periodSeconds: 60 }
+      - { type: Pods,    value: 2,  periodSeconds: 60 }
+      selectPolicy: Min
     scaleUp:
-      stabilizationWindowSeconds: 0  # Scale up immediately
+      stabilizationWindowSeconds: 0
       policies:
-      - type: Percent
-        value: 100  # Can double capacity quickly
-        periodSeconds: 30
-      - type: Pods
-        value: 5  # Or add up to 5 pods
-        periodSeconds: 30
-      selectPolicy: Max  # Use most aggressive policy
+      - { type: Percent, value: 100, periodSeconds: 30 }
+      - { type: Pods,    value: 5,   periodSeconds: 30 }
+      selectPolicy: Max
 
 ---
-# Custom metrics adapter configuration
-apiVersion: v1
-kind: Service
-metadata:
-  name: custom-metrics-api
-  namespace: kube-system
-spec:
-  selector:
-    app: prometheus-adapter
-  ports:
-  - port: 443
-    targetPort: 6443
-
----
-# Prometheus adapter configuration for custom metrics
+# Prometheus adapter exposes the four ishtar_* series as the custom metrics
+# referenced above.  Sketch of one rule (full ConfigMap in companion repo):
 apiVersion: v1
 kind: ConfigMap
-metadata:
-  name: adapter-config
-  namespace: kube-system
+metadata: { name: adapter-config, namespace: kube-system }
 data:
   config.yaml: |
     rules:
-    # Token demand rate metric
     - seriesQuery: 'ishtar_token_demand_rate{namespace!="",pod!=""}'
-      resources:
-        overrides:
-          namespace: {resource: "namespace"}
-          pod: {resource: "pod"}
-      name:
-        matches: "^ishtar_token_demand_rate"
-        as: "token_demand_rate"
-      metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
-    
-    # Queue depth metric
-    - seriesQuery: 'ishtar_request_queue_depth{namespace!="",pod!=""}'
-      resources:
-        overrides:
-          namespace: {resource: "namespace"}
-          pod: {resource: "pod"}
-      name:
-        matches: "^ishtar_request_queue_depth"
-        as: "request_queue_depth"
-      metricsQuery: 'avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
-    
-    # TTFT metric
-    - seriesQuery: 'ishtar_ttft_ms{namespace!="",pod!=""}'
-      resources:
-        overrides:
-          namespace: {resource: "namespace"}
-          pod: {resource: "pod"}
-      name:
-        matches: "^ishtar_ttft_ms"
-        as: "p95_ttft_ms"
-      metricsQuery: 'histogram_quantile(0.95, sum(rate(<<.Series>>_bucket{<<.LabelMatchers>>}[5m])) by (le, <<.GroupBy>>))'
-    
-    # GPU utilization metric
-    - seriesQuery: 'ishtar_gpu_utilization_percent{namespace!="",pod!=""}'
-      resources:
-        overrides:
-          namespace: {resource: "namespace"}
-          pod: {resource: "pod"}
-      name:
-        matches: "^ishtar_gpu_utilization_percent"
-        as: "gpu_utilization_percent"
-      metricsQuery: 'avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+      resources: { overrides: { namespace: { resource: "namespace" },
+                                pod:       { resource: "pod" } } }
+      name: { matches: "^ishtar_token_demand_rate", as: "token_demand_rate" }
+      metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m]))
+                     by (<<.GroupBy>>)'
+    # ... analogous rules for request_queue_depth (avg), p95_ttft_ms
+    #     (histogram_quantile 0.95 over 5m), and gpu_utilization_percent (avg).
 \end{minted}
 \end{codebox}
 
@@ -1861,139 +1539,73 @@ Listing~\ref{lst:ch06_routing_config} shows a cost-aware routing configuration t
 
 \begin{codebox}{Cost-aware routing configuration implementing hierarchical model selection across three tiers (lightweight, standard, premium) based on query complexity scoring, per-request and per-tenant cost budgets, latency SLO constraints, and explicit routing hints. This configuration enables production systems to balance quality, cost, and latency by routing each request to the most cost-effective model tier that meets its requirements.}{lst:ch06_routing_config}
 \begin{minted}{yaml}
-# Cost-Aware Routing Configuration
-routing_version: "1.2.0"
 routing_id: "ishtar_hierarchical_routing"
+routing_version: "1.2.0"
 
-# Model tiers
+# Three model tiers: cheap/fast -> standard -> high-accuracy.
+# (cost_per_1k_tokens_usd in USD; latency_p95_ms is steady-state.)
 model_tiers:
   tier_1_lightweight:
-    model_name: "llama-3.1-8b"
     model_id: "llama-3.1-8b-chat"
-    cost_per_1k_tokens_usd: 0.01
+    cost_per_1k_tokens_usd: 0.010
     latency_p95_ms: 150
-    use_cases:
-      - "simple_classification"
-      - "basic_summarization"
-      - "short_qa"
     max_context_tokens: 8192
-  
+    use_cases: ["simple_classification", "basic_summarization", "short_qa"]
   tier_2_standard:
-    model_name: "llama-3.1-13b"
     model_id: "llama-3.1-13b-chat"
     cost_per_1k_tokens_usd: 0.015
     latency_p95_ms: 250
-    use_cases:
-      - "complex_qa"
-      - "multi_step_reasoning"
-      - "content_generation"
     max_context_tokens: 16384
-  
+    use_cases: ["complex_qa", "multi_step_reasoning", "content_generation"]
   tier_3_premium:
-    model_name: "llama-3.1-70b"
     model_id: "llama-3.1-70b-chat"
-    cost_per_1k_tokens_usd: 0.05
+    cost_per_1k_tokens_usd: 0.050
     latency_p95_ms: 600
-    use_cases:
-      - "critical_fact_checking"
-      - "complex_analysis"
-      - "high_stakes_decisions"
     max_context_tokens: 32768
+    use_cases: ["critical_fact_checking", "complex_analysis"]
 
-# Routing rules
+# Four ordered routing rules; the first applicable rule wins.
 routing_rules:
-  # Rule 1: Query complexity classifier
-  complexity_based:
+  complexity_based:                        # 1. Score -> tier
     enabled: true
     classifier_model: "complexity_classifier_v1.0"
-    features:
-      - "query_length"
-      - "num_questions"
-      - "requires_reasoning"
-      - "domain_complexity"
-    
     routing_logic:
-      - condition: "complexity_score < 0.3"
-        route_to: "tier_1_lightweight"
-        fallback: "tier_2_standard"
-      
-      - condition: "0.3 <= complexity_score < 0.7"
-        route_to: "tier_2_standard"
-        fallback: "tier_3_premium"
-      
-      - condition: "complexity_score >= 0.7"
-        route_to: "tier_3_premium"
-        fallback: null
-  
-  # Rule 2: Cost budget constraints
-  cost_budget:
+      - { condition: "complexity_score < 0.3",
+          route_to: "tier_1_lightweight", fallback: "tier_2_standard" }
+      - { condition: "0.3 <= complexity_score < 0.7",
+          route_to: "tier_2_standard",   fallback: "tier_3_premium" }
+      - { condition: "complexity_score >= 0.7",
+          route_to: "tier_3_premium",    fallback: null }
+
+  cost_budget:                             # 2. Downgrade to fit budget
     enabled: true
     per_request_budget_usd: 0.10
     per_tenant_daily_budget_usd: 100.0
-    
     routing_logic:
-      - condition: "estimated_cost > per_request_budget"
-        action: "downgrade_tier"
-        max_downgrades: 2
-  
-  # Rule 3: Latency SLO constraints
-  latency_slo:
+      - { condition: "estimated_cost > per_request_budget",
+          action: "downgrade_tier", max_downgrades: 2 }
+
+  latency_slo:                             # 3. Pick a faster tier if needed
     enabled: true
     max_latency_ms: 500
-    
     routing_logic:
-      - condition: "estimated_latency > max_latency_ms"
-        action: "upgrade_tier_if_faster"
-        check_tiers: ["tier_1_lightweight", "tier_2_standard"]
-  
-  # Rule 4: Explicit routing hints
-  explicit_hints:
+      - { condition: "estimated_latency > max_latency_ms",
+          action: "upgrade_tier_if_faster",
+          check_tiers: ["tier_1_lightweight", "tier_2_standard"] }
+
+  explicit_hints:                          # 4. Caller-provided override
     enabled: true
     hint_field: "routing_hint"
-    
-    routing_map:
-      "critical": "tier_3_premium"
-      "standard": "tier_2_standard"
-      "fast": "tier_1_lightweight"
-      "cost_optimized": "tier_1_lightweight"
+    routing_map: { critical: "tier_3_premium", standard: "tier_2_standard",
+                   fast: "tier_1_lightweight", cost_optimized: "tier_1_lightweight" }
 
-# Fallback strategy
 fallback:
-  strategy: "cascade"  # cascade, failover, or reject
-  cascade_order:
-    - "tier_3_premium"
-    - "tier_2_standard"
-    - "tier_1_lightweight"
-  
+  strategy: "cascade"                      # cascade -> failover -> reject
+  cascade_order: ["tier_3_premium", "tier_2_standard", "tier_1_lightweight"]
   max_retries: 2
-  retry_on_errors:
-    - "timeout"
-    - "rate_limit"
-    - "model_error"
+  retry_on_errors: ["timeout", "rate_limit", "model_error"]
 
-# Cost tracking
-cost_tracking:
-  enabled: true
-  track_per_request: true
-  track_per_tenant: true
-  track_per_model: true
-  
-  alerting:
-    cost_spike_threshold_multiplier: 2.0
-    daily_budget_alert_percent: 0.8
-
-# Monitoring
-monitoring:
-  track_routing_decisions: true
-  track_cost_savings: true
-  track_latency_by_tier: true
-  
-  metrics:
-    - "routing_distribution_by_tier"
-    - "cost_per_request_by_tier"
-    - "latency_p95_by_tier"
-    - "fallback_rate"
-    - "cost_savings_percent"
+# (Cost-tracking and per-tier monitoring sections elided; see companion repo.)
 \end{minted}
 \end{codebox}
 
