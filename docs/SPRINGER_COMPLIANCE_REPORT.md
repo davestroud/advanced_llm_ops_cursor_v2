@@ -315,3 +315,86 @@ Agent Skills open standard (December 2025).
 
 ### Baseline
 See `docs/audit_reports/BASELINE_SUMMARY.md`.
+
+
+## Listing Reduction Pass (April 20, 2026)
+
+Goal: shrink the manuscript's code-listing surface area so no listing
+exceeds the FAIL threshold (>150 minted body lines) and the WARN threshold
+(>80 lines) is respected wherever pedagogically possible. The pass also
+standardized algorithm typesetting on the book's own `llmalgobox`
+container, retiring the parallel `algorithm` package counter.
+
+### Skill extension (commit `17f70a7`)
+Added three new checks to `springer-typography-audit`:
+- `minted` body length: WARN at >80 lines, FAIL at >150 lines.
+- Per-chapter `codebox` density: WARN at >8 listings.
+- Stray `minted` blocks (any `\begin{minted}` not wrapped in `codebox`).
+- Aggregate target: 40–45 `codebox` book-wide.
+
+The audit now emits a "Listing length and density" table per audit run
+(see latest `docs/audit_reports/typography_*.md`).
+
+### Inventory (commit `7cc31dc`)
+`docs/audit_reports/listing_inventory.md` captures the per-listing
+disposition rules (`DELETE`, `MERGE`, `CONVERT_TO_ALGORITHM`,
+`COMPRESS_80`, `COMPRESS_60`, `KEEP`, `MANUAL_REVIEW`) and the curator
+overrides that lifted six `MANUAL_REVIEW` rows into concrete
+`COMPRESS_80` / `CONVERT_TO_ALGORITHM` decisions. The inventory is the
+ground-truth artifact for what changed in this pass.
+
+### Per-chapter execution
+| Chapter | Commit | Action | Body-line delta | Listings |
+|---------|--------|--------|-----------------|----------|
+| ch10    | `d183c44` | 4 stray inline absorbed into prose; 1 listing converted to `llmalgobox` (`alg:ch10_circuit_breaker`); 5 listings compressed | 12 → 11 codebox; +1 llmalgobox | 15 → 11 |
+| ch04    | `872bad6` | 2 FAIL listings compressed (`ch04_ci_gate`, `ch04_deployment_strategy`) | -358 lines | 5 → 5 |
+| ch07    | `c772ecc` | 1 FAIL listing compressed (`ch07_profiling_script` 274→80) | -194 lines | 4 → 4 |
+| ch06    | `c843244` | 4 listings compressed (`capacity_planning`, `model_parallelism`, `hpa_config`, `routing_config`) | 631 → 243 (-61%) | 4 → 4 |
+| ch03    | `2ac1c34` | 4 listings compressed (`cost_calculation`, `terraform_module`, `iac_pipeline`, `k8s_deployment`) | 599 → 259 (-57%) | 4 → 4 |
+| ch05    | `cbe09b6` | 4 listings compressed (`prometheus_config`, `telemetry_schema`, `opentelemetry`, `alerting_rules`) | 699 → 280 (-60%) | 4 → 4 |
+| ch11    | `a438c50` | Lone raw `\begin{algorithm}` rewrapped as `llmalgobox` | 0 lines (mechanical) | 2 → 2 codebox; +1 llmalgobox |
+| ch9, ch12 | (no edit) | All listings already KEEP (10–23 lines each) | — | unchanged |
+
+### Final state vs. baseline
+
+| Metric | Pre-pass baseline | After-pass | Δ |
+|--------|-------------------|------------|---|
+| `codebox` total | 61 | 57 | -4 |
+| `minted` total  | 61 | 57 | -4 |
+| `llmalgobox` total | 11 | 13 | +2 |
+| Raw `\begin{algorithm}` | 1 | 0 | -1 |
+| FAIL-length listings (>150 lines) | 6 | 0 | -6 |
+| WARN-length listings (81–150 lines) | ~16 | 8 | -8 |
+| Stray inline `minted` | 3 | 0 | -3 |
+| LaTeX/Package warnings | 11 (Phase 0) → 15 (post-color) | 16 | +1 |
+| Over/Underfull boxes | 224 (Phase 0) → 225 (post-color) | 226 | +1 |
+
+The +1 LaTeX/pkg warning is a benign font-shape substitution
+(`TS1/cmtt/m/it` at 8.5pt), introduced by italic monospace text in the
+new compressed listings; NFSS substitutes `cmtt/m/n` automatically.
+The +1 box warning is pagination drift from a ~3,000-line net reduction
+in listing volume. Substantive `Float too large for page` warnings
+(lines 217, 445, 499, 784, 1507) are bit-for-bit identical to the
+pre-pass baseline.
+
+### Why 40–45 was not reached
+The original target band (40–45 listings) was not achieved. Hitting it
+would have required deleting ~13 of the paired codeboxes in chapters 9,
+10, and 12 — pedagogically meaningful examples (`ch09_langgraph_sketch`,
+`ch10_unit_test_example`, `ch12_terraform_module`, etc.) that the
+inventory and the author flagged as `KEEP`. The 57-listing landing was
+documented in `docs/audit_reports/listing_inventory.md` as the realistic
+target after applying disposition rules to all 61 original listings.
+The pass instead concentrated on (a) eliminating every FAIL-length
+listing, (b) shrinking the WARN band from ~16 → 8, and (c) standardizing
+algorithm typesetting.
+
+### Validation
+- `latexmk -pdf book.tex`: green at every chapter commit; `book.log`
+  carries no `undefined`/`multiply defined` references.
+- `bash .claude/skills/springer-typography-audit/scripts/audit.sh`:
+  reports `0 FAIL`, `0 stray inline`, and an `over target (57 > 45)`
+  status that is documented and accepted above.
+- `alg:ch11_bias_audit` resolves via the `llmalgorithm` counter (verified
+  in `ch11-ethics.aux`), keeping the `Algorithm 11.1` numbering sequence
+  consistent with `alg:ch10_*`.
