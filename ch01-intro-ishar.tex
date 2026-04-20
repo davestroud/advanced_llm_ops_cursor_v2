@@ -550,80 +550,103 @@ Three high-leverage risk categories dominate production hardening:
 Fig.~\ref{fig:ch01_llm_threat_model} summarizes the main attack surfaces and a defense-in-depth
 control stack spanning input handling, retrieval governance, tool security, and output controls.
 
-% Preamble requirements: \usepackage{tikz} and \usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc}
+% Preamble requirements: \usepackage{tikz} and \usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,fit}
 \begin{landscape}
 \begin{figure}[t]
   \centering
   \begin{llmfigbox}
-  % Color definitions
   \begin{tikzpicture}[
-    >=Stealth,
-    % Box styles with color coding
-    surface/.style={rectangle, draw=none, fill=llmblue!12, rounded corners=5pt, minimum width=24mm, minimum height=11mm, align=center, font=\small},
-    threat/.style={rectangle, draw=none, fill=llmorange!12, rounded corners=5pt, minimum width=24mm, minimum height=9mm, align=center, font=\small},
-    control/.style={rectangle, draw=none, fill=llmgreen!12, rounded corners=5pt, minimum width=24mm, minimum height=11mm, align=center, font=\small},
-    crosscut/.style={rectangle, draw=none, fill=llmpurple!10, rounded corners=5pt, minimum width=120mm, minimum height=8mm, align=center, font=\footnotesize},
-    arrow/.style={-{Latex}, line width=1pt, color=black!70}
+    node distance=4mm and 5mm,
+    % Three layer-specific box variants, all built on llm/box for uniform
+    % stroke weight, corner radius, and typography.
+    surface/.style ={llm/box/blue,
+                     minimum width=30mm, minimum height=14mm,
+                     align=center, font=\footnotesize, text width=26mm},
+    threat/.style  ={llm/box/orange,
+                     minimum width=30mm, minimum height=12mm,
+                     align=center, font=\footnotesize, text width=26mm},
+    control/.style ={llm/box/green,
+                     minimum width=30mm, minimum height=14mm,
+                     align=center, font=\footnotesize, text width=26mm},
+    crosscut/.style={llm/box/purple, fill=llmpurple!8,
+                     minimum height=11mm,
+                     align=left, font=\footnotesize, inner sep=4pt},
+    lanelabel/.style={font=\small\bfseries, color=black!75,
+                      align=left, text width=28mm, anchor=east},
+    % Arrow semantics:
+    %   flow  : data pipeline (left to right along the surface lane)
+    %   maps  : threat attacks a surface  (surface down to threat)
+    %   mits  : control mitigates a threat (threat down to control)
+    %   trace : audit lane taps every threat
+    flow/.style ={llm/arrow, color=llmblue!75!black,  line width=0.9pt},
+    maps/.style ={llm/arrow/dashed, color=llmorange!80!black},
+    mits/.style ={llm/arrow, color=llmgreen!70!black, line width=0.9pt},
+    trace/.style={llm/arrow/dashed, color=llmpurple!70!black, dash pattern=on 1pt off 1.5pt},
   ]
+    % --- Layout grid (5 columns, 3 functional rows + 1 cross-cutting band) ---
+    \def\colA{0}    \def\colB{3.6}  \def\colC{7.2}  \def\colD{10.8} \def\colE{14.4}
+    \def\rowS{7.8}   % surface row
+    \def\rowT{5.0}   % threat row
+    \def\rowX{3.1}   % cross-cut row
+    \def\rowC{0.7}   % control row
 
-  % Use explicit coordinates to ensure no overlap
-  % Top layer: Threat surfaces
-  \node[surface] (input) at (0,8) {\begin{tabular}{c}\textbf{Untrusted input}\\\footnotesize User query\\Uploads\\Links\end{tabular}};
-  \node[surface] (prompt) at (3.5,8) {\begin{tabular}{c}\textbf{Prompt / policy}\\\footnotesize System rules\\Templates\\Routing\end{tabular}};
-  \node[surface] (retrieval) at (7,8) {\begin{tabular}{c}\textbf{Retrieval (RAG)}\\\footnotesize Search + filters\\Evidence bundle\\Citations\end{tabular}};
-  \node[surface] (tools) at (10.5,8) {\begin{tabular}{c}\textbf{Tools / actions}\\\footnotesize APIs\\DB writes\\Workflows\end{tabular}};
-  \node[surface] (output) at (14,8) {\begin{tabular}{c}\textbf{Model output}\\\footnotesize Answer text\\Citations\\Logs\end{tabular}};
+    % --- Row 1: threat surfaces (data-pipeline stages) ---
+    \node[surface] (input)     at (\colA,\rowS) {\textbf{Untrusted input}\\User query\\Uploads\\Links};
+    \node[surface] (prompt)    at (\colB,\rowS) {\textbf{Prompt / policy}\\System rules\\Templates\\Routing};
+    \node[surface] (retrieval) at (\colC,\rowS) {\textbf{Retrieval (RAG)}\\Search + filters\\Evidence bundle\\Citations};
+    \node[surface] (tools)     at (\colD,\rowS) {\textbf{Tools / actions}\\APIs\\DB writes\\Workflows};
+    \node[surface] (output)    at (\colE,\rowS) {\textbf{Model output}\\Answer text\\Citations\\Logs};
 
-  % Flow arrows between surfaces
-  \draw[-{Latex}, line width=1.2pt, color=llmblue!70!black] (input.east) -- (prompt.west);
-  \draw[-{Latex}, line width=1.2pt, color=llmblue!70!black] (prompt.east) -- (retrieval.west);
-  \draw[-{Latex}, line width=1.2pt, color=llmblue!70!black] (retrieval.east) -- (tools.west);
-  \draw[-{Latex}, line width=1.2pt, color=llmblue!70!black] (tools.east) -- (output.west);
+    \foreach \a/\b in {input/prompt, prompt/retrieval, retrieval/tools, tools/output}
+      \draw[flow] (\a.east) -- (\b.west);
 
-  % Middle layer: Threats
-  \node[threat] (inj) at (1.75,5.5) {\begin{tabular}{c}\textbf{Prompt injection}\\\footnotesize User text overrides\\instructions\end{tabular}};
-  \node[threat] (bypass) at (5.25,5.5) {\begin{tabular}{c}\textbf{Policy bypass}\\\footnotesize Hidden rules exposed\\or weakened\end{tabular}};
-  \node[threat] (exfil) at (8.75,5.5) {\begin{tabular}{c}\textbf{Data exfiltration}\\\footnotesize Unauthorized docs\\retrieved\end{tabular}};
-  \node[threat] (misuse) at (12.25,5.5) {\begin{tabular}{c}\textbf{Tool misuse}\\\footnotesize (confused deputy)\\\footnotesize Unsafe side effects\end{tabular}};
-  \node[threat] (leak) at (15.75,5.5) {\begin{tabular}{c}\textbf{Output leakage}\\\footnotesize (PII/secrets)\\\footnotesize Sensitive content\end{tabular}};
+    % --- Row 2: threats (what can go wrong at each surface) ---
+    \node[threat]  (inj)        at (\colA,\rowT) {\textbf{Prompt injection}\\User text overrides\\instructions};
+    \node[threat]  (bypass)     at (\colB,\rowT) {\textbf{Policy bypass}\\Hidden rules exposed\\or weakened};
+    \node[threat]  (exfil)      at (\colC,\rowT) {\textbf{Data exfiltration}\\Unauthorized docs\\retrieved};
+    \node[threat]  (misuse)     at (\colD,\rowT) {\textbf{Tool misuse}\\(confused deputy)\\Unsafe side effects};
+    \node[threat]  (leak)       at (\colE,\rowT) {\textbf{Output leakage}\\(PII / secrets)\\Sensitive content};
 
-  % Arrows from surfaces to threats (dashed for distinction)
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (input.south) -- (inj.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (prompt.south) -- (inj.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (prompt.south) -- (bypass.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (retrieval.south) -- (exfil.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (tools.south) -- (misuse.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (output.south) -- (leak.north);
+    % Surface -> Threat mappings (dashed orange)
+    \foreach \a/\b in {input/inj, prompt/bypass, retrieval/exfil, tools/misuse, output/leak}
+      \draw[maps] (\a.south) -- (\b.north);
 
-  % Cross-cutting element
-  \node[crosscut] (tracing) at (7,3) {\textbf{Cross-cutting:} structured tracing + audit logs (prompt IDs, retrieved doc IDs, tool calls, policy decisions) for incident response and rollback};
+    % --- Row 3: cross-cutting audit / tracing band ---
+    \node[crosscut, minimum width=173mm] (tracing) at (7.2,\rowX)
+      {\textbf{Cross-cutting requirement:}\quad structured tracing + audit logs
+       (prompt IDs, retrieved doc IDs, tool calls, policy decisions)
+       enable incident response and rollback across every layer.};
 
-  % Bottom layer: Controls
-  \node[control] (sanitize) at (1.75,0.5) {\begin{tabular}{c}\textbf{Input sanitization}\\\footnotesize Separate user vs\\system content\\Block known patterns\end{tabular}};
-  \node[control] (hierarchy) at (5.25,0.5) {\begin{tabular}{c}\textbf{Instruction hierarchy}\\\footnotesize System > developer > user\\Constrained formats\end{tabular}};
-  \node[control] (governance) at (8.75,0.5) {\begin{tabular}{c}\textbf{Retrieval governance}\\\footnotesize ACL checks\\Provenance + recency\\Trust allow-list\end{tabular}};
-  \node[control] (toolsec) at (12.25,0.5) {\begin{tabular}{c}\textbf{Tool security}\\\footnotesize Allow-list tools\\Argument validation\\Sandbox side effects\end{tabular}};
-  \node[control] (outctrl) at (15.75,0.5) {\begin{tabular}{c}\textbf{Output controls}\\\footnotesize PII/secret redaction\\Citation requirements\\Rate limits \& HITL\end{tabular}};
+    % Tracing taps every threat (dotted purple, no arrowhead on top end)
+    \foreach \t in {inj, bypass, exfil, misuse, leak}
+      \draw[trace] (\t.south) -- (\t.south |- tracing.north);
 
-  % Arrows from threats to controls (solid for distinction)
-  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (inj.south) -- (sanitize.north);
-  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (bypass.south) -- (hierarchy.north);
-  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (exfil.south) -- (governance.north);
-  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (misuse.south) -- (toolsec.north);
-  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (leak.south) -- (outctrl.north);
+    % --- Row 4: controls (what you implement) ---
+    \node[control] (sanitize)   at (\colA,\rowC) {\textbf{Input sanitization}\\Separate user vs\\system content\\Block known patterns};
+    \node[control] (hierarchy)  at (\colB,\rowC) {\textbf{Instruction hierarchy}\\System $>$ developer $>$ user\\Constrained formats};
+    \node[control] (governance) at (\colC,\rowC) {\textbf{Retrieval governance}\\ACL checks\\Provenance + recency\\Trust allow-list};
+    \node[control] (toolsec)    at (\colD,\rowC) {\textbf{Tool security}\\Allow-list tools\\Argument validation\\Sandbox side effects};
+    \node[control] (outctrl)    at (\colE,\rowC) {\textbf{Output controls}\\PII / secret redaction\\Citation requirements\\Rate limits \& HITL};
 
-  % Cross-cutting connections (dotted for distinction)
-  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north west)!0.1!(tracing.north east)$) to[out=90,in=-90] (inj);
-  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north west)!0.3!(tracing.north east)$) to[out=90,in=-90] (bypass);
-  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north west)!0.5!(tracing.north east)$) to[out=90,in=-90] (exfil);
-  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north west)!0.7!(tracing.north east)$) to[out=90,in=-90] (misuse);
-  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north east)$) to[out=90,in=-90] (leak);
+    % Threat -> Control mitigations (solid green)
+    \foreach \a/\b in {inj/sanitize, bypass/hierarchy, exfil/governance, misuse/toolsec, leak/outctrl}
+      \draw[mits] (\a.south) -- (\b.north);
 
-  % Layer labels (grayscale-safe)
-  \node[font=\normalsize\bfseries, color=black!70, above=3mm of input, anchor=west, xshift=-5mm] {Threat surfaces};
-  \node[font=\normalsize\bfseries, color=black!70, above=2mm of inj, anchor=west, xshift=-5mm] {Threats (what can go wrong)};
-  \node[font=\normalsize\bfseries, color=black!70, below=2mm of sanitize, anchor=west, xshift=-5mm] {Controls (what you implement)};
+    % --- Swim-lane labels (grayscale-safe) on the left margin ---
+    \node[lanelabel, text=llmblue!70!black]   at (-2.8, \rowS) {Threat\\surfaces};
+    \node[lanelabel, text=llmorange!80!black] at (-2.8, \rowT) {Threats\\\textnormal{\scriptsize what can go wrong}};
+    \node[lanelabel, text=llmpurple!70!black] at (-2.8, \rowX) {Audit lane};
+    \node[lanelabel, text=llmgreen!60!black]  at (-2.8, \rowC) {Controls\\\textnormal{\scriptsize what you implement}};
 
+    % --- Legend (top-right, compact) ---
+    \node[llm/box/gray, align=left, font=\scriptsize,
+          anchor=north east, inner sep=3pt, text width=44mm]
+          (legend) at (17.3,8.8)
+      {\textbf{Legend}\\
+       \tikz[baseline=-0.6ex]{\draw[flow]  (0,0) -- (6mm,0);} data flow\\
+       \tikz[baseline=-0.6ex]{\draw[maps]  (0,0) -- (6mm,0);} surface $\rightarrow$ threat\\
+       \tikz[baseline=-0.6ex]{\draw[mits]  (0,0) -- (6mm,0);} threat $\rightarrow$ control\\
+       \tikz[baseline=-0.6ex]{\draw[trace] (0,0) -- (6mm,0);} audit tap};
   \end{tikzpicture}
   \end{llmfigbox}
   \caption{Security architecture\index{security!architecture} for tool- and retrieval-augmented LLM systems requires defense-in-depth\index{defense-in-depth}. Threats (prompt injection, policy bypass\index{policy bypass}, retrieval-based exfiltration\index{data exfiltration}, tool misuse\index{tool misuse}, and output leakage\index{output leakage}) map to concrete controls (input sanitization\index{input sanitization}, instruction hierarchy\index{instruction hierarchy}, retrieval governance\index{retrieval!governance}, tool sandboxing\index{sandboxing}, and output redaction\index{output redaction}), with audit-grade tracing\index{audit trail} as a cross-cutting requirement for incident response and rollback. This threat model guides security architecture decisions and demonstrates why traditional application security is insufficient for LLM systems.}
