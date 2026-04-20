@@ -529,7 +529,7 @@ The audit pipeline in Algorithm~\ref{alg:ch11_bias_audit} is designed to be inte
 \node[font=\footnotesize\itshape, text=gray!60!black] at ($(evaluate)!0.5!(monitor)$) {Continuous cycle};
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Bias audit workflow as a continuous cycle. The process begins with data collection for evaluation, proceeds through bias measurement and report generation, triggers remediation when thresholds are exceeded, and feeds back into continuous monitoring and model updates.}
+\caption{Continuous bias audits turn fairness from a launch checkbox into a steady-state operational metric. The cycle collects evaluation data, measures disparate outcomes, reports against thresholds, triggers remediation when thresholds are exceeded, and feeds monitoring back into the next model update.}
 \label{fig:ch11_bias_audit_cycle}
 \end{figure}
 
@@ -696,14 +696,14 @@ A robust PII redaction pipeline for LLMOps consists of four stages:
 \draw[arrow] (retain) -- (delete);
 
 % Labels on arrows
-\node[font=\scriptsize, above=0.1cm] at ($(ingest)!0.5!(detect)$) {NER scan};
-\node[font=\scriptsize, above=0.1cm] at ($(detect)!0.5!(anon)$) {classify};
-\node[font=\scriptsize, above=0.1cm] at ($(anon)!0.5!(process)$) {sanitized};
-\node[font=\scriptsize, right=0.1cm] at ($(process)!0.5!(retain)$) {TTL policy};
-\node[font=\scriptsize, below=0.1cm] at ($(retain)!0.5!(delete)$) {crypto-erase};
+\node[font=\footnotesize, above=0.1cm] at ($(ingest)!0.5!(detect)$) {NER scan};
+\node[font=\footnotesize, above=0.1cm] at ($(detect)!0.5!(anon)$) {classify};
+\node[font=\footnotesize, above=0.1cm] at ($(anon)!0.5!(process)$) {sanitized};
+\node[font=\footnotesize, right=0.1cm] at ($(process)!0.5!(retain)$) {TTL policy};
+\node[font=\footnotesize, below=0.1cm] at ($(retain)!0.5!(delete)$) {crypto-erase};
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Privacy data lifecycle in an LLMOps system. Data flows from ingestion through PII detection and anonymization before reaching the language model. Post-processing, a retention management layer enforces time-to-live (TTL) policies, and secure deletion (crypto-erasure) ensures data is irrecoverable after its retention period.}
+\caption{Treating privacy as a lifecycle (collect $\to$ minimize $\to$ retain $\to$ erase) makes GDPR/CCPA obligations enforceable in code rather than policy. Data flows from ingestion through PII detection and anonymization, a retention management layer enforces TTL policies, and crypto-erasure ensures records are irrecoverable once the retention window closes.}
 \label{fig:ch11_privacy_lifecycle}
 \end{figure}
 
@@ -1044,19 +1044,19 @@ Equally important is the process for resolving and closing escalated incidents. 
 
 % Arrows
 \draw[arrow] (input) -- (safe);
-\draw[arrow] (safe) -- node[right, font=\scriptsize] {Yes} (deliver);
-\draw[arrow] (safe) -- node[above, font=\scriptsize] {No} (severity);
-\draw[arrow] (severity) -- node[above left, font=\scriptsize] {Critical} (p1);
-\draw[arrow] (severity) -- node[right, font=\scriptsize] {Moderate} (p2);
-\draw[arrow] (severity) -- node[above right, font=\scriptsize] {Low} (p34);
+\draw[arrow] (safe) -- node[right, font=\footnotesize] {Yes} (deliver);
+\draw[arrow] (safe) -- node[above, font=\footnotesize] {No} (severity);
+\draw[arrow] (severity) -- node[above left, font=\footnotesize] {Critical} (p1);
+\draw[arrow] (severity) -- node[right, font=\footnotesize] {Moderate} (p2);
+\draw[arrow] (severity) -- node[above right, font=\footnotesize] {Low} (p34);
 
 % Escalation chain annotation
-\node[font=\scriptsize\itshape, text=gray!60!black, below=0.3cm of p1, text width=2.5cm, align=center] {Ethics officer $\rightarrow$ Legal $\rightarrow$ Executive};
-\node[font=\scriptsize\itshape, text=gray!60!black, below=0.3cm of p2, text width=2.5cm, align=center] {Content moderator $\rightarrow$ Ethics officer};
-\node[font=\scriptsize\itshape, text=gray!60!black, below=0.3cm of p34, text width=2.5cm, align=center] {Batch review $\rightarrow$ Weekly report};
+\node[font=\footnotesize\itshape, text=gray!60!black, below=0.3cm of p1, text width=2.5cm, align=center] {Ethics officer $\rightarrow$ Legal $\rightarrow$ Executive};
+\node[font=\footnotesize\itshape, text=gray!60!black, below=0.3cm of p2, text width=2.5cm, align=center] {Content moderator $\rightarrow$ Ethics officer};
+\node[font=\footnotesize\itshape, text=gray!60!black, below=0.3cm of p34, text width=2.5cm, align=center] {Batch review $\rightarrow$ Weekly report};
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Escalation decision tree for LLMOps content safety. When content is flagged as potentially unsafe, it is routed to the appropriate severity level. Each severity level has a defined response SLA, required action, and escalation chain. Critical (P1) incidents trigger immediate human takeover and notification of the ethics officer, legal team, and executive leadership.}
+\caption{Classifying safety incidents at ingress keeps the vast majority of cases on automated paths and routes only the residual to human review. Each severity tier carries a defined response SLA, required action, and escalation chain; critical (P1) incidents trigger immediate human takeover plus notification of the ethics officer, legal team, and executive leadership.}
 \label{fig:ch11_escalation_tree}
 \end{figure}
 

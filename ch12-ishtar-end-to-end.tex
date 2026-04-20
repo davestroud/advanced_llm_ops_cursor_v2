@@ -164,14 +164,6 @@ Fig.~\ref{fig:ch12_ishtar_architecture_ch12} depicts the end-to-end flows. The d
 \centering
 \begin{llmfigbox}
 % Color definitions
-\definecolor{ingestblue}{RGB}{44,102,146}
-\definecolor{querygreen}{RGB}{34,139,96}
-\definecolor{sourceorange}{RGB}{201,111,29}
-\definecolor{processpurple}{RGB}{123,88,163}
-\definecolor{storeviolet}{RGB}{153,102,204}
-\definecolor{retrievered}{RGB}{173,63,60}
-\definecolor{llmteal}{RGB}{0,128,128}
-\definecolor{agentcyan}{RGB}{0,139,139}
 \begin{tikzpicture}[
   font=\small,
   box/.style={draw=none, rounded corners=5pt, align=center, minimum height=9mm, inner sep=4pt, font=\small\bfseries},
@@ -182,18 +174,18 @@ Fig.~\ref{fig:ch12_ishtar_architecture_ch12} depicts the end-to-end flows. The d
 ]
 
 % Lanes
-\node[lane, fill=ingestblue!8, minimum width=0.95\linewidth, minimum height=28mm] (inglane) {};
-\node[lane, fill=querygreen!8, minimum width=0.95\linewidth, minimum height=32mm, below=9mm of inglane] (querylane) {};
+\node[lane, fill=llmblue!8, minimum width=0.95\linewidth, minimum height=28mm] (inglane) {};
+\node[lane, fill=llmgreen!8, minimum width=0.95\linewidth, minimum height=32mm, below=9mm of inglane] (querylane) {};
 \node[note, anchor=west] at ([xshift=5mm]inglane.north west) {Continuous ingestion \& indexing (background)};
 \node[note, anchor=west] at ([xshift=5mm]querylane.north west) {Online query handling (interactive path)};
 
 % Ingestion lane nodes
-\node[box, fill=sourceorange!15, anchor=west] (sources) at ([xshift=7mm]inglane.west) {Sources\\\footnotesize (news, NGO,\\social, health)};
-\node[box, fill=processpurple!15, right=7mm of sources] (ingest) {Ingestion\\\footnotesize parse \& normalize};
-\node[box, fill=processpurple!15, right=7mm of ingest] (scrub) {Safety preprocessing\\\footnotesize PII/coord scrubbing};
-\node[box, fill=processpurple!15, right=7mm of scrub] (chunkembed) {Chunk \& embed\\\footnotesize batch GPU/CPU};
-\node[box, fill=storeviolet!15, right=7mm of chunkembed] (docstore) {Doc store\\\footnotesize text + metadata};
-\node[box, fill=storeviolet!15, right=7mm of docstore] (vec) {Vector index\\\footnotesize FAISS/HNSW};
+\node[box, fill=llmorange!15, anchor=west] (sources) at ([xshift=7mm]inglane.west) {Sources\\\footnotesize (news, NGO,\\social, health)};
+\node[box, fill=llmpurple!15, right=7mm of sources] (ingest) {Ingestion\\\footnotesize parse \& normalize};
+\node[box, fill=llmpurple!15, right=7mm of ingest] (scrub) {Safety preprocessing\\\footnotesize PII/coord scrubbing};
+\node[box, fill=llmpurple!15, right=7mm of scrub] (chunkembed) {Chunk \& embed\\\footnotesize batch GPU/CPU};
+\node[box, fill=llmpurple!15, right=7mm of chunkembed] (docstore) {Doc store\\\footnotesize text + metadata};
+\node[box, fill=llmpurple!15, right=7mm of docstore] (vec) {Vector index\\\footnotesize FAISS/HNSW};
 
 \draw[arrow] (sources) -- (ingest);
 \draw[arrow] (ingest) -- (scrub);
@@ -202,13 +194,13 @@ Fig.~\ref{fig:ch12_ishtar_architecture_ch12} depicts the end-to-end flows. The d
 \draw[arrow] (chunkembed) -- (vec);
 
 % Query lane nodes
-\node[box, fill=querygreen!15, anchor=west] (user) at ([xshift=7mm]querylane.west) {Journalist\\\footnotesize query/UI};
-\node[box, fill=querygreen!15, right=7mm of user] (gateway) {API gateway\\\footnotesize auth \& rate limits};
-\node[box, fill=querygreen!15, right=7mm of gateway] (controller) {Orchestrator\\\footnotesize agent controller};
-\node[box, fill=retrievered!15, right=7mm of controller] (retr) {Retriever\\\footnotesize ANN + filters};
-\node[box, fill=llmteal!15, right=7mm of retr] (llm) {LLM serving\\\footnotesize vLLM/TGI};
-\node[box, fill=agentcyan!15, right=7mm of llm] (agents) {Post-processing\\\footnotesize verify \& safety};
-\node[box, fill=querygreen!15, right=7mm of agents] (resp) {Answer\\\footnotesize citations + disclaimers};
+\node[box, fill=llmgreen!15, anchor=west] (user) at ([xshift=7mm]querylane.west) {Journalist\\\footnotesize query/UI};
+\node[box, fill=llmgreen!15, right=7mm of user] (gateway) {API gateway\\\footnotesize auth \& rate limits};
+\node[box, fill=llmgreen!15, right=7mm of gateway] (controller) {Orchestrator\\\footnotesize agent controller};
+\node[box, fill=llmorange!15, right=7mm of controller] (retr) {Retriever\\\footnotesize ANN + filters};
+\node[box, fill=llmgreen!15, right=7mm of retr] (llm) {LLM serving\\\footnotesize vLLM/TGI};
+\node[box, fill=llmgreen!15, right=7mm of llm] (agents) {Post-processing\\\footnotesize verify \& safety};
+\node[box, fill=llmgreen!15, right=7mm of agents] (resp) {Answer\\\footnotesize citations + disclaimers};
 
 \draw[arrow] (user) -- (gateway);
 \draw[arrow] (gateway) -- (controller);
@@ -786,7 +778,7 @@ Fig.~\ref{fig:ch12_metrics_trend} shows how key metrics evolved as \ishtar{} pro
 \end{axis}
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Evolution of key \ishtar{} metrics across deployment phases. Latency (left axis, blue) decreases as infrastructure optimizations and autoscaling are introduced; accuracy (right axis, red) increases as RAG, evaluation gates, and monitoring drive iterative quality improvements. Each deployment phase contributes measurable gains, illustrating the cumulative benefit of systematic LLMOps practices.}
+\caption{Latency fell and accuracy climbed monotonically across \ishtar{}'s four deployment phases, showing that systematic LLMOps practices compound rather than trade off. The left axis tracks latency (driven down by infrastructure optimizations and autoscaling) while the right axis tracks accuracy (driven up by RAG, evaluation gates, and monitoring)---each phase contributed measurable gains in both directions.}
 \label{fig:ch12_metrics_trend}
 \end{figure}
 

@@ -969,16 +969,10 @@ High-fidelity traces require stable correlation across boundaries. Every request
   arrow/.style={->, very thick, line width=1.2pt, draw=black!60}
 ]
 
-% --- Enhanced color palette ---
-\definecolor{llmblue}{RGB}{44,102,146}
-\definecolor{retrgreen}{RGB}{34,139,96}
-\definecolor{toolorange}{RGB}{201,111,29}
-\definecolor{parserviolet}{RGB}{123,88,163}
-\definecolor{guardred}{RGB}{173,63,60}
-\definecolor{panelgray}{RGB}{90,90,90}
+% --- Palette is defined globally in macros.tex (llmblue, llmgray, ...) ---
 
 % --- Central TRACE panel (defined first so other nodes can reference it) ---
-\node[boxwide, fill=panelgray!8] (trace) {%
+\node[boxwide, fill=llmgray!8] (trace) {%
   \textbf{Trace} (execution waterfall)\\[2mm]
   \footnotesize
   \(\bullet\) \texttt{trace\_id}, \texttt{span\_id}, \texttt{conversation\_id}\\[1mm]
@@ -991,21 +985,21 @@ High-fidelity traces require stable correlation across boundaries. Every request
   \header{\texttt{llm.call}}\\[2mm]
   \footnotesize model/version; temperature, $p$; TTFT; tokens/s; token counts
 };
-\node[box, fill=retrgreen!12, above=22mm of trace.north, xshift=24mm] (retr) {%
+\node[box, fill=llmgreen!12, above=22mm of trace.north, xshift=24mm] (retr) {%
   \header{\texttt{retriever.search}}\\[2mm]
   \footnotesize index/version; \texttt{topK}; latency; hit set (doc IDs); re-ranker scores
 };
 
 % --- Bottom row: tool, parser, guard ---
-\node[box, fill=toolorange!12, below=22mm of trace.south, xshift=-48mm] (tool) {%
+\node[box, fill=llmorange!12, below=22mm of trace.south, xshift=-48mm] (tool) {%
   \header{\texttt{tool.invoke.<name>}}\\[2mm]
   \footnotesize schema version; payload bytes; retries/backoff; downstream status
 };
-\node[box, fill=parserviolet!12, below=22mm of trace.south] (parser) {%
+\node[box, fill=llmpurple!12, below=22mm of trace.south] (parser) {%
   \header{\texttt{parser.jsonschema}}\\[2mm]
   \footnotesize schema ID; failure class: \texttt{missing\_field}, \texttt{type\_mismatch}
 };
-\node[box, fill=guardred!12, below=22mm of trace.south, xshift=48mm] (guard) {%
+\node[box, fill=llmorange!12, below=22mm of trace.south, xshift=48mm] (guard) {%
   \header{\texttt{guard.rail}}\\[2mm]
   \footnotesize policy ID; triggers (jailbreak, toxicity); action (block/sanitize/route)
 };
@@ -1018,7 +1012,7 @@ High-fidelity traces require stable correlation across boundaries. Every request
 \draw[arrow] (trace.south) .. controls +(0,-8mm) and +(8mm,0) .. (guard.north);
 
 % --- Legend / Notes panel ---
-\node[rectangle, rounded corners=5pt, draw=none, fill=panelgray!6,
+\node[rectangle, rounded corners=5pt, draw=none, fill=llmgray!6,
       below=20mm of tool.south, text width=0.92\linewidth, inner sep=5mm, anchor=north] (legend) {%
   \textbf{Naming \& rollups.}\;
   \texttt{llm.call}, \texttt{retriever.search}, \texttt{tool.invoke.<name>}, \texttt{parser.jsonschema}, \texttt{guard.rail}
@@ -1027,7 +1021,7 @@ High-fidelity traces require stable correlation across boundaries. Every request
 };
 
 % --- Title badge (positioned at top) ---
-\node[rectangle, rounded corners=4pt, draw=none, fill=panelgray!10,
+\node[rectangle, rounded corners=4pt, draw=none, fill=llmgray!10,
       above=4mm of llm.north, anchor=south, inner sep=5mm] (title) {%
   \bfseries\small Span Taxonomy \& Naming
 };

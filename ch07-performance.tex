@@ -72,39 +72,35 @@ Fig.~\ref{fig:ch07_opt_pyramid} illustrates the four-layer optimization framewor
 \centering
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
-\definecolor{layer1}{RGB}{44,102,146}
-\definecolor{layer2}{RGB}{34,139,96}
-\definecolor{layer3}{RGB}{201,111,29}
-\definecolor{layer4}{RGB}{153,102,204}
 
 % Pyramid layers (bottom to top, widest to narrowest)
-\fill[layer1!20, draw=layer1!60, line width=0.8pt, rounded corners=2pt]
+\fill[llmblue!20, draw=llmblue!60, line width=0.8pt, rounded corners=2pt]
   (-5.0, 0) -- (5.0, 0) -- (4.0, 1.6) -- (-4.0, 1.6) -- cycle;
-\fill[layer2!20, draw=layer2!60, line width=0.8pt, rounded corners=2pt]
+\fill[llmgreen!20, draw=llmgreen!60, line width=0.8pt, rounded corners=2pt]
   (-4.0, 1.8) -- (4.0, 1.8) -- (3.0, 3.4) -- (-3.0, 3.4) -- cycle;
-\fill[layer3!20, draw=layer3!60, line width=0.8pt, rounded corners=2pt]
+\fill[llmorange!20, draw=llmorange!60, line width=0.8pt, rounded corners=2pt]
   (-3.0, 3.6) -- (3.0, 3.6) -- (2.0, 5.2) -- (-2.0, 5.2) -- cycle;
-\fill[layer4!20, draw=layer4!60, line width=0.8pt, rounded corners=2pt]
+\fill[llmpurple!20, draw=llmpurple!60, line width=0.8pt, rounded corners=2pt]
   (-2.0, 5.4) -- (2.0, 5.4) -- (1.2, 6.8) -- (-1.2, 6.8) -- cycle;
 
 % Layer labels (centered in each trapezoid)
-\node[font=\small\bfseries, text=layer1!80!black] at (0, 0.8)
+\node[font=\small\bfseries, text=llmblue!80!black] at (0, 0.8)
   {Layer 1: Infrastructure \& Hardware Selection};
-\node[font=\small\bfseries, text=layer2!80!black] at (0, 2.6)
+\node[font=\small\bfseries, text=llmgreen!80!black] at (0, 2.6)
   {Layer 2: Model Compression \& Quantization};
-\node[font=\small\bfseries, text=layer3!80!black] at (0, 4.4)
+\node[font=\small\bfseries, text=llmorange!80!black] at (0, 4.4)
   {Layer 3: Inference Engine Optimization};
-\node[font=\small\bfseries, text=layer4!80!black] at (0, 6.1)
+\node[font=\small\bfseries, text=llmpurple!80!black] at (0, 6.1)
   {Layer 4: Application-Level};
 
 % Annotations (right side)
-\node[anchor=west, text width=4.5cm, font=\footnotesize, text=layer1!70!black]
+\node[anchor=west, text width=4.5cm, font=\footnotesize, text=llmblue!70!black]
   at (5.3, 0.8) {GPU/TPU selection, cloud instance sizing, multi-GPU topology};
-\node[anchor=west, text width=4.5cm, font=\footnotesize, text=layer2!70!black]
+\node[anchor=west, text width=4.5cm, font=\footnotesize, text=llmgreen!70!black]
   at (4.3, 2.6) {INT8/FP8 quantization, pruning, distillation, LoRA adapters};
-\node[anchor=west, text width=4.5cm, font=\footnotesize, text=layer3!70!black]
+\node[anchor=west, text width=4.5cm, font=\footnotesize, text=llmorange!70!black]
   at (3.3, 4.4) {Kernel fusion, FlashAttention, KV-cache paging, continuous batching};
-\node[anchor=west, text width=4.5cm, font=\footnotesize, text=layer4!70!black]
+\node[anchor=west, text width=4.5cm, font=\footnotesize, text=llmpurple!70!black]
   at (2.3, 6.1) {Prompt optimization, RAG compression, caching, speculative decoding};
 
 % Arrow indicating effort/impact
@@ -121,12 +117,6 @@ Fig.~\ref{fig:ch07_opt_pyramid} illustrates the four-layer optimization framewor
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
 % Color definitions
-\definecolor{quantblue}{RGB}{44,102,146}
-\definecolor{fusegreen}{RGB}{34,139,96}
-\definecolor{batchorange}{RGB}{201,111,29}
-\definecolor{kvpurple}{RGB}{123,88,163}
-\definecolor{specviolet}{RGB}{153,102,204}
-\definecolor{cacheteal}{RGB}{0,128,128}
 
 % Main container
 \node[
@@ -139,14 +129,14 @@ Fig.~\ref{fig:ch07_opt_pyramid} illustrates the four-layer optimization framewor
     minimum height=1cm
 ] (container) {
 \textbf{\large Practical gains from common optimizations}\\[4mm]
-\renewcommand{\labelitemi}{\textcolor{quantblue!80!black}{$\bullet$}}
+\renewcommand{\labelitemi}{\textcolor{llmblue!80!black}{$\bullet$}}
 \begin{minipage}[t]{0.95\linewidth}
-\colorbox{quantblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{quantblue!90!black}{Quantization (INT8/FP8/4-bit):}} $\sim$2$\times$ reduction in parameter memory; 1.3--2.0$\times$ higher tokens/s on supported hardware (model-dependent) \cite{Xiao2023SmoothQuant,Frantar2023GPTQ,Lin2023AWQ,NVIDIA2023Hopper}.\vspace{2mm}}}\\[2mm]
-\colorbox{fusegreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{fusegreen!90!black}{Operator fusion \& kernel tuning:}} 10--30\% end-to-end speedups by reducing memory traffic and kernel-launch overhead \cite{Dao2022FlashAttention,Dao2023FlashAttention2}.\vspace{2mm}}}\\[2mm]
-\colorbox{batchorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{batchorange!90!black}{Dynamic/continuous batching:}} 3--8$\times$ more tokens/s at steady state with a small ($<\!20$\,ms) batching window, especially under bursty traffic \cite{Kwon2023vLLM}.\vspace{2mm}}}\\[2mm]
-\colorbox{kvpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{kvpurple!90!black}{KV-cache engineering (paged KV, prefix reuse):}} 1.5--3.0$\times$ larger effective batches and reduced fragmentation under long contexts \cite{Kwon2023vLLM}.\vspace{2mm}}}\\[2mm]
-\colorbox{specviolet!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{specviolet!90!black}{Speculative decoding:}} 1.4--2.0$\times$ lower latency on long generations via draft+verify \cite{Chen2023SpeculativeSampling}.\vspace{2mm}}}\\[2mm]
-\colorbox{cacheteal!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{cacheteal!90!black}{Response \& embedding caches:}} can cut GPU load roughly in proportion to cache hit rate and reduce tail latency during bursts; validate correctness with TTLs, versioning, and guardrails \cite{langchain-cache}.\vspace{2mm}}}
+\colorbox{llmblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmblue!90!black}{Quantization (INT8/FP8/4-bit):}} $\sim$2$\times$ reduction in parameter memory; 1.3--2.0$\times$ higher tokens/s on supported hardware (model-dependent) \cite{Xiao2023SmoothQuant,Frantar2023GPTQ,Lin2023AWQ,NVIDIA2023Hopper}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Operator fusion \& kernel tuning:}} 10--30\% end-to-end speedups by reducing memory traffic and kernel-launch overhead \cite{Dao2022FlashAttention,Dao2023FlashAttention2}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmorange!90!black}{Dynamic/continuous batching:}} 3--8$\times$ more tokens/s at steady state with a small ($<\!20$\,ms) batching window, especially under bursty traffic \cite{Kwon2023vLLM}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{KV-cache engineering (paged KV, prefix reuse):}} 1.5--3.0$\times$ larger effective batches and reduced fragmentation under long contexts \cite{Kwon2023vLLM}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{Speculative decoding:}} 1.4--2.0$\times$ lower latency on long generations via draft+verify \cite{Chen2023SpeculativeSampling}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Response \& embedding caches:}} can cut GPU load roughly in proportion to cache hit rate and reduce tail latency during bursts; validate correctness with TTLs, versioning, and guardrails \cite{langchain-cache}.\vspace{2mm}}}
 \end{minipage}
 };
 \end{tikzpicture}
@@ -580,7 +570,7 @@ Pairs well with long contexts and high concurrency; test for degradation on long
 \end{axis}
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Illustrative throughput gains from quantization on A100/H100 (normalized to FP16). FP8 is native on H100; 4-bit performance varies by toolkit and model architecture.}
+\caption{Quantization can roughly double throughput on A100/H100 relative to FP16, turning an accuracy-preserving compression into a direct cost lever. FP8 is native on H100; 4-bit results vary by toolkit and model architecture, so always benchmark before committing to a format.}
 \label{fig:ch07_quant_throughput_bars}
 \end{figure}
 

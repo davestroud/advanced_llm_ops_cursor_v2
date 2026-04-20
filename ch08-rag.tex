@@ -153,22 +153,15 @@ A production RAG system\index{RAG!system} consists of \emph{offline} components 
     }
 ]
 % Color definitions
-\definecolor{queryblue}{RGB}{44,102,146}
-\definecolor{processgreen}{RGB}{34,139,96}
-\definecolor{retrieveorange}{RGB}{201,111,29}
-\definecolor{rerankpurple}{RGB}{123,88,163}
-\definecolor{packviolet}{RGB}{153,102,204}
-\definecolor{genred}{RGB}{173,63,60}
-\definecolor{answerteal}{RGB}{0,128,128}
 
 % Pipeline stages
-\node[block, fill=queryblue!15] (q) {\textbf{User query}};
-\node[block, fill=processgreen!15, right=of q] (qp) {\textbf{Query processing}\\[2pt]\footnotesize rewrite, filters};
-\node[block, fill=retrieveorange!15, right=of qp] (ret) {\textbf{Retrieval}\\[2pt]\footnotesize dense/sparse/hybrid};
-\node[block, fill=rerankpurple!15, right=of ret] (rr) {\textbf{Rerank \& filter}\\[2pt]\footnotesize cross-encoder, RRF};
-\node[block, fill=packviolet!15, right=of rr] (pack) {\textbf{Context packer}\\[2pt]\footnotesize dedupe, trim, cite};
-\node[block, fill=genred!15, right=of pack] (gen) {\textbf{LLM generation}};
-\node[block, fill=answerteal!15, below=of gen, node distance=18mm] (ans) {\textbf{Answer + citations}};
+\node[block, fill=llmblue!15] (q) {\textbf{User query}};
+\node[block, fill=llmgreen!15, right=of q] (qp) {\textbf{Query processing}\\[2pt]\footnotesize rewrite, filters};
+\node[block, fill=llmorange!15, right=of qp] (ret) {\textbf{Retrieval}\\[2pt]\footnotesize dense/sparse/hybrid};
+\node[block, fill=llmpurple!15, right=of ret] (rr) {\textbf{Rerank \& filter}\\[2pt]\footnotesize cross-encoder, RRF};
+\node[block, fill=llmpurple!15, right=of rr] (pack) {\textbf{Context packer}\\[2pt]\footnotesize dedupe, trim, cite};
+\node[block, fill=llmorange!15, right=of pack] (gen) {\textbf{LLM generation}};
+\node[block, fill=llmgreen!15, below=of gen, node distance=18mm] (ans) {\textbf{Answer + citations}};
 
 % Flow arrows
 \draw[arrow] (q) -- (qp);
@@ -496,20 +489,14 @@ Fig.~\ref{fig:ch08_ingestion_pipeline} illustrates the ingestion pipeline stages
     }
 ]
 % Color definitions
-\definecolor{sourceblue}{RGB}{44,102,146}
-\definecolor{preprocessgreen}{RGB}{34,139,96}
-\definecolor{chunkorange}{RGB}{201,111,29}
-\definecolor{deduppurple}{RGB}{123,88,163}
-\definecolor{metadataviolet}{RGB}{153,102,204}
-\definecolor{vectorred}{RGB}{173,63,60}
 
 % Nodes
-\node[block, fill=sourceblue!15] (sources) {\textbf{Data Sources}\\[2pt]\footnotesize Databases, APIs, Websites,\\RSS, Social Media};
-\node[block, fill=preprocessgreen!15, below=of sources] (preprocess) {\textbf{Preprocessing \& Cleaning}\\[2pt]\footnotesize Format conversion, noise removal,\\translation};
-\node[block, fill=chunkorange!15, below=of preprocess] (chunk) {\textbf{Chunking Strategy}\\[2pt]\footnotesize Paragraphs, sections,\\token windows};
-\node[block, fill=deduppurple!15, below=of chunk] (dedup) {\textbf{Deduplication \& Filtering}\\[2pt]\footnotesize Remove duplicates,\\drop irrelevant data};
-\node[block, fill=metadataviolet!15, below=of dedup] (metadata) {\textbf{Metadata Enrichment}\\[2pt]\footnotesize Timestamps, geotags,\\source reliability};
-\node[block, fill=vectorred!15, below=of metadata] (vector) {\textbf{Vector Store}\\[2pt]\footnotesize FAISS, Pinecone,\\Weaviate, Milvus};
+\node[block, fill=llmblue!15] (sources) {\textbf{Data Sources}\\[2pt]\footnotesize Databases, APIs, Websites,\\RSS, Social Media};
+\node[block, fill=llmgreen!15, below=of sources] (preprocess) {\textbf{Preprocessing \& Cleaning}\\[2pt]\footnotesize Format conversion, noise removal,\\translation};
+\node[block, fill=llmorange!15, below=of preprocess] (chunk) {\textbf{Chunking Strategy}\\[2pt]\footnotesize Paragraphs, sections,\\token windows};
+\node[block, fill=llmpurple!15, below=of chunk] (dedup) {\textbf{Deduplication \& Filtering}\\[2pt]\footnotesize Remove duplicates,\\drop irrelevant data};
+\node[block, fill=llmpurple!15, below=of dedup] (metadata) {\textbf{Metadata Enrichment}\\[2pt]\footnotesize Timestamps, geotags,\\source reliability};
+\node[block, fill=llmorange!15, below=of metadata] (vector) {\textbf{Vector Store}\\[2pt]\footnotesize FAISS, Pinecone,\\Weaviate, Milvus};
 
 % Arrows
 \draw[arrow] (sources) -- (preprocess);

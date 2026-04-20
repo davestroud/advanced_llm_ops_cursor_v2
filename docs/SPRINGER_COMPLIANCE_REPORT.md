@@ -228,3 +228,65 @@ The `minted` package runs Pygments at compile time. Consequently:
 - [x] `latexmkrc.tex` uses `-shell-escape` and its policy comment reflects the approved exception.
 - [ ] Post-migration full clean build (`latexmk -C && latexmk -pdf book.tex`) passes with Pygments installed — to be verified in the author's build environment.
 
+
+## Figure Standardization: raster -> vector, shared style contract
+
+### Rationale
+All 62 figures across 12 chapters have been brought into compliance with a
+single style contract (`docs/FIGURE_STYLE_GUIDE.md`). The motivations are the
+same ones that drove the listings migration: visual consistency, print-safe
+grayscale separation, Springer textblock fit, and a single source of truth
+that new figures can honor by construction.
+
+### Scope of change
+- **5 raster PNGs** in `ch01-intro-ishar.tex` and `ch03-infra-env.tex` were
+  hand-ported to TikZ using the new `llm/*` style macros defined at the end
+  of `macros.tex`. Legacy PNGs moved to `images/_archive/` for recovery.
+  Affected labels: `fig:ch01_cost_latency_throughput`,
+  `fig:ch01_rag_drift_control`, `fig:ch01_ishtar_arch_main`,
+  `fig:ch03_cloud_native_deployment`, `fig:ch03_ishtar_infra`.
+- **2 callout figures** (`fig:ch01_llmops_legend`,
+  `fig:ch01_llmops_quick_checklist`) now use the `llmfigbox` wrapper; the
+  checklist `tcolorbox` frame was recolored from raw `blue!*` to the
+  `llmblue` palette.
+- **4 figures** with sub-`\footnotesize` typography were bumped to
+  `\footnotesize` (`fig:ch03_deploy_patterns_balanced`,
+  `fig:ch10_metrics_dashboard`, `fig:ch11_privacy_lifecycle`,
+  `fig:ch11_escalation_tree`).
+- **8 weak captions** rewritten so the first sentence is an explicit reader
+  takeaway (`fig:ch02_llm_scale`, `fig:ch06_ishtar_scaling_timeline`,
+  `fig:ch07_quantization_throughput`, `fig:ch10_cicd_decision_flow`,
+  `fig:ch11_bias_audit_cycle`, `fig:ch11_privacy_lifecycle`,
+  `fig:ch11_escalation_tree`, `fig:ch12_ishtar_metrics_evolution`).
+- **25 figures** had their local `\definecolor` declarations replaced with
+  the book palette (`llmblue`/`llmorange`/`llmgreen`/`llmpurple`/`llmgray`)
+  via `scripts/migrate_figure_palette.py`. Total: 137 `\definecolor` lines
+  removed and each local color name substituted with its nearest-RGB
+  palette slot across the figure block.
+
+### New assets
+- `macros.tex` appendix: 5-color palette (`llmblue`, `llmorange`, `llmgreen`,
+  `llmpurple`, `llmgray`) with >=12 L* separation for grayscale safety,
+  `\tikzset` styles (`llm/box`, `llm/arrow`, `llm/lane`, `llm/label`), and
+  `\pgfplotsset` styles (`llm/chart`, `llm/cycle`).
+- `docs/FIGURE_STYLE_GUIDE.md`: 12-section enforceable contract covering
+  vector-only policy, float placement, width cap, caption discipline, label
+  namespace, cross-reference rule, grayscale safety, typography and line
+  weights, style-macro usage, accessibility, and compile contract.
+- `scripts/audit_figures.sh`: produces `docs/FIGURE_AUDIT_RAW.txt` and
+  `docs/FIGURE_REFS.txt` on demand.
+- `scripts/migrate_figure_palette.py`: idempotent palette-migration tool.
+- `docs/FIGURE_AUDIT.md`: per-figure inventory and post-migration deltas.
+
+### Validation checklist
+- [x] 0 rasters inside `\begin{figure}` blocks.
+- [x] 0 `\definecolor` declarations inside `\begin{figure}` blocks.
+- [x] 0 figures missing the `llmfigbox` wrapper.
+- [x] 0 `\tiny` uses inside `tikzpicture` blocks. (`\scriptsize` retained
+      only for dense legend/node content per style guide section 7.)
+- [x] 62/62 figures cross-referenced from prose (`\ref`/`\Cref`).
+- [x] Full rebuild (`latexmk -pdf book.tex`) passes with identical warning
+      counts to the Phase 0 baseline: 5 LaTeX warnings, 5 font warnings,
+      5 package warnings, 36 overfull, 187 underfull, 9 missing-char, 0
+      undefined refs, 0 undefined citations.
+

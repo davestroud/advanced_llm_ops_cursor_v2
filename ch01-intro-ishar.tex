@@ -72,7 +72,44 @@ These trade-offs across latency, throughput, and cost are illustrated in Figure~
 \begin{figure}[t]
   \centering
   \begin{llmfigbox}
-  \includegraphics[width=0.95\linewidth]{images/ch01-cost-latency-throughput}
+  \begin{tikzpicture}[
+    node distance=2mm and 3mm,
+    stage/.style={llm/box, minimum width=26mm, minimum height=14mm, font=\footnotesize, align=center},
+    lever/.style={llm/box, minimum width=46mm, minimum height=26mm, font=\footnotesize, align=left, text width=42mm},
+    bullet/.style={font=\scriptsize, align=left, text width=42mm},
+  ]
+    % Stage banner
+    \node[llm/label, font=\footnotesize\itshape, align=center]
+      (banner) {End-to-end latency $= \sum$(stage latencies)\quad $|$\quad Track p50/p95/p99 and TTFT separately};
+
+    % Top row: pipeline stages
+    \node[stage, llm/box/blue,   below=4mm of banner]                (s1) {\textbf{Client /}\\\textbf{Gateway}\\[1pt]\scriptsize Network + auth\\$\sim$20--80\,ms};
+    \node[stage, llm/box/green,  right=3mm of s1]                     (s2) {\textbf{Tokenize +}\\\textbf{Policy checks}\\[1pt]\scriptsize Parse + validate\\$\sim$5--25\,ms};
+    \node[stage, llm/box/orange, right=3mm of s2]                     (s3) {\textbf{Retrieval (RAG)}\\\textbf{+ rerank}\\[1pt]\scriptsize Search + filters\\$\sim$20--150+\,ms};
+    \node[stage, llm/box/purple, right=3mm of s3]                     (s4) {\textbf{LLM inference}\\\textbf{(prefill + decode)}\\[1pt]\scriptsize TTFT + tokens\\$\sim$0.3--3.0\,s};
+    \node[stage, llm/box/gray,   right=3mm of s4]                     (s5) {\textbf{Post-process}\\\textbf{+ logging}\\[1pt]\scriptsize Citations + redact\\$\sim$5--60\,ms};
+
+    % Lever-group banner
+    \node[llm/label, font=\footnotesize\itshape, below=9mm of s3]    (lbanner) {Primary scale levers};
+
+    % Bottom row: lever groups (aligned under stages)
+    \node[lever, llm/box/green,  below=3mm of lbanner, xshift=-50mm] (l1) {\textbf{Throughput levers}\\[1pt]\scriptsize $\bullet$ Dynamic batching\\$\bullet$ Concurrency limits\\$\bullet$ Length-aware scheduling\\$\bullet$ KV-cache policy\\$\bullet$ Faster runtimes (vLLM/TGI)};
+    \node[lever, llm/box/orange, right=3mm of l1]                     (l2) {\textbf{Cost levers}\\[1pt]\scriptsize $\bullet$ Prompt/context budgets\\$\bullet$ Caching (responses, embeddings)\\$\bullet$ Quantization / distillation\\$\bullet$ Model routing (small$\to$large)\\$\bullet$ Admission control (shed load)};
+    \node[lever, llm/box/blue,   right=3mm of l2]                     (l3) {\textbf{Capacity planning}\\[1pt]\scriptsize $\bullet$ Peak QPS $\times$ tokens/request\\$\bullet$ Tail latency (p95/p99)\\$\bullet$ Little's Law: $L = \lambda W$\\$\bullet$ Autoscale on queue depth\\$\bullet$ Keep GPU util high};
+
+    % Linkages: which levers bear on which stages
+    \draw[llm/arrow/dashed] (l1.north) to[out=90,in=270] (s2.south);
+    \draw[llm/arrow/dashed] (l1.north) to[out=90,in=270] (s4.south);
+    \draw[llm/arrow/dashed] (l2.north) to[out=90,in=270] (s3.south);
+    \draw[llm/arrow/dashed] (l2.north) to[out=90,in=270] (s4.south);
+    \draw[llm/arrow/dashed] (l3.north) to[out=90,in=270] (s1.south);
+    \draw[llm/arrow/dashed] (l3.north) to[out=90,in=270] (s4.south);
+    \draw[llm/arrow/dashed] (l3.north) to[out=90,in=270] (s5.south);
+
+    % Footnote-style SLO reminder
+    \node[llm/label, font=\scriptsize, below=2mm of l2, align=center]
+      {Practical SLO framing: TTFT (time-to-first-token), tokens/s, cost per 1K tokens, and correctness/groundedness --- measured by slice.};
+  \end{tikzpicture}
   \end{llmfigbox}
   \caption{Latency decomposition enables targeted optimization and capacity planning. End-to-end latency is the sum of stage latencies (tokenization/policy checks, retrieval, LLM prefill+decode, post-processing), and identifying bottlenecks requires measuring each stage independently. Sustaining throughput and cost efficiency demands coordinated controls: batching and scheduling optimize throughput, caching/quantization/routing improve unit economics, and explicit capacity planning (peak demand, tail latency, autoscaling) ensures SLO compliance.}
   \label{fig:ch01_cost_latency_throughput}
@@ -94,32 +131,25 @@ Reliability\index{reliability} is also a concern: when a subcomponent fails (ret
 \centering
 \begin{llmfigbox}
 % Color definitions
-\definecolor{userblue}{RGB}{44,102,146}
-\definecolor{orchestratorgreen}{RGB}{34,139,96}
-\definecolor{retrieverorange}{RGB}{201,111,29}
-\definecolor{knowledgepurple}{RGB}{123,88,163}
-\definecolor{llmred}{RGB}{173,63,60}
-\definecolor{toolteal}{RGB}{0,128,128}
-\definecolor{responseviolet}{RGB}{153,102,204}
 \begin{tikzpicture}[
   >=Stealth,
   node distance=12mm and 22mm,
   every node/.style={font=\small},
   % Component styles with color coding
-  user/.style={ellipse, draw=none, fill=userblue!15, minimum width=20mm, minimum height=10mm, align=center, font=\small\bfseries},
-  orchestrator/.style={rectangle, draw=none, fill=orchestratorgreen!15, rounded corners=5pt, minimum width=34mm, minimum height=12mm, align=center, font=\small\bfseries},
-  retriever/.style={rectangle, draw=none, fill=retrieverorange!15, rounded corners=5pt, minimum width=27mm, minimum height=10mm, align=center, font=\small},
-  knowledge/.style={rectangle, draw=none, fill=knowledgepurple!15, rounded corners=5pt, minimum width=26mm, minimum height=11mm, align=center, font=\small},
-  llm/.style={rectangle, draw=none, fill=llmred!15, rounded corners=5pt, minimum width=26mm, minimum height=12mm, align=center, font=\small\bfseries},
-  tool/.style={rectangle, draw=none, fill=toolteal!15, rounded corners=5pt, minimum width=24mm, minimum height=10mm, align=center, font=\small},
-  response/.style={ellipse, draw=none, fill=responseviolet!15, minimum width=20mm, minimum height=10mm, align=center, font=\small\bfseries},
+  user/.style={ellipse, draw=none, fill=llmblue!15, minimum width=20mm, minimum height=10mm, align=center, font=\small\bfseries},
+  orchestrator/.style={rectangle, draw=none, fill=llmgreen!15, rounded corners=5pt, minimum width=34mm, minimum height=12mm, align=center, font=\small\bfseries},
+  retriever/.style={rectangle, draw=none, fill=llmorange!15, rounded corners=5pt, minimum width=27mm, minimum height=10mm, align=center, font=\small},
+  knowledge/.style={rectangle, draw=none, fill=llmpurple!15, rounded corners=5pt, minimum width=26mm, minimum height=11mm, align=center, font=\small},
+  llm/.style={rectangle, draw=none, fill=llmorange!15, rounded corners=5pt, minimum width=26mm, minimum height=12mm, align=center, font=\small\bfseries},
+  tool/.style={rectangle, draw=none, fill=llmgreen!15, rounded corners=5pt, minimum width=24mm, minimum height=10mm, align=center, font=\small},
+  response/.style={ellipse, draw=none, fill=llmpurple!15, minimum width=20mm, minimum height=10mm, align=center, font=\small\bfseries},
   failure/.style={circle, draw=none, fill=red!20, minimum size=6mm},
   % Arrow styles - enhanced
   mainflow/.style={-{Latex}, line width=1.2pt, color=black!70},
   fallback/.style={-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1.2pt, color=black!60},
-  toolflow/.style={-{Latex}, line width=1.2pt, color=toolteal!70!black},
-  retrieval/.style={-{Latex}, line width=1.2pt, color=retrieverorange!70!black},
-  queryflow/.style={-{Latex}, line width=1.2pt, color=userblue!70!black},
+  toolflow/.style={-{Latex}, line width=1.2pt, color=llmgreen!70!black},
+  retrieval/.style={-{Latex}, line width=1.2pt, color=llmorange!70!black},
+  queryflow/.style={-{Latex}, line width=1.2pt, color=llmblue!70!black},
   label/.style={font=\footnotesize, color=black!70}
 ]
 
@@ -217,7 +247,44 @@ canary evaluations, and auditable index snapshots (Fig.~\ref{fig:ch01_rag_drift_
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.95\linewidth]{images/ch01-rag-drift-control}
+  \begin{llmfigbox}
+  \begin{tikzpicture}[
+    node distance=8mm and 18mm,
+    phase/.style={llm/box, minimum width=52mm, minimum height=22mm, align=center, font=\footnotesize, text width=48mm},
+    goal/.style ={llm/box, minimum width=36mm, minimum height=18mm, align=center, font=\footnotesize, text width=32mm},
+  ]
+    % Header
+    \node[llm/label, font=\small\bfseries, align=center]
+      (title) {RAG Drift Management: Detect $\to$ Diagnose $\to$ Remediate $\to$ Validate};
+
+    % Four phases arranged in a cycle (clockwise from top-left)
+    \node[phase, llm/box/blue,   below=4mm of title, xshift=-32mm]    (detect)   {\textbf{1) Detect drift}\\[2pt]\scriptsize Monitor: hit-rate@k / MRR\\Faithfulness / groundedness\\Citation coverage\\Latency \& cost anomalies};
+    \node[phase, llm/box/green,  right=36mm of detect]                 (diagnose) {\textbf{2) Diagnose cause}\\[2pt]\scriptsize Classify: index staleness vs.\\query shift vs.\ governance\\Localize by slice (topic, source,\\region, recency)};
+    \node[phase, llm/box/orange, below=20mm of diagnose]               (remediate){\textbf{3) Remediate}\\[2pt]\scriptsize Re-embed / re-index\\Tune retriever \& filters\\Adjust chunking / reranking\\Update permissions \& trust rules};
+    \node[phase, llm/box/purple, left=36mm of remediate]               (validate) {\textbf{4) Validate + gate release}\\[2pt]\scriptsize Canary query suite (locked evidence)\\A/B or shadow evaluation\\Snapshot index + configs\\Rollback on regression};
+
+    % Goal centered inside the cycle
+    \node[goal, llm/box/gray, fill=llmorange!12, draw=llmorange!70]
+      at ($(detect)!0.5!(remediate)$) (goal) {\textbf{Goal}\\[2pt]\scriptsize Stable retrieval +\\trustworthy answers\\as corpora evolve};
+
+    % Cycle arrows
+    \draw[llm/arrow] (detect)    -- (diagnose);
+    \draw[llm/arrow] (diagnose)  -- (remediate);
+    \draw[llm/arrow] (remediate) -- (validate);
+    \draw[llm/arrow] (validate)  -- (detect);
+
+    % Drift sources callout
+    \node[llm/box/gray, below=10mm of validate, xshift=34mm,
+          minimum width=152mm, minimum height=15mm,
+          align=left, font=\scriptsize, text width=146mm]
+         (sources) {\textbf{Typical drift sources:}\\
+          $\bullet$ Corpus updates (policies, docs)\quad
+          $\bullet$ Embedding model change\quad
+          $\bullet$ Index/config change (chunking, filters)\\
+          $\bullet$ Query distribution shift (events, new intents)\quad
+          $\bullet$ Permission/provenance drift (ACLs, lineage)};
+  \end{tikzpicture}
+  \end{llmfigbox}
   \caption{RAG drift management as a closed-loop operational process: detect drift signals, diagnose the cause, remediate via index/retriever/governance changes, and validate with canary evaluation plus index/config snapshots for auditability and rollback.}
   \label{fig:ch01_rag_drift_control}
 \end{figure}
@@ -489,17 +556,13 @@ control stack spanning input handling, retrieval governance, tool security, and 
   \centering
   \begin{llmfigbox}
   % Color definitions
-  \definecolor{surfaceblue}{RGB}{44,102,146}
-  \definecolor{threatred}{RGB}{173,63,60}
-  \definecolor{controlgreen}{RGB}{34,139,96}
-  \definecolor{crosscutpurple}{RGB}{123,88,163}
   \begin{tikzpicture}[
     >=Stealth,
     % Box styles with color coding
-    surface/.style={rectangle, draw=none, fill=surfaceblue!12, rounded corners=5pt, minimum width=24mm, minimum height=11mm, align=center, font=\small},
-    threat/.style={rectangle, draw=none, fill=threatred!12, rounded corners=5pt, minimum width=24mm, minimum height=9mm, align=center, font=\small},
-    control/.style={rectangle, draw=none, fill=controlgreen!12, rounded corners=5pt, minimum width=24mm, minimum height=11mm, align=center, font=\small},
-    crosscut/.style={rectangle, draw=none, fill=crosscutpurple!10, rounded corners=5pt, minimum width=120mm, minimum height=8mm, align=center, font=\footnotesize},
+    surface/.style={rectangle, draw=none, fill=llmblue!12, rounded corners=5pt, minimum width=24mm, minimum height=11mm, align=center, font=\small},
+    threat/.style={rectangle, draw=none, fill=llmorange!12, rounded corners=5pt, minimum width=24mm, minimum height=9mm, align=center, font=\small},
+    control/.style={rectangle, draw=none, fill=llmgreen!12, rounded corners=5pt, minimum width=24mm, minimum height=11mm, align=center, font=\small},
+    crosscut/.style={rectangle, draw=none, fill=llmpurple!10, rounded corners=5pt, minimum width=120mm, minimum height=8mm, align=center, font=\footnotesize},
     arrow/.style={-{Latex}, line width=1pt, color=black!70}
   ]
 
@@ -512,10 +575,10 @@ control stack spanning input handling, retrieval governance, tool security, and 
   \node[surface] (output) at (14,8) {\begin{tabular}{c}\textbf{Model output}\\\footnotesize Answer text\\Citations\\Logs\end{tabular}};
 
   % Flow arrows between surfaces
-  \draw[-{Latex}, line width=1.2pt, color=surfaceblue!70!black] (input.east) -- (prompt.west);
-  \draw[-{Latex}, line width=1.2pt, color=surfaceblue!70!black] (prompt.east) -- (retrieval.west);
-  \draw[-{Latex}, line width=1.2pt, color=surfaceblue!70!black] (retrieval.east) -- (tools.west);
-  \draw[-{Latex}, line width=1.2pt, color=surfaceblue!70!black] (tools.east) -- (output.west);
+  \draw[-{Latex}, line width=1.2pt, color=llmblue!70!black] (input.east) -- (prompt.west);
+  \draw[-{Latex}, line width=1.2pt, color=llmblue!70!black] (prompt.east) -- (retrieval.west);
+  \draw[-{Latex}, line width=1.2pt, color=llmblue!70!black] (retrieval.east) -- (tools.west);
+  \draw[-{Latex}, line width=1.2pt, color=llmblue!70!black] (tools.east) -- (output.west);
 
   % Middle layer: Threats
   \node[threat] (inj) at (1.75,5.5) {\begin{tabular}{c}\textbf{Prompt injection}\\\footnotesize User text overrides\\instructions\end{tabular}};
@@ -525,12 +588,12 @@ control stack spanning input handling, retrieval governance, tool security, and 
   \node[threat] (leak) at (15.75,5.5) {\begin{tabular}{c}\textbf{Output leakage}\\\footnotesize (PII/secrets)\\\footnotesize Sensitive content\end{tabular}};
 
   % Arrows from surfaces to threats (dashed for distinction)
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (input.south) -- (inj.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (prompt.south) -- (inj.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (prompt.south) -- (bypass.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (retrieval.south) -- (exfil.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (tools.south) -- (misuse.north);
-  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=threatred!60] (output.south) -- (leak.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (input.south) -- (inj.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (prompt.south) -- (inj.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (prompt.south) -- (bypass.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (retrieval.south) -- (exfil.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (tools.south) -- (misuse.north);
+  \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=llmorange!60] (output.south) -- (leak.north);
 
   % Cross-cutting element
   \node[crosscut] (tracing) at (7,3) {\textbf{Cross-cutting:} structured tracing + audit logs (prompt IDs, retrieved doc IDs, tool calls, policy decisions) for incident response and rollback};
@@ -543,18 +606,18 @@ control stack spanning input handling, retrieval governance, tool security, and 
   \node[control] (outctrl) at (15.75,0.5) {\begin{tabular}{c}\textbf{Output controls}\\\footnotesize PII/secret redaction\\Citation requirements\\Rate limits \& HITL\end{tabular}};
 
   % Arrows from threats to controls (solid for distinction)
-  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (inj.south) -- (sanitize.north);
-  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (bypass.south) -- (hierarchy.north);
-  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (exfil.south) -- (governance.north);
-  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (misuse.south) -- (toolsec.north);
-  \draw[-{Latex}, line width=1.2pt, color=controlgreen!70!black] (leak.south) -- (outctrl.north);
+  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (inj.south) -- (sanitize.north);
+  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (bypass.south) -- (hierarchy.north);
+  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (exfil.south) -- (governance.north);
+  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (misuse.south) -- (toolsec.north);
+  \draw[-{Latex}, line width=1.2pt, color=llmgreen!70!black] (leak.south) -- (outctrl.north);
 
   % Cross-cutting connections (dotted for distinction)
-  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north west)!0.1!(tracing.north east)$) to[out=90,in=-90] (inj);
-  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north west)!0.3!(tracing.north east)$) to[out=90,in=-90] (bypass);
-  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north west)!0.5!(tracing.north east)$) to[out=90,in=-90] (exfil);
-  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north west)!0.7!(tracing.north east)$) to[out=90,in=-90] (misuse);
-  \draw[-{Latex}, dotted, line width=1pt, color=crosscutpurple!60] ($(tracing.north east)$) to[out=90,in=-90] (leak);
+  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north west)!0.1!(tracing.north east)$) to[out=90,in=-90] (inj);
+  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north west)!0.3!(tracing.north east)$) to[out=90,in=-90] (bypass);
+  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north west)!0.5!(tracing.north east)$) to[out=90,in=-90] (exfil);
+  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north west)!0.7!(tracing.north east)$) to[out=90,in=-90] (misuse);
+  \draw[-{Latex}, dotted, line width=1pt, color=llmpurple!60] ($(tracing.north east)$) to[out=90,in=-90] (leak);
 
   % Layer labels (grayscale-safe)
   \node[font=\normalsize\bfseries, color=black!70, above=3mm of input, anchor=west, xshift=-5mm] {Threat surfaces};
@@ -850,16 +913,13 @@ systems engineering, where memory, latency, and cost must be co-optimized (Fig.~
   \centering
   \begin{llmfigbox}
   % Color definitions
-  \definecolor{constraintred}{RGB}{173,63,60}
-  \definecolor{sloblue}{RGB}{44,102,146}
-  \definecolor{levergreen}{RGB}{34,139,96}
   \begin{tikzpicture}[
     >=Stealth,
     node distance=0.8cm and 1.8cm,
     % Box styles - enhanced
-    constraint/.style={rectangle, draw=none, fill=constraintred!15, rounded corners=5pt, minimum width=2.3cm, minimum height=0.95cm, align=center, font=\footnotesize\bfseries},
-    slo/.style={rectangle, draw=none, fill=sloblue!15, rounded corners=5pt, minimum width=2.1cm, minimum height=0.85cm, align=center, font=\footnotesize\bfseries},
-    lever/.style={rectangle, draw=none, fill=levergreen!15, rounded corners=5pt, minimum width=2.1cm, minimum height=0.8cm, align=center, font=\footnotesize\bfseries},
+    constraint/.style={rectangle, draw=none, fill=llmorange!15, rounded corners=5pt, minimum width=2.3cm, minimum height=0.95cm, align=center, font=\footnotesize\bfseries},
+    slo/.style={rectangle, draw=none, fill=llmblue!15, rounded corners=5pt, minimum width=2.1cm, minimum height=0.85cm, align=center, font=\footnotesize\bfseries},
+    lever/.style={rectangle, draw=none, fill=llmgreen!15, rounded corners=5pt, minimum width=2.1cm, minimum height=0.8cm, align=center, font=\footnotesize\bfseries},
     arrow/.style={->, very thick, line width=1.2pt}
   ]
 
@@ -879,27 +939,27 @@ systems engineering, where memory, latency, and cost must be co-optimized (Fig.~
   \node[lever] (batch) at (3.5,-1.5) {Batching \& Scheduling};
 
   % Main flow arrows: Constraints -> SLOs -> Levers (simplified, fewer arrows)
-  \draw[arrow, color=constraintred!70!black] (param.east) -- (ttft.west);
-  \draw[arrow, color=constraintred!70!black] (param.east) -- (parallel.west);
+  \draw[arrow, color=llmorange!70!black] (param.east) -- (ttft.west);
+  \draw[arrow, color=llmorange!70!black] (param.east) -- (parallel.west);
   
-  \draw[arrow, color=constraintred!60!black] (context.east) -- (ttft.west);
-  \draw[arrow, color=constraintred!60!black] (context.east) -- (tput.west);
+  \draw[arrow, color=llmorange!60!black] (context.east) -- (ttft.west);
+  \draw[arrow, color=llmorange!60!black] (context.east) -- (tput.west);
   
-  \draw[arrow, color=constraintred!50!black] (kv.east) -- (tput.west);
+  \draw[arrow, color=llmorange!50!black] (kv.east) -- (tput.west);
   
-  \draw[arrow, color=sloblue!70!black] (ttft.east) -- (parallel.west);
-  \draw[arrow, color=sloblue!70!black] (tput.east) -- (quant.west);
-  \draw[arrow, color=sloblue!70!black] (tput.east) -- (batch.west);
-  \draw[arrow, color=sloblue!70!black] (cost.east) -- (quant.west);
+  \draw[arrow, color=llmblue!70!black] (ttft.east) -- (parallel.west);
+  \draw[arrow, color=llmblue!70!black] (tput.east) -- (quant.west);
+  \draw[arrow, color=llmblue!70!black] (tput.east) -- (batch.west);
+  \draw[arrow, color=llmblue!70!black] (cost.east) -- (quant.west);
   
-  \draw[arrow, color=levergreen!70!black] (parallel.west) -- (cost.east);
-  \draw[arrow, color=levergreen!70!black] (quant.west) -- (cost.east);
-  \draw[arrow, color=levergreen!70!black] (batch.west) -- (tput.east);
+  \draw[arrow, color=llmgreen!70!black] (parallel.west) -- (cost.east);
+  \draw[arrow, color=llmgreen!70!black] (quant.west) -- (cost.east);
+  \draw[arrow, color=llmgreen!70!black] (batch.west) -- (tput.east);
 
   % Column labels (simpler, no braces)
-  \node[font=\small\bfseries, color=constraintred!80!black, above=0.5cm of param] {Constraints};
-  \node[font=\small\bfseries, color=sloblue!80!black, above=0.5cm of ttft] {SLOs};
-  \node[font=\small\bfseries, color=levergreen!80!black, above=0.5cm of parallel] {Levers};
+  \node[font=\small\bfseries, color=llmorange!80!black, above=0.5cm of param] {Constraints};
+  \node[font=\small\bfseries, color=llmblue!80!black, above=0.5cm of ttft] {SLOs};
+  \node[font=\small\bfseries, color=llmgreen!80!black, above=0.5cm of parallel] {Levers};
 
   \end{tikzpicture}
   \end{llmfigbox}
@@ -1062,17 +1122,6 @@ All readers will benefit from following the \ishtar{} case study throughout, as 
 \renewcommand{\LLMFigMaxWidth}{1.6\linewidth}
 \begin{llmfigbox}
 % Color definitions for lifecycle phases
-\definecolor{fundblue}{RGB}{44,102,146}
-\definecolor{infragreen}{RGB}{34,139,96}
-\definecolor{cicdorange}{RGB}{201,111,29}
-\definecolor{monpurple}{RGB}{123,88,163}
-\definecolor{scaleviolet}{RGB}{153,102,204}
-\definecolor{perfred}{RGB}{173,63,60}
-\definecolor{ragteal}{RGB}{0,128,128}
-\definecolor{orchcyan}{RGB}{0,139,139}
-\definecolor{testyellow}{RGB}{255,193,7}
-\definecolor{ethicspink}{RGB}{219,112,147}
-\definecolor{casebrown}{RGB}{139,69,19}
 \begin{tikzpicture}[
   >=Stealth,
   % --- Enhanced Styles with professional appearance ---
@@ -1091,12 +1140,12 @@ All readers will benefit from following the \ishtar{} case study throughout, as 
 
 % ---- Top row in a matrix (clean alignment) ----
 \matrix (top) [row sep=0mm, column sep=6mm] {
-  \node[phase, fill=fundblue!12, draw=fundblue!40] (fund) {LLMOps\\Fundamentals\\(Ch.~\ref{ch:llmops-fundamentals})}; &
-  \node[phase, fill=infragreen!12, draw=infragreen!40] (infra) {Infrastructure\\\& Environment\\(Ch.~\ref{ch:infra})}; &
-  \node[phase, fill=cicdorange!12, draw=cicdorange!40] (cicd)  {CI/CD\\(Ch.~\ref{ch:cicd})}; &
-  \node[phase, fill=monpurple!12, draw=monpurple!40] (mon)   {Monitoring\\(Ch.~\ref{ch:monitoring})}; &
-  \node[phase, fill=scaleviolet!12, draw=scaleviolet!40] (scale) {Scaling\\(Ch.~\ref{ch:scaling})}; &
-  \node[phase, fill=perfred!12, draw=perfred!40] (perf)  {Performance\\(Ch.~\ref{ch:performance})}; \\
+  \node[phase, fill=llmblue!12, draw=llmblue!40] (fund) {LLMOps\\Fundamentals\\(Ch.~\ref{ch:llmops-fundamentals})}; &
+  \node[phase, fill=llmgreen!12, draw=llmgreen!40] (infra) {Infrastructure\\\& Environment\\(Ch.~\ref{ch:infra})}; &
+  \node[phase, fill=llmorange!12, draw=llmorange!40] (cicd)  {CI/CD\\(Ch.~\ref{ch:cicd})}; &
+  \node[phase, fill=llmpurple!12, draw=llmpurple!40] (mon)   {Monitoring\\(Ch.~\ref{ch:monitoring})}; &
+  \node[phase, fill=llmpurple!12, draw=llmpurple!40] (scale) {Scaling\\(Ch.~\ref{ch:scaling})}; &
+  \node[phase, fill=llmorange!12, draw=llmorange!40] (perf)  {Performance\\(Ch.~\ref{ch:performance})}; \\
 };
 
 % ---- Part labels above top row ----
@@ -1105,13 +1154,13 @@ All readers will benefit from following the \ishtar{} case study throughout, as 
 \node[partlabel] at ([yshift=10mm]perf.north) {\textbf{Part III: Optimization}};
 
 % ---- Second row: RAG and Agents ----
-\node[phase, fill=ragteal!12, draw=ragteal!40, below=12mm of perf] (rag) {RAG\\(Ch.~\ref{ch:rag})};
-\node[phase, fill=orchcyan!12, draw=orchcyan!40, right=6mm of rag] (orch) {Multi‑Agent\\(Ch.~\ref{ch:multiagent})};
+\node[phase, fill=llmgreen!12, draw=llmgreen!40, below=12mm of perf] (rag) {RAG\\(Ch.~\ref{ch:rag})};
+\node[phase, fill=llmgreen!12, draw=llmgreen!40, right=6mm of rag] (orch) {Multi‑Agent\\(Ch.~\ref{ch:multiagent})};
 
 % ---- Bottom row placed relative to second row ----
-\node[phase, fill=testyellow!12, draw=testyellow!40, below=12mm of rag]   (test)   {Testing \&\\Robustness\\(Ch.~\ref{ch:testing})};
-\node[phase, fill=ethicspink!12, draw=ethicspink!40, right=6mm of test]   (ethics) {Ethics \&\\Governance\\(Ch.~\ref{ch:ethics})};
-\node[phase, fill=casebrown!12, draw=casebrown!40, right=6mm of ethics] (case)   {Case Study\\(Ch.~\ref{ch:case-study})};
+\node[phase, fill=llmorange!12, draw=llmorange!40, below=12mm of rag]   (test)   {Testing \&\\Robustness\\(Ch.~\ref{ch:testing})};
+\node[phase, fill=llmpurple!12, draw=llmpurple!40, right=6mm of test]   (ethics) {Ethics \&\\Governance\\(Ch.~\ref{ch:ethics})};
+\node[phase, fill=llmorange!12, draw=llmorange!40, right=6mm of ethics] (case)   {Case Study\\(Ch.~\ref{ch:case-study})};
 
 % ---- Part label for bottom row ----
 \node[partlabel] at ([yshift=10mm]test.north) {\textbf{Part IV: Governance}};
@@ -1172,6 +1221,7 @@ All readers will benefit from following the \ishtar{} case study throughout, as 
 
 \begin{figure}[t]
 \centering
+\begin{llmfigbox}
 \small
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.25}
@@ -1230,6 +1280,7 @@ Guardrails, privacy, safety policies; governance \& auditability; human-in-the-l
 Ishtar AI from ingestion to ops; lessons learned; patterns \& anti-patterns in production. \\
 \bottomrule
 \end{tabularx}
+\end{llmfigbox}
 
 \caption{Chapter roles explain operational contributions to the LLMOps lifecycle. This legend clarifies why each chapter matters operationally, helping readers understand how individual practices (e.g., CI/CD, observability, scaling) contribute to overall system reliability and performance. See Fig.~\ref{fig:ch01_llmops_lifecycle} for the complete lifecycle visualization.}
 \label{fig:ch01_llmops_legend}
@@ -1349,10 +1400,101 @@ At a high level, \ishtar{} is composed of modular components working in concert,
 % ----------------------------------------------------------------------
 \begin{figure}[tb]
 \centering
-% Temporarily increase maximum width to allow larger figure
-\renewcommand{\LLMFigMaxWidth}{1.3\linewidth}
+\renewcommand{\LLMFigMaxWidth}{1.05\linewidth}
 \begin{llmfigbox}
-\includegraphics[width=1.0\linewidth]{images/Fig_1_10_Ishtar_AI_Reference_Architecture}
+\begin{tikzpicture}[
+  node distance=6mm and 10mm,
+  source/.style={llm/box/purple, ellipse, minimum width=22mm, minimum height=10mm, font=\scriptsize, align=center, text width=20mm},
+  ingest/.style={llm/box/blue,  minimum width=22mm, minimum height=10mm, font=\scriptsize, align=center, text width=20mm},
+  query/.style ={llm/box/purple, ellipse, minimum width=22mm, minimum height=10mm, font=\scriptsize\bfseries, align=center},
+  rag/.style   ={llm/box/orange, minimum width=22mm, minimum height=10mm, font=\footnotesize\bfseries, align=center},
+  orch/.style  ={llm/box/orange, minimum width=24mm, minimum height=10mm, font=\footnotesize\bfseries, align=center},
+  agent/.style ={llm/box/green,  minimum width=22mm, minimum height=9mm, font=\scriptsize, align=center},
+  gpu/.style   ={llm/box/orange, fill=llmorange!25, minimum width=22mm, minimum height=10mm, font=\scriptsize\bfseries, align=center, text width=20mm},
+  store/.style ={llm/box/green,  cylinder, shape border rotate=90, aspect=0.3, minimum width=20mm, minimum height=14mm, font=\scriptsize, align=center},
+  respond/.style={llm/box/gray,  ellipse, minimum width=22mm, minimum height=10mm, font=\scriptsize\bfseries, align=center, text width=20mm},
+  band/.style={llm/lane, minimum height=8mm, inner sep=4pt, font=\footnotesize\bfseries, text=black!75},
+]
+  % Top telemetry band
+  \node[band, minimum width=160mm] (topband) {Observability \& Telemetry};
+
+  % Left column: data sources (feed into ingestion)
+  \node[source, below=10mm of topband.south west, xshift=10mm]  (src1) {News wires\\\& reports};
+  \node[source, below=4mm of src1]                               (src2) {NGO\\bulletins};
+  \node[source, below=4mm of src2]                               (src3) {Social media\\(vetted)};
+
+  % Ingestion agents column
+  \node[ingest, right=12mm of src1] (in1) {Ingestion\\Agent 1};
+  \node[ingest, right=12mm of src2] (in2) {Ingestion\\Agent 2};
+  \node[ingest, right=12mm of src3] (in3) {Ingestion\\Agent 3};
+
+  % Vector database (downstream of ingestion)
+  \node[store, below right=18mm and 6mm of in3] (vdb) {Vector\\Database};
+
+  % Center: journalist query -> RAG -> Orchestrator
+  \node[query, right=30mm of in1, yshift=6mm] (jq)  {Journalist\\Query};
+  \node[rag,   below=6mm of jq]                (rag) {RAG\\Retrieval};
+  \node[orch,  below=10mm of rag]              (orch){Orchestrator};
+
+  % Agent row (under orchestrator)
+  \node[agent, below=8mm of orch, xshift=-18mm] (sum) {Summarizer};
+  \node[agent, right=6mm of sum]                 (fc)  {Fact-Checker};
+  \node[agent, right=6mm of fc]                  (ref) {Refiner};
+
+  % GPU cluster (right of orchestrator)
+  \node[gpu, right=18mm of orch, yshift=4mm]  (gpu1) {GPU\\Node 1};
+  \node[gpu, below=4mm of gpu1]                (gpu2) {GPU\\Node 2};
+
+  % Response
+  \node[respond, right=10mm of gpu1, yshift=-4mm] (resp) {Response\\+ Citations};
+
+  % Bottom telemetry band
+  \node[band, minimum width=160mm, below=28mm of orch] (bottomband) {Traces, Metrics, Logs};
+
+  % -------- Arrows --------
+  % Sources to ingestion agents
+  \draw[llm/arrow] (src1) -- (in1);
+  \draw[llm/arrow] (src2) -- (in2);
+  \draw[llm/arrow] (src3) -- (in3);
+
+  % Ingestion agents to vector DB
+  \draw[llm/arrow] (in1.south) to[out=-90,in=90] (vdb.north);
+  \draw[llm/arrow] (in2.south) to[out=-90,in=100] (vdb.north);
+  \draw[llm/arrow] (in3.south) to[out=-90,in=110] (vdb.north);
+
+  % Query flow
+  \draw[llm/arrow] (jq)   -- (rag);
+  \draw[llm/arrow] (rag)  -- (orch);
+
+  % Vector DB feeds RAG retrieval
+  \draw[llm/arrow] (vdb.east) to[out=0,in=200] (rag.west);
+
+  % Orchestrator fan-out to agents
+  \draw[llm/arrow] (orch) -- (sum);
+  \draw[llm/arrow] (orch) -- (fc);
+  \draw[llm/arrow] (orch) -- (ref);
+
+  % Agents loop back to orchestrator (dashed = feedback)
+  \draw[llm/arrow/dashed] (sum.north east) to[bend right=20] (orch.south west);
+  \draw[llm/arrow/dashed] (fc.north)       -- (orch.south);
+  \draw[llm/arrow/dashed] (ref.north west) to[bend left=20]  (orch.south east);
+
+  % Orchestrator to GPU cluster
+  \draw[llm/arrow] (orch) -- (gpu1);
+  \draw[llm/arrow] (orch) -- (gpu2);
+
+  % GPU cluster to response
+  \draw[llm/arrow] (gpu1) -- (resp);
+  \draw[llm/arrow] (gpu2.east) to[bend right=10] (resp.west);
+
+  % Observability taps (dashed) from top band to major stages
+  \foreach \t in {rag, orch, gpu1}
+    \draw[llm/arrow/dashed] (topband.south) to[out=-90,in=90] (\t.north);
+
+  % Telemetry taps (dashed) from bottom band up to major stages
+  \foreach \t in {vdb, orch, sum, fc, ref}
+    \draw[llm/arrow/dashed, <-] (\t.south) to[out=-90,in=90] (bottomband.north);
+\end{tikzpicture}
 \end{llmfigbox}
 \renewcommand{\LLMFigMaxWidth}{1.15\linewidth}
 \caption{\ishtar{} reference architecture demonstrates production-ready LLMOps patterns. The pipeline integrates data ingestion, retrieval-augmented generation, multi-agent orchestration, and GPU-backed inference, with observability spanning all stages. This architecture balances accuracy (via RAG), reliability (via multi-agent verification), and scalability (via GPU inference), serving as a template for similar deployments.}
@@ -1852,11 +1994,12 @@ Figure~\ref{fig:ch01_llmops_quick_checklist} provides a concise checklist of key
 
 \begin{figure}[t]
 \centering
+\begin{llmfigbox}
 \begin{tcolorbox}[
   title={\textbf{What to watch in LLMOps (quick reference)}},
-  colback=blue!5,
-  colframe=blue!40!black,
-  colbacktitle=blue!20,
+  colback=llmblue!8,
+  colframe=llmblue!70,
+  colbacktitle=llmblue!18,
   coltitle=black,
   fonttitle=\bfseries,
   boxrule=0.7pt,
@@ -1880,6 +2023,7 @@ Figure~\ref{fig:ch01_llmops_quick_checklist} provides a concise checklist of key
 \end{itemize}
 
 \end{tcolorbox}
+\end{llmfigbox}
 \caption{LLMOps monitoring checklist enables proactive operations. This quick reference highlights key signals (latency, cost, quality, safety) that teams must track to maintain production reliability. Regular monitoring of these signals enables early detection of regressions and supports data-driven optimization decisions.}
 \label{fig:ch01_llmops_quick_checklist}
 \end{figure}

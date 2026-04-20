@@ -184,10 +184,6 @@ The equations above define memory and compute requirements, but visual represent
     \begin{llmfigbox}
     % --- Transformer Block Schematic (TikZ) ---
     % Color definitions
-    \definecolor{inputblue}{RGB}{44,102,146}
-    \definecolor{attentionorange}{RGB}{201,111,29}
-    \definecolor{normgreen}{RGB}{34,139,96}
-    \definecolor{ffnpurple}{RGB}{123,88,163}
     \begin{tikzpicture}[
       font=\small,
       >=Stealth,
@@ -195,12 +191,12 @@ The equations above define memory and compute requirements, but visual represent
       box/.style={draw=none, rounded corners=5pt, minimum width=36mm, minimum height=10mm, align=center, inner sep=5pt, font=\small\bfseries}
     ]
         % Nodes with color coding
-        \node[box, fill=inputblue!15] (input) {Input (tokens)};
-        \node[box, fill=attentionorange!15, below=of input] (mha) {Multi-Head Attention};
-        \node[box, fill=normgreen!15, below=10mm of mha] (addnorm1) {Add \& Norm};
-        \node[box, fill=ffnpurple!15, below=10mm of addnorm1] (ffn) {Feed-Forward Network};
-        \node[box, fill=normgreen!15, below=10mm of ffn] (addnorm2) {Add \& Norm};
-        \node[box, fill=inputblue!15, below=12mm of addnorm2] (output) {Hidden States / Next Block};
+        \node[box, fill=llmblue!15] (input) {Input (tokens)};
+        \node[box, fill=llmorange!15, below=of input] (mha) {Multi-Head Attention};
+        \node[box, fill=llmgreen!15, below=10mm of mha] (addnorm1) {Add \& Norm};
+        \node[box, fill=llmpurple!15, below=10mm of addnorm1] (ffn) {Feed-Forward Network};
+        \node[box, fill=llmgreen!15, below=10mm of ffn] (addnorm2) {Add \& Norm};
+        \node[box, fill=llmblue!15, below=12mm of addnorm2] (output) {Hidden States / Next Block};
 
         % Arrows - enhanced
         \draw[-{Latex}, line width=1.2pt, color=black!70] (input) -- (mha);
@@ -294,7 +290,7 @@ The equations above define memory and compute requirements, but visual represent
       \end{axis}
     \end{tikzpicture}
     \end{llmfigbox}
-    \caption{Empirical growth in Transformer-based model size (log scale). Parameter counts have increased by orders of magnitude, driving distinct operational constraints in memory, compute, and cost. As shown in Figure~\ref{fig:ch02_llm_scale}, model sizes have grown from millions to hundreds of billions of parameters in just a few years.}
+    \caption{Model size has grown roughly two orders of magnitude per half-decade, constraining single-GPU inference for the largest families and forcing LLMOps teams toward sharding, quantization, and distillation. The log-scale trajectory also explains why memory and cost---not accuracy---now dominate the production decision space.}
     \label{fig:ch02_llm_scale}
 \end{figure}
 

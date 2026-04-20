@@ -229,33 +229,25 @@ graph.add_conditional_edge(
 \centering
 \begin{llmfigbox}
 % Color definitions
-\definecolor{uiblue}{RGB}{44,102,146}
-\definecolor{orchgreen}{RGB}{34,139,96}
-\definecolor{retrorange}{RGB}{201,111,29}
-\definecolor{synthpurple}{RGB}{123,88,163}
-\definecolor{verviolet}{RGB}{153,102,204}
-\definecolor{safered}{RGB}{173,63,60}
-\definecolor{memteal}{RGB}{0,128,128}
-\definecolor{toolcyan}{RGB}{0,139,139}
 \begin{tikzpicture}[
   node distance=12mm and 16mm,
   every node/.style={font=\small},
   box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries},
   arrow/.style={-{Latex}, line width=1.2pt, color=black!70}
 ]
-\node[box, fill=uiblue!15, minimum width=30mm, minimum height=11mm] (ui) {User /\\Client};
+\node[box, fill=llmblue!15, minimum width=30mm, minimum height=11mm] (ui) {User /\\Client};
 
-\node[box, fill=orchgreen!15, minimum width=34mm, minimum height=13mm, below=of ui] (orch) {Orchestrator\\(routing, budgets, policy)};
+\node[box, fill=llmgreen!15, minimum width=34mm, minimum height=13mm, below=of ui] (orch) {Orchestrator\\(routing, budgets, policy)};
 
-\node[box, fill=retrorange!15, minimum width=30mm, minimum height=11mm, left=of orch] (retr) {Retrieval\\Agent};
-\node[box, fill=synthpurple!15, minimum width=30mm, minimum height=11mm, right=of orch] (synth) {Synthesis\\Agent};
+\node[box, fill=llmorange!15, minimum width=30mm, minimum height=11mm, left=of orch] (retr) {Retrieval\\Agent};
+\node[box, fill=llmpurple!15, minimum width=30mm, minimum height=11mm, right=of orch] (synth) {Synthesis\\Agent};
 
-\node[box, fill=verviolet!15, minimum width=30mm, minimum height=11mm, below=of retr] (ver) {Verification\\Agent};
-\node[box, fill=safered!15, minimum width=30mm, minimum height=11mm, below=of synth] (safe) {Safety\\Agent};
+\node[box, fill=llmpurple!15, minimum width=30mm, minimum height=11mm, below=of retr] (ver) {Verification\\Agent};
+\node[box, fill=llmorange!15, minimum width=30mm, minimum height=11mm, below=of synth] (safe) {Safety\\Agent};
 
-\node[box, fill=memteal!15, minimum width=34mm, minimum height=11mm, below=of orch, yshift=-14mm] (mem) {Shared Memory\\(episodic + semantic)};
+\node[box, fill=llmgreen!15, minimum width=34mm, minimum height=11mm, below=of orch, yshift=-14mm] (mem) {Shared Memory\\(episodic + semantic)};
 
-\node[box, fill=toolcyan!15, minimum width=34mm, minimum height=11mm, below=of mem] (tools) {External Tools\\(search, DBs, APIs)};
+\node[box, fill=llmgreen!15, minimum width=34mm, minimum height=11mm, below=of mem] (tools) {External Tools\\(search, DBs, APIs)};
 
 \draw[arrow] (ui) -- (orch);
 \draw[arrow] (orch) -- (retr);
@@ -750,16 +742,13 @@ The next section will discuss error handling and exception management in orchest
 \centering
 \begin{llmfigbox}
 % Color definitions
-\definecolor{agentblue}{RGB}{44,102,146}
-\definecolor{ctrlgreen}{RGB}{34,139,96}
-\definecolor{decisionorange}{RGB}{201,111,29}
 \begin{tikzpicture}[
   node distance=11mm and 16mm,
   every node/.style={font=\small},
   box/.style={draw=none, rounded corners=5pt, minimum width=26mm, minimum height=9mm, align=center, inner sep=4pt, font=\small\bfseries},
-  agent/.style={box, fill=agentblue!15},
-  ctrl/.style={box, fill=ctrlgreen!15},
-  decision/.style={diamond, draw=none, fill=decisionorange!15, aspect=2.8, inner sep=4pt, align=center, font=\small\bfseries},
+  agent/.style={box, fill=llmblue!15},
+  ctrl/.style={box, fill=llmgreen!15},
+  decision/.style={diamond, draw=none, fill=llmorange!15, aspect=2.8, inner sep=4pt, align=center, font=\small\bfseries},
   arrow/.style={-{Latex}, line width=1.2pt, color=black!70},
   title/.style={font=\bfseries\small}
 ]
@@ -1291,13 +1280,6 @@ To ground the concepts above, let's walk through the orchestration pipeline of I
 \centering
 \begin{llmfigbox}
 % Color definitions
-\definecolor{ingestblue}{RGB}{44,102,146}
-\definecolor{retrorange}{RGB}{201,111,29}
-\definecolor{synthpurple}{RGB}{123,88,163}
-\definecolor{verviolet}{RGB}{153,102,204}
-\definecolor{safered}{RGB}{173,63,60}
-\definecolor{delivergreen}{RGB}{34,139,96}
-\definecolor{orchteal}{RGB}{0,128,128}
 \begin{tikzpicture}[
   node distance=18mm and 20mm,
   every node/.style={font=\small},
@@ -1306,19 +1288,19 @@ To ground the concepts above, let's walk through the orchestration pipeline of I
   arrowDashed/.style={-{Latex}, dashed, dash pattern=on 4pt off 3pt, line width=1.2pt, color=black!60}
 ]
 % Top row - increased spacing
-\node[box, fill=ingestblue!15, minimum width=32mm, minimum height=12mm] (ingest) {Ingestion};
-\node[box, fill=retrorange!15, minimum width=32mm, minimum height=12mm, right=of ingest] (retr) {Retrieval};
-\node[box, fill=synthpurple!15, minimum width=32mm, minimum height=12mm, right=of retr] (synth) {Synthesis};
+\node[box, fill=llmblue!15, minimum width=32mm, minimum height=12mm] (ingest) {Ingestion};
+\node[box, fill=llmorange!15, minimum width=32mm, minimum height=12mm, right=of ingest] (retr) {Retrieval};
+\node[box, fill=llmpurple!15, minimum width=32mm, minimum height=12mm, right=of retr] (synth) {Synthesis};
 
 % Bottom row - increased spacing
-\node[box, fill=verviolet!15, minimum width=32mm, minimum height=12mm, below=of synth] (verify) {Verification};
-\node[box, fill=safered!15, minimum width=32mm, minimum height=12mm, left=of verify] (safety) {Safety};
+\node[box, fill=llmpurple!15, minimum width=32mm, minimum height=12mm, below=of synth] (verify) {Verification};
+\node[box, fill=llmorange!15, minimum width=32mm, minimum height=12mm, left=of verify] (safety) {Safety};
 
 % Orchestrator - positioned bottom-left, well clear of other nodes
-\node[box, fill=orchteal!15, minimum width=36mm, minimum height=14mm, below=of ingest, yshift=-12mm] (orch) {Orchestrator\\(router + budgets)};
+\node[box, fill=llmgreen!15, minimum width=36mm, minimum height=14mm, below=of ingest, yshift=-12mm] (orch) {Orchestrator\\(router + budgets)};
 
 % Delivery node - positioned to receive from Safety, aligned with bottom row
-\node[box, fill=delivergreen!15, minimum width=32mm, minimum height=12mm, below=of safety, yshift=-8mm] (deliver) {Delivery};
+\node[box, fill=llmgreen!15, minimum width=32mm, minimum height=12mm, below=of safety, yshift=-8mm] (deliver) {Delivery};
 
 % Main flow arrows with labels
 \draw[arrow] (ingest) -- node[above, font=\footnotesize, midway]{chunks + metadata} (retr);
@@ -1569,22 +1551,19 @@ For \ishtar{}, circuit breakers protect against external dependency failures (we
   state/.style={circle, draw=black!60, line width=1pt, minimum size=22mm, align=center, font=\small\bfseries, inner sep=2pt},
   arrow/.style={-Stealth, thick, line width=1pt}
 ]
-\definecolor{closedgreen}{RGB}{34,139,96}
-\definecolor{openred}{RGB}{173,63,60}
-\definecolor{halforange}{RGB}{201,111,29}
 
-\node[state, fill=closedgreen!15, draw=closedgreen!60] (closed) {Closed\\{\footnotesize (normal)}};
-\node[state, fill=openred!15, draw=openred!60, right=of closed] (open) {Open\\{\footnotesize (rejecting)}};
-\node[state, fill=halforange!15, draw=halforange!60, below right=25mm and 20mm of closed] (half) {Half-Open\\{\footnotesize (probing)}};
+\node[state, fill=llmgreen!15, draw=llmgreen!60] (closed) {Closed\\{\footnotesize (normal)}};
+\node[state, fill=llmorange!15, draw=llmorange!60, right=of closed] (open) {Open\\{\footnotesize (rejecting)}};
+\node[state, fill=llmorange!15, draw=llmorange!60, below right=25mm and 20mm of closed] (half) {Half-Open\\{\footnotesize (probing)}};
 
-\draw[arrow, closedgreen!70!black] (closed) -- node[above, font=\footnotesize]{failure threshold exceeded} (open);
-\draw[arrow, openred!70!black] (open) -- node[right, font=\footnotesize, text width=2.5cm, align=center]{cooldown\\expires} (half);
-\draw[arrow, halforange!70!black] (half) -- node[below left, font=\footnotesize]{probe succeeds} (closed);
-\draw[arrow, halforange!70!black] (half) to[bend right=30] node[below right, font=\footnotesize]{probe fails} (open);
+\draw[arrow, llmgreen!70!black] (closed) -- node[above, font=\footnotesize]{failure threshold exceeded} (open);
+\draw[arrow, llmorange!70!black] (open) -- node[right, font=\footnotesize, text width=2.5cm, align=center]{cooldown\\expires} (half);
+\draw[arrow, llmorange!70!black] (half) -- node[below left, font=\footnotesize]{probe succeeds} (closed);
+\draw[arrow, llmorange!70!black] (half) to[bend right=30] node[below right, font=\footnotesize]{probe fails} (open);
 
 % Self-loops
-\draw[arrow, closedgreen!50!black] (closed) to[loop above, looseness=5] node[above, font=\footnotesize]{success / minor failure} (closed);
-\draw[arrow, openred!50!black] (open) to[loop above, looseness=5] node[above, font=\footnotesize]{reject / fallback} (open);
+\draw[arrow, llmgreen!50!black] (closed) to[loop above, looseness=5] node[above, font=\footnotesize]{success / minor failure} (closed);
+\draw[arrow, llmorange!50!black] (open) to[loop above, looseness=5] node[above, font=\footnotesize]{reject / fallback} (open);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Circuit breaker state machine prevents cascading failures in multi-agent systems. In the \emph{Closed} state, requests flow normally and failures are counted. When failures exceed a threshold, the circuit \emph{Opens}, immediately rejecting requests and routing to fallbacks. After a cooldown, the \emph{Half-Open} state tests recovery with a single probe. This pattern is essential for protecting agent pipelines from external dependency outages and internal agent failures.}
