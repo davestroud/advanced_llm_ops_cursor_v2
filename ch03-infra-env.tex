@@ -1507,17 +1507,13 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
   store/.style={res, fill=storeyellow!25, draw=storeyellow!75!black}
 ]
 
-% ================== SECTION HEADERS ==================
-\node[header] (headerA) at (-52mm, 48mm) {Cloud-Native};
-\node[header] (headerB) at (52mm, 48mm) {Hybrid};
-\node[header] (headerC) at (0mm, -42mm) {Multi-Cluster / Multi-Region};
-
-% ================== VISUAL SEPARATORS ==================
-\draw[draw=black!15, line width=0.6pt, dashed] (0mm, -60mm) -- (0mm, 16mm);
-\draw[draw=black!15, line width=0.6pt, dashed] (-90mm, -8mm) -- (90mm, -8mm);
+% ================== SECTION HEADERS (above box tops at y=50mm) ==================
+\node[header, font=\normalsize\bfseries] at (-62mm, 56mm) {Cloud-Native};
+\node[header, font=\normalsize\bfseries] at (63mm, 56mm) {Hybrid};
+\node[header, font=\normalsize\bfseries] at (5mm, -34mm) {Multi-Cluster / Multi-Region};
 
 % ================== (A) CLOUD-NATIVE (Top Left) ==================
-\node[cloud] (cloudA) at (-52mm, 22mm) {};
+\node[cloud] (cloudA) at (-62mm, 22mm) {};
 \node[font=\scriptsize\bfseries, text=black!65] at (cloudA.north west)
   [anchor=north west, xshift=2mm, yshift=-2mm] {Cloud};
 \node[vpc, minimum width=40mm, minimum height=50mm] (vpcA) at (cloudA.center) {};
@@ -1533,7 +1529,8 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \draw[arrow, color=gpupurple!85!black] (k8sA) -- (objA);
 
 % ================== (B) HYBRID (Top Right) ==================
-\node[onprem] (premB) at (25mm, 22mm) {};
+% On-Premise block (shifted left to create room for connection nodes)
+\node[onprem] (premB) at (15mm, 22mm) {};
 \node[font=\scriptsize\bfseries, text=black!65] at (premB.north west)
   [anchor=north west, xshift=2mm, yshift=-2mm] {On-Premise};
 \node[k8s, minimum width=36mm, minimum height=14mm] (k8sBprem) at ($(premB.center) + (0, 12mm)$)
@@ -1542,7 +1539,8 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \node[gpu] (gpuB1) at ($(premB.south) + (-10mm, 7mm)$) {GPU};
 \node[gpu] (gpuB2) at ($(premB.south) + (10mm, 7mm)$) {GPU};
 
-\node[cloud] (cloudB) at (82mm, 22mm) {};
+% Cloud block (shifted right to create room for connection nodes)
+\node[cloud] (cloudB) at (112mm, 22mm) {};
 \node[font=\scriptsize\bfseries, text=black!65] at (cloudB.north west)
   [anchor=north west, xshift=2mm, yshift=-2mm] {Cloud};
 \node[vpc, minimum width=40mm, minimum height=50mm] (vpcB) at (cloudB.center) {};
@@ -1554,8 +1552,9 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \node[gpu] (gpuB3) at ($(vpcB.south) + (-10mm, 7mm)$) {GPU};
 \node[gpu] (gpuB4) at ($(vpcB.south) + (10mm, 7mm)$) {GPU};
 
-\node[gw] (vpnL) at ($(premB.east) + (10mm, 0)$) {VPN\\Gateway};
-\node[gw] (vpnR) at ($(cloudB.west) + (-10mm, 0)$) {Direct\\Connect};
+% Connection nodes - narrower (14mm) and well-spaced in the 53mm gap
+\node[gw, text width=14mm] (vpnL) at (46mm, 22mm) {VPN\\Gateway};
+\node[gw, text width=14mm] (vpnR) at (76mm, 22mm) {Direct\\Connect};
 
 \draw[arrow, color=vpnteal!85!black] (k8sBprem.east) -- (vpnL.west);
 \draw[arrow, color=vpnteal!85!black] (vpnR.east) -- (k8sBcloud.west);
@@ -1564,12 +1563,13 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \draw[arrow, color=apiorange!85!black] (apigwB) -- (k8sBcloud);
 
 % ================== (C) MULTI-CLUSTER (Bottom Center) ==================
-\node[cloud, minimum width=82mm, minimum height=52mm] (cloudC) at (0mm, -65mm) {};
+\node[cloud, minimum width=95mm, minimum height=52mm] (cloudC) at (5mm, -65mm) {};
 \node[font=\scriptsize\bfseries, text=black!65] at (cloudC.north west)
   [anchor=north west, xshift=2mm, yshift=-2mm] {Multi-Cloud/Region};
 \node[lb] (glbC) at ($(cloudC.north) + (0, -12mm)$) {Global\\LB/DNS};
 
-\node[vpc, minimum width=36mm, minimum height=36mm] (vpcC1) at ($(cloudC.center) + (-22mm, -6mm)$) {};
+% Wider VPC spacing (+-26mm) gives 20mm gap for failover label
+\node[vpc, minimum width=36mm, minimum height=36mm] (vpcC1) at ($(cloudC.center) + (-26mm, -6mm)$) {};
 \node[font=\scriptsize\bfseries, text=black!65] at (vpcC1.north west)
   [anchor=north west, xshift=2mm, yshift=-1.5mm] {Region A};
 \node[k8s, minimum width=32mm, minimum height=14mm] (k8sC1) at ($(vpcC1.center) + (0, 8mm)$)
@@ -1577,7 +1577,7 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \node[gpu] (gpuC1) at ($(vpcC1.south) + (-9mm, 7mm)$) {GPU};
 \node[gpu] (gpuC2) at ($(vpcC1.south) + (9mm, 7mm)$) {GPU};
 
-\node[vpc, minimum width=36mm, minimum height=36mm] (vpcC2) at ($(cloudC.center) + (22mm, -6mm)$) {};
+\node[vpc, minimum width=36mm, minimum height=36mm] (vpcC2) at ($(cloudC.center) + (26mm, -6mm)$) {};
 \node[font=\scriptsize\bfseries, text=black!65] at (vpcC2.north west)
   [anchor=north west, xshift=2mm, yshift=-1.5mm] {Region B};
 \node[k8s, minimum width=32mm, minimum height=14mm] (k8sC2) at ($(vpcC2.center) + (0, 8mm)$)
@@ -1588,29 +1588,29 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \draw[arrow, color=apiorange!85!black] (glbC.south west) ++(2mm,0) -- (k8sC1.north);
 \draw[arrow, color=apiorange!85!black] (glbC.south east) ++(-2mm,0) -- (k8sC2.north);
 \draw[arrowDashed, color=gray!65] (k8sC1) --
-  node[font=\scriptsize\bfseries, align=center, midway, above, sloped, text=black!80]
+  node[font=\scriptsize\bfseries, align=center, midway, below=1mm, text=black!80]
   {failover} (k8sC2);
 
 % ================== LEGEND (Bottom) ==================
 \node[box, fill=white, draw=black!40, rounded corners=4pt, line width=0.8pt,
-      minimum width=160mm, minimum height=10mm, inner sep=4pt] (legend)
-  at (0mm, -98mm) {};
+      minimum width=190mm, minimum height=10mm, inner sep=4pt] (legend)
+  at (20mm, -98mm) {};
 
 \node[cloud, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L1) at ($(legend.west) + (8mm, 0)$) {};
 \node[font=\scriptsize, right=2mm of L1.east, anchor=west] {Cloud};
-\node[vpc, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L2) at ($(L1.east) + (16mm, 0)$) {};
+\node[vpc, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L2) at ($(L1.east) + (18mm, 0)$) {};
 \node[font=\scriptsize, right=2mm of L2.east, anchor=west] {VPC};
-\node[onprem, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L3) at ($(L2.east) + (14mm, 0)$) {};
+\node[onprem, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L3) at ($(L2.east) + (16mm, 0)$) {};
 \node[font=\scriptsize, right=2mm of L3.east, anchor=west] {On-Prem};
-\node[k8s, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L4) at ($(L3.east) + (20mm, 0)$) {};
+\node[k8s, minimum width=8mm, minimum height=6mm, inner sep=1pt] (L4) at ($(L3.east) + (22mm, 0)$) {};
 \node[font=\scriptsize, right=2mm of L4.east, anchor=west] {K8s};
-\node[gpu, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L5) at ($(L4.east) + (14mm, 0)$) {};
+\node[gpu, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L5) at ($(L4.east) + (16mm, 0)$) {};
 \node[font=\scriptsize, right=2mm of L5.east, anchor=west] {GPU};
-\node[lb, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L6) at ($(L5.east) + (14mm, 0)$) {};
+\node[lb, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L6) at ($(L5.east) + (16mm, 0)$) {};
 \node[font=\scriptsize, right=2mm of L6.east, anchor=west] {API GW};
-\node[gw, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L7) at ($(L6.east) + (18mm, 0)$) {};
+\node[gw, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L7) at ($(L6.east) + (20mm, 0)$) {};
 \node[font=\scriptsize, right=2mm of L7.east, anchor=west] {VPN};
-\node[store, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L8) at ($(L7.east) + (14mm, 0)$) {};
+\node[store, minimum width=8mm, minimum height=6mm, text width=6mm, inner sep=1pt] (L8) at ($(L7.east) + (16mm, 0)$) {};
 \node[font=\scriptsize, right=2mm of L8.east, anchor=west] {Storage};
 
 \end{tikzpicture}%
