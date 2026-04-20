@@ -730,7 +730,7 @@ The final production architecture of \ishtar{} adopted a hybrid model. We mainta
 \subsubsection{Lessons Learned}
 In practice, organizations rarely adopt one scaling mode in isolation. Early prototypes often begin with \emph{vertical scaling}, trading cost for simplicity and lower latency. As workloads grow, \emph{horizontal scaling} becomes essential for elasticity, geographic distribution, and cost control. Finally, mature deployments converge on \emph{hybrid strategies}, blending vertical and horizontal techniques to balance performance, resilience, and economics. The lesson is clear: scaling LLMs is not a one-time decision but an evolving journey, guided by cost constraints, operational maturity, and the application’s latency and throughput requirements.
 
-\section{Distributed Inference Techniques}
+\section{Distributed Inference Techniques}\index{distributed inference}
 \label{sec:distributed-inference}
 \subsection{Serving Runtimes and Kernel Optimizations}\label{sec:serving-runtimes-scaling}
 In practice, scaling hinges on the serving runtime as much as the model. High-throughput engines implement continuous batching, optimized attention kernels, and careful KV-cache management. vLLM operationalizes PagedAttention to reduce KV-cache fragmentation and improve throughput under long-context workloads \cite{vllm_pagedattention}. Hugging Face Text Generation Inference (TGI) provides a production-grade server with streaming and batching optimizations for popular open models \cite{tgi_docs}. NVIDIA TensorRT-LLM \cite{tensorrt_llm_docs} focuses on GPU-level inference optimization (kernels, quantization, and inflight batching) and is commonly used when latency and throughput must be pushed aggressively on NVIDIA hardware \cite{tensorrt_llm_docs}. Treat runtime configuration (CUDA/toolkit versions, kernels, quantization mode, batching policy) as a versioned release artifact, since small changes can materially affect latency, stability, and cost.
@@ -775,7 +775,7 @@ Model parallelism partitions the model across multiple GPUs, with each device st
 \end{itemize}
 }
 
-\subsection{Tensor Parallelism}
+\subsection{Tensor Parallelism}\index{tensor parallelism}
 \label{sec:scaling-tensor-parallelism}
 Tensor parallelism divides the computation within a layer---especially large matrix multiplies in attention and feed-forward networks---across multiple GPUs. Each GPU owns a slice of the weight matrices and processes a slice of the incoming data in parallel; partial results are then combined via all-reduce collectives.
 
@@ -813,7 +813,7 @@ Tensor parallelism divides the computation within a layer---especially large mat
 \end{itemize}
 }
 
-\subsection{Pipeline Parallelism}
+\subsection{Pipeline Parallelism}\index{pipeline parallelism}
 \label{sec:scaling-pipeline-parallelism}
 Pipeline parallelism partitions the model into sequential stages (contiguous layer blocks). Each stage resides on a GPU (or group) and processes microbatches concurrently, forming an ``assembly line.''
 
@@ -1098,7 +1098,7 @@ Recent work extends speculative decoding. ReDrafter proposes recurrent draft mod
 
 % ------------------------------------------------------------
 
-\section{Batching and Throughput Optimization}
+\section{Batching and Throughput Optimization}\index{batching}\index{throughput optimization}
 \label{sec:batching-throughput}
 Batching multiple requests together is one of the most potent strategies for improving LLM serving throughput. It amortizes fixed costs---GPU kernel launches, memory transfers, and softmax/attention computation---over many tokens, thus increasing utilization. However, batching must be done carefully to avoid excessive latency for individual requests.
 
