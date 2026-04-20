@@ -138,25 +138,29 @@ Fig.~\ref{fig:ch10_testing_pyramid} visualizes this prioritization, while Table~
 \rowcolor{gray!15}
 \textbf{Layer} & \textbf{Primary objective} & \textbf{Artifacts under test} & \textbf{Representative oracle} & \textbf{Typical cadence} \\
 \midrule
-Unit &
+\rowcolor{green!10}
+\textbf{Unit} &
 Catch local regressions early; validate contracts &
 Prompt templates, structured output schemas, parsers, routers, retrieval filters &
 Schema validation, invariants (e.g., ``must cite sources''), deterministic checks &
 Every PR / commit \\
 \midrule
-Integration &
+\rowcolor{blue!8}
+\textbf{Integration} &
 Validate cross-component behavior &
 Retriever+reranker+generator chains; tool calling; agent handoffs &
 Reference checks, faithfulness/attribution metrics, tool-call validity &
 PR + nightly \\
 \midrule
-End-to-end &
+\rowcolor{orange!10}
+\textbf{End-to-end} &
 Validate user workflows and UX properties &
 Full stack in staging: UI $\rightarrow$ orchestration $\rightarrow$ tools $\rightarrow$ answer &
 Rubric-based scoring, workflow assertions, latency SLO checks &
 Nightly + pre-release \\
 \midrule
-Adversarial &
+\rowcolor{red!8}
+\textbf{Adversarial} &
 Validate safety, abuse resistance, and security &
 Prompt injection, indirect injection via retrieval, jailbreaks, toxic content probes &
 Refusal and policy conformance; vulnerability checks aligned to OWASP categories &
