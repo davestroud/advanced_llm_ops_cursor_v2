@@ -275,98 +275,35 @@ Lower numerical precision also enables the use of specialized hardware instructi
 
 In modern LLMOps, 8-bit quantization is widely adopted for inference, and research into 4-bit or mixed-precision quantization is rapidly advancing. Recent advances like SmoothQuant \cite{Xiao2023SmoothQuant} and AWQ \cite{Lin2023AWQ} demonstrate that even aggressive low-bit quantization can maintain model accuracy by intelligently rescaling weights or retaining outlier features in higher precision; GPTQ provides a practical post-training path for 4-bit quantization with strong results \cite{Frantar2023GPTQ}. With newer hardware (e.g., NVIDIA H100 GPUs) supporting FP8 arithmetic natively \cite{NVIDIA2023Hopper}, practitioners should experiment with different quantization levels and observe their impact on both speed and task-specific accuracy before committing to a deployment strategy. Additionally, some frameworks mix precisions (combining FP16, FP8, INT8 in different layers) to balance speed and accuracy, tuning each layer's precision for minimal quality impact. Figure~\ref{fig:ch07_quant_throughput_bars} illustrates the throughput gains achievable with different quantization schemes on modern accelerators.
 
-Listing~\ref{lst:ch07_quantization_config} shows a quantization configuration that implements mixed-precision quantization with calibration and quality validation.
+Figure~\ref{fig:ch07_quantization_callout} summarizes a production mixed-precision quantization recipe across the five decisions that matter most: how to type each layer, how to calibrate, how to gate the result on quality, how to wire the runtime, and what to ship.
 
-\begin{codebox}{Mixed-precision quantization configuration with calibration data, quality validation gates, and per-layer fallback policies. This configuration balances memory reduction with accuracy preservation, enabling deployment of large models on production hardware.}{lst:ch07_quantization_config}
-\begin{minted}{yaml}
-# Quantization Configuration
-quantization_version: "1.3.0"
-model_name: "llama-3.1-13b"
-target_hardware: "nvidia-h100"
-
-# Quantization scheme
-scheme: "mixed_precision"
-precision_map:
-  # Attention layers: FP8 for compute efficiency
-  attention:
-    weights: "fp8"
-    activations: "fp8"
-    kv_cache: "int8"
-  
-  # Feed-forward networks: INT8 for memory efficiency
-  ffn:
-    weights: "int8"
-    activations: "fp16"
-  
-  # Embedding layers: FP16 for stability
-  embeddings:
-    weights: "fp16"
-  
-  # Output projection: FP16 for final accuracy
-  output_projection:
-    weights: "fp16"
-
-# Calibration configuration
-calibration:
-  method: "smoothquant"  # smoothquant, gptq, awq
-  dataset_path: "datasets/calibration/ishtar_representative.jsonl"
-  num_samples: 512
-  calibration_batch_size: 8
-  
-  # SmoothQuant specific
-  smoothquant_alpha: 0.5
-  per_channel: true
-  
-  # Outlier handling
-  preserve_outliers: true
-  outlier_threshold: 3.0  # standard deviations
-
-# Quality validation
-validation:
-  golden_set: "datasets/golden/ishtar_v1.0.jsonl"
-  metrics:
-    - "perplexity"
-    - "task_accuracy"
-    - "faithfulness"
-  
-  thresholds:
-    perplexity_degradation: 0.05  # Max 5% increase
-    task_accuracy_drop: 0.02     # Max 2% drop
-    faithfulness_drop: 0.01       # Max 1% drop
-  
-  # Per-layer validation
-  layer_wise_validation: true
-  problematic_layers_fallback: "fp16"
-
-# Runtime configuration
-runtime:
-  # Enable quantization-aware kernels
-  use_tensor_cores: true
-  enable_fp8_tc: true  # FP8 Tensor Cores on H100
-  
-  # KV cache quantization
-  kv_cache_quantization:
-    enabled: true
-    dtype: "int8"
-    per_token: false  # Per-channel quantization
-  
-  # Dynamic quantization (if supported)
-  dynamic_quantization: false
-  activation_quantization: "static"
-
-# Performance targets
-targets:
-  memory_reduction: 0.50  # Target 50% reduction
-  speedup: 1.5            # Target 1.5x speedup
-  accuracy_preservation: 0.98  # Preserve 98% accuracy
-
-# Deployment
-deployment:
-  export_format: "onnx"  # or "tensorrt", "torchscript"
-  enable_quantization_ops: true
-  version: "quantized_v1.3.0"
-\end{minted}
-\end{codebox}
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[font=\small]
+\node[
+    draw=none,
+    rounded corners=6pt,
+    fill=gray!8,
+    align=left,
+    inner sep=6mm,
+    text width=0.95\linewidth,
+    minimum height=1cm
+] (container) {
+\textbf{\large Mixed-precision quantization recipe}\\[4mm]
+\begin{minipage}[t]{0.95\linewidth}
+\colorbox{llmblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmblue!90!black}{Precision map (per layer family):}} attention in FP8 weights/activations with INT8 KV-cache; FFN in INT8 weights and FP16 activations; embeddings and output projection in FP16 to preserve final accuracy \cite{Xiao2023SmoothQuant,Frantar2023GPTQ,Lin2023AWQ,NVIDIA2023Hopper}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmorange!90!black}{Calibration:}} representative dataset of $\sim$512 samples; choose SmoothQuant, GPTQ, or AWQ; preserve outliers above 3$\sigma$; per-channel scaling with $\alpha\!=\!0.5$ for SmoothQuant.\vspace{2mm}}}\\[2mm]
+\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Quality gates:}} validate against a golden set on perplexity, task accuracy, and faithfulness; reject if perplexity rises $>\!5$\%, task accuracy drops $>\!2$\%, or faithfulness drops $>\!1$\%; fall problem layers back to FP16.\vspace{2mm}}}\\[2mm]
+\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{Runtime tuning:}} enable Tensor Cores; turn on FP8 Tensor Cores on H100; INT8 KV-cache with per-channel quantization; static activation quantization for predictable latency.\vspace{2mm}}}\\[2mm]
+\colorbox{llmgray!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgray!90!black}{Targets \& shipping format:}} aim for $\sim$50\% memory reduction, 1.5$\times$ speedup, and $\geq\!98$\% accuracy retention; export to ONNX, TensorRT, or TorchScript with a versioned tag (\texttt{quantized\_v\textit{x.y.z}}).\vspace{2mm}}}
+\end{minipage}
+};
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Mixed-precision quantization recipe organized as five decisions: precision map, calibration, quality gates, runtime tuning, and shipping format. Concrete thresholds (perplexity $\leq\!1.05\times$, task accuracy $\geq\!0.98\times$, faithfulness $\geq\!0.99\times$) act as the merge gate; layers that fail individually fall back to FP16, preserving accuracy on the few sensitive sublayers without sacrificing the throughput win on the rest of the model.}
+\label{fig:ch07_quantization_callout}
+\end{figure}
 
 \begin{table}[t]
 \centering
@@ -783,136 +720,35 @@ Despite these complexities, the production impact of caching is often dramatic. 
 
 \ishtar{} implemented a Redis-backed cache for prompt-to-summary results. We scoped it to cache only final results for idempotent queries (not for interactive multi-turn prompts, since those change with conversation). We also cached embeddings for documents so that repeated retrieval-augmented generation (RAG) lookups would not recompute vectors. Empirically, we saw cache hit rates around 10--15\% in production during busy news cycles, which improved overall throughput and cut tail latencies (since popular queries returned immediately from cache). We set a short TTL on cached news summaries (e.g., 1 hour) to ensure that as news updates, the summaries would be regenerated periodically to include new information. This approach of caching deterministic subchains and prompt results provided a cheap ``layer'' of optimization orthogonal to model and system tweaks.
 
-Listing~\ref{lst:ch07_caching_config} shows a comprehensive caching configuration that implements both response and embedding caching with proper invalidation strategies.
+Figure~\ref{fig:ch07_caching_callout} summarizes the three-layer caching architecture used in production: response cache for completed answers, embedding cache for vectorization output, and prefix cache for shared prompt prefixes, plus the warming and observability that make hit rates real.
 
-\begin{codebox}{Comprehensive caching configuration for response and embedding caching with Redis and pgvector backends, TTL policies, eviction strategies, and cache warming schedules. This multi-layer caching approach reduces both latency and cost by avoiding redundant LLM calls and embedding computations.}{lst:ch07_caching_config}
-\begin{minted}{yaml}
-# Caching Configuration
-caching_version: "2.1.0"
-cache_id: "ishtar_production_cache"
-
-# Response cache configuration
-response_cache:
-  enabled: true
-  backend: "redis"
-  redis_config:
-    host: "redis-cluster.ishtar.internal"
-    port: 6379
-    db: 0
-    password_env: "REDIS_PASSWORD"
-    cluster_mode: true
-    tls_enabled: true
-  
-  # Cache key strategy
-  key_strategy:
-    include_fields:
-      - "prompt_hash"
-      - "model_version"
-      - "temperature"
-      - "max_tokens"
-      - "prompt_template_id"
-    
-    hash_algorithm: "sha256"
-    key_prefix: "ishtar:response:"
-  
-  # TTL configuration
-  ttl:
-    default_seconds: 3600  # 1 hour
-    by_query_type:
-      "breaking_news": 900      # 15 minutes
-      "historical_analysis": 86400  # 24 hours
-      "fact_checking": 1800     # 30 minutes
-  
-  # Eviction policy
-  eviction_policy: "lfu"  # Least Frequently Used
-  max_size_mb: 10000      # 10GB max
-  max_entries: 1000000
-  
-  # Compression
-  compression:
-    enabled: true
-    algorithm: "lz4"
-    min_size_bytes: 1024  # Compress entries > 1KB
-
-# Embedding cache configuration
-embedding_cache:
-  enabled: true
-  backend: "pgvector"  # PostgreSQL with pgvector extension
-  postgres_config:
-    host: "postgres-cluster.ishtar.internal"
-    port: 5432
-    database: "ishtar_embeddings"
-    user: "embedding_cache"
-    password_env: "POSTGRES_PASSWORD"
-    ssl_mode: "require"
-  
-  # Cache key strategy
-  key_strategy:
-    include_fields:
-      - "content_hash"
-      - "embedding_model_id"
-      - "embedding_model_version"
-    
-    hash_algorithm: "sha256"
-    key_column: "content_hash"
-  
-  # Vector storage
-  vector_config:
-    dimension: 384
-    index_type: "hnsw"
-    index_params:
-      m: 16
-      ef_construction: 200
-  
-  # TTL configuration
-  ttl:
-    default_days: 30
-    by_content_type:
-      "news_article": 7   # 7 days
-      "reference_doc": 90  # 90 days
-  
-  # Invalidation triggers
-  invalidation:
-    on_model_update: true
-    on_content_update: true
-    manual_flush_endpoint: "/admin/cache/flush"
-
-# Prefix cache (for shared prompt prefixes)
-prefix_cache:
-  enabled: true
-  backend: "redis"
-  key_strategy:
-    prefix_length: 512  # Cache first 512 tokens
-    include_system_prompt: true
-  
-  ttl_seconds: 7200  # 2 hours
-
-# Cache warming
-warming:
-  enabled: true
-  strategy: "popular_queries"
-  popular_queries_dataset: "datasets/cache_warming/popular_v1.0.jsonl"
-  warming_schedule: "0 2 * * *"  # Daily at 2 AM
-  batch_size: 100
-
-# Monitoring
-monitoring:
-  track_hit_rate: true
-  track_miss_rate: true
-  track_latency_savings: true
-  track_cost_savings: true
-  
-  metrics:
-    - "cache_hit_rate"
-    - "cache_miss_rate"
-    - "avg_latency_reduction_ms"
-    - "cost_savings_percent"
-  
-  alerting:
-    hit_rate_threshold: 0.10  # Alert if hit rate < 10%
-    latency_increase_threshold_ms: 5  # Alert if cache adds >5ms latency
-\end{minted}
-\end{codebox}
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[font=\small]
+\node[
+    draw=none,
+    rounded corners=6pt,
+    fill=gray!8,
+    align=left,
+    inner sep=6mm,
+    text width=0.95\linewidth,
+    minimum height=1cm
+] (container) {
+\textbf{\large Three-layer LLM caching architecture}\\[4mm]
+\begin{minipage}[t]{0.95\linewidth}
+\colorbox{llmblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmblue!90!black}{Response cache (Redis):}} key on \texttt{(prompt\_hash, model\_version, temperature, max\_tokens, template\_id)} with SHA-256; LFU eviction at 10\,GB / 1\,M entries; LZ4 compression above 1\,KB; per-query-type TTL (15\,min for breaking news, 30\,min fact-checking, 24\,h historical) \cite{langchain-cache}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Embedding cache (pgvector):}} key on \texttt{(content\_hash, embedding\_model\_id, version)}; HNSW index ($m\!=\!16$, $ef\!=\!200$) at 384-d; per-content-type TTL (7\,d news, 90\,d reference); invalidate on model or content update.\vspace{2mm}}}\\[2mm]
+\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{Prefix cache (Redis):}} cache the first 512 tokens of shared prompts (system prompt + boilerplate) with a 2\,h TTL so the inference engine can reuse PagedAttention pages across requests \cite{Kwon2023vLLM}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmorange!90!black}{Cache warming:}} replay a popular-queries dataset on a nightly cron (\texttt{0 2 * * *}, batches of 100) so cold-start traffic at peak hours hits a warm cache rather than the model.\vspace{2mm}}}\\[2mm]
+\colorbox{llmgray!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgray!90!black}{Observability \& alerts:}} track hit/miss rate, latency reduction, and cost savings as first-class metrics; alert when hit rate falls below 10\% (warming or keying broken) or the cache itself adds $>\!5$\,ms (backend hot-spot or network issue).\vspace{2mm}}}
+\end{minipage}
+};
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Three-layer LLM caching architecture: a response cache amortizes whole-answer cost, an embedding cache eliminates redundant vectorization, and a prefix cache lets the inference engine reuse KV pages for shared system prompts. Cache warming converts cold-start traffic into cache hits at peak hours; observability turns the cache from an opaque accelerator into a measurable cost and latency lever, with alert thresholds chosen so a low hit rate or a slow backend immediately surfaces.}
+\label{fig:ch07_caching_callout}
+\end{figure}
 
 \noindent \textbf{Engineering Sidebar: Cache Invalidation.}
 One of the hardest parts of caching is invalidation---deciding when a cached entry should be discarded or refreshed. In LLMOps, this could mean invalidating when the model is updated (since a new model might produce a different answer), when the knowledge sources have changed (for instance, new articles have come in), or after a certain time to ensure freshness. A practical strategy is to include a version tag in the cache key that incorporates the model ID or data timestamp. For example, key by \verb|model_v3::[prompt hash]|. When you deploy model v4, it automatically does not hit v3’s cache. Another strategy is time-based: e.g., any summary older than 24 hours for a ``latest news'' query is probably stale. Ultimately, imperfect invalidation is tolerated; it might occasionally serve an answer that is a bit outdated, but in exchange for large performance gains. System designers should monitor for cache accuracy and have a mechanism (like a feature flag or admin API) to flush caches if a problem is discovered.
@@ -1761,113 +1597,35 @@ These formulas link low-level engineering decisions (e.g., quantization, batchin
 
 A number of specialized inference engines have been developed to serve LLMs efficiently. Here we compare three widely used runtimes for decoder-based LLM inference in the cloud: vLLM, Hugging Face Text Generation Inference (TGI), and NVIDIA TensorRT-LLM. Each runtime embodies a distinct approach to batching, memory management, and kernel optimization. Table~\ref{tab:ch07_runtimes} provides a qualitative comparison drawn from public documentation and reported benchmarks, focused on decoder-only use cases since they remain the most challenging to serve at scale; validate with your own workloads.
 
-Listing~\ref{lst:ch07_inference_engine} shows a vLLM inference engine configuration that optimizes batching, KV-cache management, and throughput.
+Figure~\ref{fig:ch07_inference_engine_callout} summarizes a production vLLM deployment as five tunable surfaces. Each surface owns a small number of knobs whose defaults you should understand before promoting the engine into the request path.
 
-\begin{codebox}{Production vLLM inference engine configuration covering continuous batching, PagedAttention, KV-cache management, tensor parallelism, and Prometheus monitoring. This configuration optimizes throughput and latency for serving large language models at scale.}{lst:ch07_inference_engine}
-\begin{minted}{yaml}
-# vLLM Inference Engine Configuration
-engine_version: "0.6.0"
-model_name: "llama-3.1-13b-chat"
-deployment_id: "ishtar-inference-v1"
-
-# Model configuration
-model:
-  path: "/models/llama-3.1-13b-chat"
-  dtype: "float16"
-  trust_remote_code: false
-  download_dir: "/models/cache"
-
-# Engine configuration
-engine:
-  # Batching configuration
-  max_model_len: 16384
-  max_num_batched_tokens: 8192
-  max_num_seqs: 256
-  
-  # Continuous batching
-  enable_chunked_prefill: true
-  preemption_mode: "recompute"  # or "swap"
-  
-  # KV cache management
-  enable_prefix_caching: true
-  block_size: 16
-  gpu_memory_utilization: 0.90
-  
-  # PagedAttention configuration
-  enable_paged_attention: true
-  paged_attention_v2: true
-  
-  # Quantization (if applicable)
-  quantization: null  # or "awq", "gptq", "squeezellm"
-  load_in_4bit: false
-  load_in_8bit: false
-
-# Serving configuration
-serving:
-  host: "0.0.0.0"
-  port: 8000
-  
-  # API configuration
-  api_keys: null  # or list of API keys
-  allowed_origins: ["https://ishtar.ai"]
-  
-  # Streaming
-  enable_streaming: true
-  stream_interval: 1  # Stream every N tokens
-  
-  # Request limits
-  max_request_length: 16384
-  max_batch_size: 256
-  max_sequence_length: 16384
-
-# Performance tuning
-performance:
-  # Tensor parallelism
-  tensor_parallel_size: 1  # Set > 1 for multi-GPU
-  
-  # Pipeline parallelism
-  pipeline_parallel_size: 1
-  
-  # Worker configuration
-  worker_use_ray: false
-  worker_use_ray_compiled_dag: false
-  
-  # CUDA configuration
-  disable_custom_all_reduce: false
-  enable_lora: false
-  
-  # Attention implementation
-  attention_backend: "FLASHINFER"  # or "FLASH_ATTN", "XFORMERS"
-  
-  # Decoding
-  disable_log_stats: false
-  enable_lora: false
-
-# Monitoring
-monitoring:
-  enable_metrics: true
-  metrics_port: 8001
-  
-  # Prometheus metrics
-  prometheus_endpoint: "/metrics"
-  
-  # Tracked metrics
-  metrics:
-    - "vllm:num_requests_running"
-    - "vllm:num_requests_waiting"
-    - "vllm:gpu_cache_usage_percent"
-    - "vllm:gpu_memory_usage_percent"
-    - "vllm:time_to_first_token_seconds"
-    - "vllm:time_per_output_token_seconds"
-
-# Logging
-logging:
-  level: "INFO"
-  log_requests: true
-  log_stats: true
-  log_level: "INFO"
-\end{minted}
-\end{codebox}
+\begin{figure}[t]
+\centering
+\begin{llmfigbox}
+\begin{tikzpicture}[font=\small]
+\node[
+    draw=none,
+    rounded corners=6pt,
+    fill=gray!8,
+    align=left,
+    inner sep=6mm,
+    text width=0.95\linewidth,
+    minimum height=1cm
+] (container) {
+\textbf{\large Production vLLM tunable surfaces}\\[4mm]
+\begin{minipage}[t]{0.95\linewidth}
+\colorbox{llmblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmblue!90!black}{Batching \& scheduling:}} \texttt{max\_model\_len}\,16k, \texttt{max\_num\_batched\_tokens}\,8k, \texttt{max\_num\_seqs}\,256; chunked prefill on; \texttt{preemption\_mode\,=\,recompute} (favor latency over swap I/O) \cite{Kwon2023vLLM}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{KV cache \& PagedAttention:}} prefix caching on, \texttt{block\_size}\,16, \texttt{gpu\_memory\_utilization}\,0.90; PagedAttention v2 enabled so long contexts don't fragment the cache \cite{Kwon2023vLLM}.\vspace{2mm}}}\\[2mm]
+\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Parallelism \& kernels:}} \texttt{tensor\_parallel\_size} sized to the GPU count; FLASHINFER attention backend (fall back to FLASH\_ATTN/XFORMERS by hardware); custom all-reduce kept on; LoRA off unless a multi-tenant adapter pool is needed.\vspace{2mm}}}\\[2mm]
+\colorbox{llmorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmorange!90!black}{Serving surface:}} OpenAI-compatible HTTP on :8000; streaming on with per-token interval; request and batch capped at \texttt{max\_model\_len}; CORS restricted to first-party origins; API keys enforced at the gateway.\vspace{2mm}}}\\[2mm]
+\colorbox{llmgray!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgray!90!black}{Observability:}} Prometheus on :8001 exposing \texttt{num\_requests\_running/waiting}, \texttt{gpu\_cache\_usage\_percent}, \texttt{time\_to\_first\_token\_seconds}, and \texttt{time\_per\_output\_token\_seconds}---the four signals that drive HPA and SLO alerting.\vspace{2mm}}}
+\end{minipage}
+};
+\end{tikzpicture}
+\end{llmfigbox}
+\caption{Production vLLM deployment expressed as five tunable surfaces. Batching and KV-cache settings together determine peak throughput and the maximum supported context; parallelism and kernel choice determine how the model is sharded across hardware; the serving surface and observability layer determine how the engine plugs into the rest of the platform. Defaults shown are appropriate for a 13B chat model on a single H100/A100; resize batching and \texttt{tensor\_parallel\_size} for larger models.}
+\label{fig:ch07_inference_engine_callout}
+\end{figure}
 
 \begin{table}[tb]
   \centering
