@@ -1064,280 +1064,86 @@ Listing~\ref{lst:ch07_profiling_script} demonstrates GPU profiling using NVIDIA 
 
 \begin{codebox}{GPU profiling script using NVIDIA Nsight Systems for identifying inference bottlenecks, measuring kernel execution times, and comparing baseline versus optimized performance. This script automates the profiling workflow and generates structured JSON reports suitable for CI gate integration.}{lst:ch07_profiling_script}
 \begin{minted}{python}
-#!/usr/bin/env python3
-"""
-GPU profiling script using NVIDIA Nsight Systems.
-Identifies bottlenecks and validates optimization improvements.
-"""
-
-import subprocess
-import json
-import time
+import subprocess, json, time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass
 
 @dataclass
 class ProfilingResult:
-    """Profiling analysis result"""
     kernel_time_ms: Dict[str, float]
     memory_bandwidth_gb_s: float
     gpu_utilization_percent: float
     bottleneck_kernels: List[str]
     optimization_suggestions: List[str]
 
-def run_nsight_systems(
-    command: List[str],
-    output_file: str,
-    duration_seconds: int = 30,
-    trace_level: str = "full"
-) -> str:
-    """
-    Run Nsight Systems profiling.
-    
-    Args:
-        command: Command to profile (e.g., ["python", "inference.py"])
-        output_file: Output file path for profiling data
-        duration_seconds: Profiling duration
-        trace_level: Trace level (full, kernel, osrt)
-    
-    Returns:
-        Path to profiling output file
-    """
+def run_nsight_systems(command, output_file, duration_seconds=30):
     nsys_cmd = [
         "nsys", "profile",
-        f"--trace=cuda,nvtx,osrt",
+        "--trace=cuda,nvtx,osrt",
         f"--output={output_file}",
         f"--duration={duration_seconds}",
         "--force-overwrite=true",
-        "--stats=true"
+        "--stats=true",
     ] + command
-    
-    print(f"Running: {' '.join(nsys_cmd)}")
-    result = subprocess.run(
-        nsys_cmd,
-        capture_output=True,
-        text=True,
-        check=True
-    )
-    
+    subprocess.run(nsys_cmd, capture_output=True, text=True, check=True)
     return output_file
 
 def analyze_nsys_report(report_file: str) -> ProfilingResult:
-    """
-    Analyze Nsight Systems report and extract key metrics.
-    
-    Args:
-        report_file: Path to .nsys-rep file
-    
-    Returns:
-        ProfilingResult with analysis
-    """
-    # Extract statistics using nsys stats
-    stats_cmd = [
-        "nsys", "stats",
-        "--report", "gputrace",
-        "--format", "json",
-        report_file
-    ]
-    
-    result = subprocess.run(
-        stats_cmd,
-        capture_output=True,
-        text=True,
-        check=True
-    )
-    
-    stats = json.loads(result.stdout)
-    
-    # Parse kernel times
-    kernel_times = {}
-    bottleneck_kernels = []
-    
-    if "GPU Trace" in stats:
-        for kernel in stats["GPU Trace"].get("Kernels", []):
-            kernel_name = kernel.get("Name", "unknown")
-            duration_ms = kernel.get("Duration", 0) / 1e6  # Convert to ms
-            kernel_times[kernel_name] = duration_ms
-            
-            # Identify bottlenecks (>10% of total time)
-            if duration_ms > 100:  # Threshold in ms
-                bottleneck_kernels.append(kernel_name)
-    
-    # Extract memory bandwidth
+    stats = json.loads(subprocess.run(
+        ["nsys", "stats", "--report", "gputrace",
+         "--format", "json", report_file],
+        capture_output=True, text=True, check=True
+    ).stdout)
+
+    kernel_times, bottleneck_kernels = {}, []
+    for kernel in stats.get("GPU Trace", {}).get("Kernels", []):
+        name = kernel.get("Name", "unknown")
+        duration_ms = kernel.get("Duration", 0) / 1e6
+        kernel_times[name] = duration_ms
+        if duration_ms > 100:  # >10% of total time threshold
+            bottleneck_kernels.append(name)
+
     memory_bandwidth = stats.get("Memory Bandwidth", {}).get("Average", 0)
-    
-    # Extract GPU utilization
     gpu_utilization = stats.get("GPU Utilization", {}).get("Average", 0)
-    
-    # Generate optimization suggestions
+
     suggestions = []
-    
     if "attention" in str(bottleneck_kernels).lower():
         suggestions.append("Consider using FlashAttention or FlashAttention-2")
-    
     if gpu_utilization < 0.70:
         suggestions.append("GPU underutilized - increase batch size or concurrency")
-    
-    if memory_bandwidth > 800:  # GB/s threshold
+    if memory_bandwidth > 800:
         suggestions.append("Memory bandwidth saturated - consider quantization")
-    
+
     return ProfilingResult(
         kernel_time_ms=kernel_times,
         memory_bandwidth_gb_s=memory_bandwidth,
         gpu_utilization_percent=gpu_utilization * 100,
         bottleneck_kernels=bottleneck_kernels,
-        optimization_suggestions=suggestions
+        optimization_suggestions=suggestions,
     )
 
-def profile_inference_workload(
-    model_path: str,
-    test_prompts: List[str],
-    output_dir: str = "./profiling_results"
-) -> ProfilingResult:
-    """
-    Profile an LLM inference workload.
-    
-    Args:
-        model_path: Path to model
-        test_prompts: List of test prompts
-        output_dir: Output directory for profiling results
-    
-    Returns:
-        ProfilingResult
-    """
-    output_dir_path = Path(output_dir)
-    output_dir_path.mkdir(exist_ok=True)
-    
-    timestamp = int(time.time())
-    report_file = output_dir_path / f"profile_{timestamp}.nsys-rep"
-    
-    # Create a test script
-    test_script = output_dir_path / "test_inference.py"
-    test_script.write_text(f"""
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+def profile_inference_workload(model_path, test_prompts, output_dir="./prof"):
+    # ... (writes a small driver that loads model_path with transformers
+    #      and generates each test_prompt, then invokes run_nsight_systems
+    #      and returns analyze_nsys_report on the .nsys-rep file. Full
+    #      source in companion repo.) ...
+    ...
 
-model = AutoModelForCausalLM.from_pretrained("{model_path}")
-tokenizer = AutoTokenizer.from_pretrained("{model_path}")
-
-prompts = {test_prompts}
-
-for prompt in prompts:
-    inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
-    outputs = model.generate(**inputs, max_length=512)
-""")
-    
-    # Run profiling
-    run_nsight_systems(
-        command=["python", str(test_script)],
-        output_file=str(report_file),
-        duration_seconds=60
-    )
-    
-    # Analyze results
-    result = analyze_nsys_report(str(report_file))
-    
-    return result
-
-def compare_profiles(
-    baseline_report: str,
-    optimized_report: str
-) -> Dict[str, float]:
-    """
-    Compare two profiling reports to measure optimization impact.
-    
-    Args:
-        baseline_report: Path to baseline .nsys-rep file
-        optimized_report: Path to optimized .nsys-rep file
-    
-    Returns:
-        Dictionary with improvement metrics
-    """
-    baseline = analyze_nsys_report(baseline_report)
-    optimized = analyze_nsys_report(optimized_report)
-    
-    total_time_baseline = sum(baseline.kernel_time_ms.values())
-    total_time_optimized = sum(optimized.kernel_time_ms.values())
-    
-    speedup = total_time_baseline / total_time_optimized if total_time_optimized > 0 else 1.0
-    
+def compare_profiles(baseline_report: str, optimized_report: str):
+    base = analyze_nsys_report(baseline_report)
+    opt  = analyze_nsys_report(optimized_report)
+    base_total = sum(base.kernel_time_ms.values())
+    opt_total  = sum(opt.kernel_time_ms.values())
     return {
-        "speedup": speedup,
-        "baseline_total_ms": total_time_baseline,
-        "optimized_total_ms": total_time_optimized,
-        "gpu_utilization_improvement": (
-            optimized.gpu_utilization_percent - baseline.gpu_utilization_percent
-        ),
-        "memory_bandwidth_improvement": (
-            optimized.memory_bandwidth_gb_s - baseline.memory_bandwidth_gb_s
-        )
+        "speedup": base_total / opt_total if opt_total > 0 else 1.0,
+        "baseline_total_ms": base_total,
+        "optimized_total_ms": opt_total,
+        "gpu_utilization_improvement":
+            opt.gpu_utilization_percent - base.gpu_utilization_percent,
+        "memory_bandwidth_improvement":
+            opt.memory_bandwidth_gb_s - base.memory_bandwidth_gb_s,
     }
-
-# Example usage
-if __name__ == "__main__":
-    # Profile inference workload
-    result = profile_inference_workload(
-        model_path="/models/llama-3.1-13b-chat",
-        test_prompts=[
-            "What happened in Region X yesterday?",
-            "Summarize the latest conflict reports.",
-            "Analyze the ceasefire violations."
-        ]
-    )
-    
-    print("Profiling Results:")
-    print(f"GPU Utilization: {result.gpu_utilization_percent:.1f}%")
-    print(f"Memory Bandwidth: {result.memory_bandwidth_gb_s:.2f} GB/s")
-    print(f"\nTop Kernels by Time:")
-    sorted_kernels = sorted(
-        result.kernel_time_ms.items(),
-        key=lambda x: x[1],
-        reverse=True
-    )[:10]
-    for kernel, time_ms in sorted_kernels:
-        print(f"  {kernel}: {time_ms:.2f}ms")
-    
-    print(f"\nBottleneck Kernels: {result.bottleneck_kernels}")
-    print(f"\nOptimization Suggestions:")
-    for suggestion in result.optimization_suggestions:
-        print(f"  - {suggestion}")
-
-    # Compare with a previous baseline if available
-    baseline_path = Path("./profiling_results/baseline.nsys-rep")
-    if baseline_path.exists():
-        comparison = compare_profiles(
-            str(baseline_path),
-            str(Path("./profiling_results")
-                / f"profile_{int(time.time())}.nsys-rep")
-        )
-        print(f"\n{'='*50}")
-        print(f"Comparison vs. Baseline:")
-        print(f"  Speedup: {comparison['speedup']:.2f}x")
-        print(f"  Baseline total: "
-              f"{comparison['baseline_total_ms']:.1f}ms")
-        print(f"  Optimized total: "
-              f"{comparison['optimized_total_ms']:.1f}ms")
-        print(f"  GPU util. delta: "
-              f"{comparison['gpu_utilization_improvement']:+.1f}%")
-        print(f"  Mem BW delta: "
-              f"{comparison['memory_bandwidth_improvement']:+.2f} GB/s")
-
-    # Write structured JSON report for CI integration
-    report = {
-        "timestamp": int(time.time()),
-        "gpu_utilization_pct": result.gpu_utilization_percent,
-        "memory_bandwidth_gb_s": result.memory_bandwidth_gb_s,
-        "top_kernels": dict(sorted_kernels),
-        "bottlenecks": result.bottleneck_kernels,
-        "suggestions": result.optimization_suggestions,
-        "pass": result.gpu_utilization_percent > 70
-                and len(result.bottleneck_kernels) < 3
-    }
-    report_path = Path("./profiling_results/report.json")
-    report_path.write_text(json.dumps(report, indent=2))
-    print(f"\nReport written to {report_path}")
-    print(f"CI gate: {'PASS' if report['pass'] else 'FAIL'}")
 \end{minted}
 \end{codebox}
 
