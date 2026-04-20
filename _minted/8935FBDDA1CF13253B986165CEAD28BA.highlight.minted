@@ -1,0 +1,82 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}tool\PYGZus{}schema\PYGZus{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2.0.0\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}tool\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}fetch\PYGZus{}conflict\PYGZus{}report\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}tool\PYGZus{}name\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}fetch\PYGZus{}conflict\PYGZus{}report\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}description\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Retrieve a conflict report by ID with access control\PYGZdq{}}\PYG{p}{,}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}versioning\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}semantic\PYGZus{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2.0.0\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}changelog\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}2.0.0\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Added access control validation\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}1.1.0\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Added caching support\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}1.0.0\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Initial version\PYGZdq{}}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}deprecated\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{false}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}backward\PYGZus{}compatible\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}security\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}requires\PYGZus{}auth\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}sandboxed\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}rate\PYGZus{}limit\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}requests\PYGZus{}per\PYGZus{}minute\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{30}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}burst\PYGZus{}size\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{5}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}access\PYGZus{}control\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}required\PYGZus{}permissions\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}read:conflict\PYGZus{}reports\PYGZdq{}}\PYG{p}{],}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}enforce\PYGZus{}tenant\PYGZus{}isolation\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}parameters\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}object\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}required\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}report\PYGZus{}id\PYGZdq{}}\PYG{p}{],}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}properties\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}report\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}string\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}pattern\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}\PYGZca{}[A\PYGZhy{}Z]\PYGZob{}2\PYGZcb{}\PYGZhy{}\PYGZbs{}\PYGZbs{}d\PYGZob{}6\PYGZcb{}\PYGZdl{}\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}description\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Conflict report identifier\PYGZdq{}}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}include\PYGZus{}metadata\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}boolean\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}default\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}description\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Include source metadata\PYGZdq{}}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}returns\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}object\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}required\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}report\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}source\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}verified\PYGZdq{}}\PYG{p}{],}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}properties\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}report\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}object\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}description\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Report content\PYGZdq{}}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}source\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}string\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}description\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Source identifier\PYGZdq{}}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}verified\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}boolean\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}description\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Verification status\PYGZdq{}}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}contract\PYGZus{}tests\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}
+\PYG{+w}{    }\PYG{l+s+s2}{\PYGZdq{}tests/tools/fetch\PYGZus{}conflict\PYGZus{}report\PYGZus{}v2.0.0.yaml\PYGZdq{}}
+\PYG{+w}{  }\PYG{p}{],}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}monitoring\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}track\PYGZus{}call\PYGZus{}rate\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}track\PYGZus{}error\PYGZus{}rate\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}track\PYGZus{}latency\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}alert\PYGZus{}thresholds\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}error\PYGZus{}rate\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.05}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}p95\PYGZus{}latency\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{500}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

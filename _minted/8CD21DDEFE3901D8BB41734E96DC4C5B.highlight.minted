@@ -1,0 +1,12 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}status\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}ok | retryable\PYGZus{}error | fatal\PYGZus{}error | needs\PYGZus{}review\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}error\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}timeout | rate\PYGZus{}limit | schema\PYGZus{}invalid | tool\PYGZus{}error | policy\PYGZus{}violation\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}message\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}string\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}retry\PYGZus{}after\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{0}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}artifacts\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}\PYGZcb{},}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}metrics\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n+nt}{\PYGZdq{}tokens\PYGZus{}in\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}tokens\PYGZus{}out\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}latency\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{0}\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

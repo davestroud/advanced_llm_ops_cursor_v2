@@ -1,0 +1,15 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}item\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2026\PYGZhy{}01\PYGZhy{}incident\PYGZhy{}042\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}question\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}...\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}evidence\PYGZus{}pack\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}retrieval\PYGZus{}snapshot\PYGZus{}17\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}candidate\PYGZus{}answer\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}...\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}ratings\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}
+\PYG{+w}{    }\PYG{p}{\PYGZob{}}\PYG{n+nt}{\PYGZdq{}rater\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}R1\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}hard\PYGZus{}fail\PYGZus{}faithfulness\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{false}\PYG{p}{,}
+\PYG{+w}{     }\PYG{n+nt}{\PYGZdq{}scores\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n+nt}{\PYGZdq{}correctness\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{4}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}attribution\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{3}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}neutrality\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{5}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}clarity\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{4}\PYG{p}{\PYGZcb{}\PYGZcb{},}
+\PYG{+w}{    }\PYG{p}{\PYGZob{}}\PYG{n+nt}{\PYGZdq{}rater\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}R2\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}hard\PYGZus{}fail\PYGZus{}faithfulness\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{     }\PYG{n+nt}{\PYGZdq{}scores\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n+nt}{\PYGZdq{}correctness\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}attribution\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}neutrality\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{4}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}clarity\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{3}\PYG{p}{\PYGZcb{}\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{],}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}adjudicated\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n+nt}{\PYGZdq{}hard\PYGZus{}fail\PYGZus{}faithfulness\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}notes\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Claim X not supported.\PYGZdq{}}\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

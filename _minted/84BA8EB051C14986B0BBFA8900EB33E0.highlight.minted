@@ -1,0 +1,25 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{// Pseudocode. Replace URL/auth with your environment.}
+\PYG{k}{import}\PYG{+w}{ }\PYG{n+nx}{http}\PYG{+w}{ }\PYG{k+kr}{from}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}k6/http\PYGZdq{}}\PYG{p}{;}
+\PYG{k}{import}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+nx}{sleep}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nx}{check}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{k+kr}{from}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}k6\PYGZdq{}}\PYG{p}{;}
+
+\PYG{k}{export}\PYG{+w}{ }\PYG{k+kd}{const}\PYG{+w}{ }\PYG{n+nx}{options}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+nx}{stages}\PYG{o}{:}\PYG{+w}{ }\PYG{p}{[}
+\PYG{+w}{    }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+nx}{duration}\PYG{o}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2m\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nx}{target}\PYG{o}{:}\PYG{+w}{ }\PYG{l+m+mf}{10}\PYG{+w}{ }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{    }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+nx}{duration}\PYG{o}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}5m\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nx}{target}\PYG{o}{:}\PYG{+w}{ }\PYG{l+m+mf}{50}\PYG{+w}{ }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{    }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+nx}{duration}\PYG{o}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2m\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nx}{target}\PYG{o}{:}\PYG{+w}{ }\PYG{l+m+mf}{0}\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{],}
+\PYG{+w}{  }\PYG{n+nx}{thresholds}\PYG{o}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nx}{http\PYGZus{}req\PYGZus{}failed}\PYG{o}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}rate\PYGZlt{}0.01\PYGZdq{}}\PYG{p}{],}\PYG{+w}{     }\PYG{c+c1}{// error rate \PYGZlt{} 1\PYGZpc{}}
+\PYG{+w}{    }\PYG{n+nx}{http\PYGZus{}req\PYGZus{}duration}\PYG{o}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}p(95)\PYGZlt{}5000\PYGZdq{}}\PYG{p}{]}\PYG{+w}{   }\PYG{c+c1}{// p95 latency \PYGZlt{} 5s}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{};}
+
+\PYG{k}{export}\PYG{+w}{ }\PYG{k}{default}\PYG{+w}{ }\PYG{k+kd}{function}\PYG{+w}{ }\PYG{p}{()}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k+kd}{const}\PYG{+w}{ }\PYG{n+nx}{payload}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nb}{JSON}\PYG{p}{.}\PYG{n+nx}{stringify}\PYG{p}{(\PYGZob{}}\PYG{+w}{ }\PYG{n+nx}{question}\PYG{o}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Summarize aid efforts in X.\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nx}{top\PYGZus{}k}\PYG{o}{:}\PYG{+w}{ }\PYG{l+m+mf}{5}\PYG{+w}{ }\PYG{p}{\PYGZcb{});}
+\PYG{+w}{  }\PYG{k+kd}{const}\PYG{+w}{ }\PYG{n+nx}{res}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nx}{http}\PYG{p}{.}\PYG{n+nx}{post}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}https://staging.example.com/ishtar\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nx}{payload}\PYG{p}{,}
+\PYG{+w}{                        }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+nx}{headers}\PYG{o}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Content\PYGZhy{}Type\PYGZdq{}}\PYG{o}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}application/json\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{p}{\PYGZcb{});}
+\PYG{+w}{  }\PYG{n+nx}{check}\PYG{p}{(}\PYG{n+nx}{res}\PYG{p}{,}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}status is 200\PYGZdq{}}\PYG{o}{:}\PYG{+w}{ }\PYG{p}{(}\PYG{n+nx}{r}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{=\PYGZgt{}}\PYG{+w}{ }\PYG{n+nx}{r}\PYG{p}{.}\PYG{n+nx}{status}\PYG{+w}{ }\PYG{o}{===}\PYG{+w}{ }\PYG{l+m+mf}{200}\PYG{+w}{ }\PYG{p}{\PYGZcb{});}
+\PYG{+w}{  }\PYG{n+nx}{sleep}\PYG{p}{(}\PYG{l+m+mf}{1}\PYG{p}{);}
+\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

@@ -1,0 +1,67 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}trace\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}550e8400\PYGZhy{}e29b\PYGZhy{}41d4\PYGZhy{}a716\PYGZhy{}446655440000\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}span\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}660e8400\PYGZhy{}e29b\PYGZhy{}41d4\PYGZhy{}a716\PYGZhy{}446655440001\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}conversation\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}770e8400\PYGZhy{}e29b\PYGZhy{}41d4\PYGZhy{}a716\PYGZhy{}446655440002\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}timestamp\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2024\PYGZhy{}01\PYGZhy{}15T14:32:10.123Z\PYGZdq{}}\PYG{p}{,}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}prompt\PYGZus{}telemetry\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}template\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}ishtar\PYGZus{}event\PYGZus{}synthesis\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}template\PYGZus{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}1.3.0\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}system\PYGZus{}message\PYGZus{}hash\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}sha256:abc123...\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}user\PYGZus{}query\PYGZus{}hash\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}sha256:def456...\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}decoding\PYGZus{}params\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}temperature\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.3}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}top\PYGZus{}p\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.9}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}max\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{500}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}retrieval\PYGZus{}telemetry\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}index\PYGZus{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}conflict\PYGZus{}reports\PYGZus{}v2.1\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}top\PYGZus{}k\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{10}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}retrieved\PYGZus{}doc\PYGZus{}ids\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}OFF\PYGZhy{}001\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}NGO\PYGZhy{}042\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}SOC\PYGZhy{}089\PYGZdq{}}\PYG{p}{],}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}retrieval\PYGZus{}scores\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+m+mf}{0.92}\PYG{p}{,}\PYG{+w}{ }\PYG{l+m+mf}{0.87}\PYG{p}{,}\PYG{+w}{ }\PYG{l+m+mf}{0.81}\PYG{p}{],}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}reranker\PYGZus{}scores\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+m+mf}{0.95}\PYG{p}{,}\PYG{+w}{ }\PYG{l+m+mf}{0.88}\PYG{p}{,}\PYG{+w}{ }\PYG{l+m+mf}{0.79}\PYG{p}{],}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}retrieval\PYGZus{}latency\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{145}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}tool\PYGZus{}telemetry\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}
+\PYG{+w}{    }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}tool\PYGZus{}name\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}verify\PYGZus{}source\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}tool\PYGZus{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}1.2.0\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}arguments\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n+nt}{\PYGZdq{}source\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}OFF\PYGZhy{}001\PYGZdq{}}\PYG{p}{\PYGZcb{},}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}result\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}verified\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}latency\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{23}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{],}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}model\PYGZus{}telemetry\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}model\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}gpt\PYGZhy{}4\PYGZhy{}turbo\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}provider\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}openai\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}input\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{1250}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}output\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{342}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}total\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{1592}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}ttft\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{450}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}tokens\PYGZus{}per\PYGZus{}second\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{12.3}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}stop\PYGZus{}reason\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}stop\PYGZdq{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}output\PYGZus{}telemetry\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}output\PYGZus{}hash\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}sha256:ghi789...\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}citation\PYGZus{}count\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{3}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}citation\PYGZus{}coverage\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.95}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}safety\PYGZus{}signals\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}toxicity\PYGZus{}score\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.02}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}hallucination\PYGZus{}flags\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[],}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}policy\PYGZus{}violations\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[]}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}cost\PYGZus{}estimate\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}input\PYGZus{}cost\PYGZus{}usd\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.0125}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}output\PYGZus{}cost\PYGZus{}usd\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.0103}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}total\PYGZus{}cost\PYGZus{}usd\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.0228}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

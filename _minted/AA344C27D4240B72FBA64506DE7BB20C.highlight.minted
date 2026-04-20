@@ -1,0 +1,60 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Chain\PYGZhy{}of\PYGZhy{}Thought Prompt Template}
+\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}2.1.0\PYGZdq{}}
+\PYG{n+nt}{template\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}analysis\PYGZus{}cot\PYGZdq{}}
+\PYG{n+nt}{description}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Multi\PYGZhy{}step}\PYG{n+nv}{ }\PYG{l+s}{reasoning}\PYG{n+nv}{ }\PYG{l+s}{for}\PYG{n+nv}{ }\PYG{l+s}{conflict}\PYG{n+nv}{ }\PYG{l+s}{analysis\PYGZdq{}}
+
+\PYG{n+nt}{system\PYGZus{}message}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{  }\PYG{n+no}{You are an expert conflict journalism analyst. When analyzing}
+\PYG{+w}{  }\PYG{n+no}{complex situations, break down your reasoning into clear steps.}
+\PYG{+w}{  }\PYG{n+no}{Always cite sources and explain your logic.}
+
+\PYG{n+nt}{user\PYGZus{}template}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{  }\PYG{n+no}{Analyze the following situation step by step:}
+
+\PYG{+w}{  }\PYG{n+no}{\PYGZob{}context\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n+no}{Question: \PYGZob{}user\PYGZus{}query\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n+no}{Think through this systematically:}
+\PYG{+w}{  }\PYG{n+no}{1. What are the key facts?}
+\PYG{+w}{  }\PYG{n+no}{2. What are the different perspectives?}
+\PYG{+w}{  }\PYG{n+no}{3. What are the implications?}
+\PYG{+w}{  }\PYG{n+no}{4. What is the most reliable conclusion?}
+
+\PYG{c+c1}{\PYGZsh{} Few\PYGZhy{}shot examples demonstrating chain\PYGZhy{}of\PYGZhy{}thought}
+\PYG{n+nt}{few\PYGZus{}shot\PYGZus{}examples}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{user}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{      }\PYG{n+no}{Context: Reports indicate ceasefire violations in Region X.}
+\PYG{+w}{      }\PYG{n+no}{Question: What is the most reliable assessment?}
+\PYG{+w}{    }\PYG{n+nt}{assistant}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{      }\PYG{n+no}{Let me think through this step by step:}
+
+\PYG{+w}{      }\PYG{n+no}{1. **Key facts:**}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} Official sources [Source: OFF\PYGZhy{}001] report 2 incidents}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} NGO sources [Source: NGO\PYGZhy{}042] report 3 incidents}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} Both agree on location: northern villages}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} Timeline discrepancy: OFF\PYGZhy{}001 says 14:00\PYGZhy{}18:00, NGO\PYGZhy{}042 says 13:30\PYGZhy{}19:00}
+
+\PYG{+w}{      }\PYG{n+no}{2. **Different perspectives:**}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} Official sources may underreport for political reasons}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} NGO sources may have broader monitoring coverage}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} Both sources have verified track records}
+
+\PYG{+w}{      }\PYG{n+no}{3. **Implications:**}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} The discrepancy suggests possible underreporting}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} The overlap in location confirms core events}
+\PYG{+w}{         }\PYG{n+no}{\PYGZhy{} Timeline difference is within acceptable margin}
+
+\PYG{+w}{      }\PYG{n+no}{4. **Most reliable conclusion:**}
+\PYG{+w}{         }\PYG{n+no}{Based on cross\PYGZhy{}referencing [Source: OFF\PYGZhy{}001] and [Source: NGO\PYGZhy{}042],}
+\PYG{+w}{         }\PYG{n+no}{at least 2\PYGZhy{}3 incidents occurred in northern villages between}
+\PYG{+w}{         }\PYG{n+no}{13:30\PYGZhy{}19:00. The NGO count is likely more comprehensive, but}
+\PYG{+w}{         }\PYG{n+no}{both sources confirm the core events.}
+
+\PYG{c+c1}{\PYGZsh{} Configuration}
+\PYG{n+nt}{parameters}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{temperature}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.4}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}tokens}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{800}
+\PYG{+w}{  }\PYG{n+nt}{enforce\PYGZus{}steps}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\end{MintedVerbatim}

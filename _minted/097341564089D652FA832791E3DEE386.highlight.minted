@@ -1,0 +1,224 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} .github/workflows/terraform\PYGZhy{}infra.yml}
+\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Infrastructure CI/CD}
+
+\PYG{n+nt}{on}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{pull\PYGZus{}request}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{paths}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}infrastructure/**\PYGZsq{}}
+\PYG{+w}{  }\PYG{n+nt}{push}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{branches}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{main}
+\PYG{+w}{    }\PYG{n+nt}{paths}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}infrastructure/**\PYGZsq{}}
+
+\PYG{n+nt}{env}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{TF\PYGZus{}VERSION}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}1.6.0\PYGZsq{}}
+\PYG{+w}{  }\PYG{n+nt}{AWS\PYGZus{}REGION}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}us\PYGZhy{}east\PYGZhy{}1\PYGZsq{}}
+
+\PYG{n+nt}{jobs}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{validate}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Validate Terraform}
+\PYG{+w}{    }\PYG{n+nt}{runs\PYGZhy{}on}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ubuntu\PYGZhy{}latest}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/checkout@v4}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Setup Terraform}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{hashicorp/setup\PYGZhy{}terraform@v3}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{terraform\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.TF\PYGZus{}VERSION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Format Check}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform fmt \PYGZhy{}check \PYGZhy{}recursive}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Init}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform init \PYGZhy{}backend=false}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Validate}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform validate}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Run TFLint}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform\PYGZhy{}linters/setup\PYGZhy{}tflint@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{tflint\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{latest}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{TFLint Check}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{tflint \PYGZhy{}\PYGZhy{}init \PYGZam{}\PYGZam{} tflint}
+
+\PYG{+w}{  }\PYG{n+nt}{security\PYGZhy{}scan}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Security Scan}
+\PYG{+w}{    }\PYG{n+nt}{runs\PYGZhy{}on}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ubuntu\PYGZhy{}latest}
+\PYG{+w}{    }\PYG{n+nt}{needs}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{validate}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/checkout@v4}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Run Checkov}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{bridgecrewio/checkov\PYGZhy{}action@master}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{          }\PYG{n+nt}{framework}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform}
+\PYG{+w}{          }\PYG{n+nt}{soft\PYGZus{}fail}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+
+\PYG{+w}{  }\PYG{n+nt}{plan\PYGZhy{}dev}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Plan Dev Environment}
+\PYG{+w}{    }\PYG{n+nt}{runs\PYGZhy{}on}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ubuntu\PYGZhy{}latest}
+\PYG{+w}{    }\PYG{n+nt}{needs}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{validate}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{security\PYGZhy{}scan}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{if}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{github.event\PYGZus{}name == \PYGZsq{}pull\PYGZus{}request\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/checkout@v4}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Configure AWS Credentials}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{aws\PYGZhy{}actions/configure\PYGZhy{}aws\PYGZhy{}credentials@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}access\PYGZhy{}key\PYGZhy{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.AWS\PYGZus{}ACCESS\PYGZus{}KEY\PYGZus{}ID \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}secret\PYGZhy{}access\PYGZhy{}key}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.AWS\PYGZus{}SECRET\PYGZus{}ACCESS\PYGZus{}KEY \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}region}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.AWS\PYGZus{}REGION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Setup Terraform}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{hashicorp/setup\PYGZhy{}terraform@v3}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{terraform\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.TF\PYGZus{}VERSION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Init}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{          }\PYG{n+no}{terraform init \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}backend\PYGZhy{}config=\PYGZdq{}bucket=ishtar\PYGZhy{}terraform\PYGZhy{}state\PYGZdq{} \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}backend\PYGZhy{}config=\PYGZdq{}key=dev/terraform.tfstate\PYGZdq{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Plan}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{          }\PYG{n+no}{terraform plan \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}var\PYGZhy{}file=\PYGZdq{}environments/dev.tfvars\PYGZdq{} \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}out=tfplan \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}no\PYGZhy{}color}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Upload Plan Artifact}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/upload\PYGZhy{}artifact@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform\PYGZhy{}plan\PYGZhy{}dev}
+\PYG{+w}{          }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{infrastructure/tfplan}
+
+\PYG{+w}{  }\PYG{n+nt}{apply\PYGZhy{}dev}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Apply Dev Environment}
+\PYG{+w}{    }\PYG{n+nt}{runs\PYGZhy{}on}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ubuntu\PYGZhy{}latest}
+\PYG{+w}{    }\PYG{n+nt}{needs}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{plan\PYGZhy{}dev}
+\PYG{+w}{    }\PYG{n+nt}{if}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{github.ref == \PYGZsq{}refs/heads/main\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+nt}{environment}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{dev}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/checkout@v4}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Configure AWS Credentials}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{aws\PYGZhy{}actions/configure\PYGZhy{}aws\PYGZhy{}credentials@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}access\PYGZhy{}key\PYGZhy{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.AWS\PYGZus{}ACCESS\PYGZus{}KEY\PYGZus{}ID \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}secret\PYGZhy{}access\PYGZhy{}key}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.AWS\PYGZus{}SECRET\PYGZus{}ACCESS\PYGZus{}KEY \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}region}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.AWS\PYGZus{}REGION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Setup Terraform}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{hashicorp/setup\PYGZhy{}terraform@v3}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{terraform\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.TF\PYGZus{}VERSION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Download Plan Artifact}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/download\PYGZhy{}artifact@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform\PYGZhy{}plan\PYGZhy{}dev}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Init}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{          }\PYG{n+no}{terraform init \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}backend\PYGZhy{}config=\PYGZdq{}bucket=ishtar\PYGZhy{}terraform\PYGZhy{}state\PYGZdq{} \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}backend\PYGZhy{}config=\PYGZdq{}key=dev/terraform.tfstate\PYGZdq{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Apply}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform apply \PYGZhy{}auto\PYGZhy{}approve tfplan}
+
+\PYG{+w}{  }\PYG{n+nt}{plan\PYGZhy{}prod}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Plan Production Environment}
+\PYG{+w}{    }\PYG{n+nt}{runs\PYGZhy{}on}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ubuntu\PYGZhy{}latest}
+\PYG{+w}{    }\PYG{n+nt}{needs}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{apply\PYGZhy{}dev}
+\PYG{+w}{    }\PYG{n+nt}{if}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{github.ref == \PYGZsq{}refs/heads/main\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+nt}{environment}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{production}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/checkout@v4}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Configure AWS Credentials}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{aws\PYGZhy{}actions/configure\PYGZhy{}aws\PYGZhy{}credentials@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}access\PYGZhy{}key\PYGZhy{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.AWS\PYGZus{}ACCESS\PYGZus{}KEY\PYGZus{}ID\PYGZus{}PROD \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}secret\PYGZhy{}access\PYGZhy{}key}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.AWS\PYGZus{}SECRET\PYGZus{}ACCESS\PYGZus{}KEY\PYGZus{}PROD \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}region}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.AWS\PYGZus{}REGION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Setup Terraform}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{hashicorp/setup\PYGZhy{}terraform@v3}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{terraform\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.TF\PYGZus{}VERSION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Init}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{          }\PYG{n+no}{terraform init \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}backend\PYGZhy{}config=\PYGZdq{}bucket=ishtar\PYGZhy{}terraform\PYGZhy{}state\PYGZhy{}prod\PYGZdq{} \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}backend\PYGZhy{}config=\PYGZdq{}key=prod/terraform.tfstate\PYGZdq{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Plan}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{          }\PYG{n+no}{terraform plan \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}var\PYGZhy{}file=\PYGZdq{}environments/prod.tfvars\PYGZdq{} \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}out=tfplan \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}no\PYGZhy{}color}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Upload Plan Artifact}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/upload\PYGZhy{}artifact@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform\PYGZhy{}plan\PYGZhy{}prod}
+\PYG{+w}{          }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{infrastructure/tfplan}
+
+\PYG{+w}{  }\PYG{n+nt}{apply\PYGZhy{}prod}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Apply Production Environment}
+\PYG{+w}{    }\PYG{n+nt}{runs\PYGZhy{}on}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ubuntu\PYGZhy{}latest}
+\PYG{+w}{    }\PYG{n+nt}{needs}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{plan\PYGZhy{}prod}
+\PYG{+w}{    }\PYG{n+nt}{if}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{github.ref == \PYGZsq{}refs/heads/main\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+nt}{environment}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{production}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/checkout@v4}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Configure AWS Credentials}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{aws\PYGZhy{}actions/configure\PYGZhy{}aws\PYGZhy{}credentials@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}access\PYGZhy{}key\PYGZhy{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.AWS\PYGZus{}ACCESS\PYGZus{}KEY\PYGZus{}ID\PYGZus{}PROD \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}secret\PYGZhy{}access\PYGZhy{}key}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.AWS\PYGZus{}SECRET\PYGZus{}ACCESS\PYGZus{}KEY\PYGZus{}PROD \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+nt}{aws\PYGZhy{}region}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.AWS\PYGZus{}REGION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Setup Terraform}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{hashicorp/setup\PYGZhy{}terraform@v3}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{terraform\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} env.TF\PYGZus{}VERSION \PYGZcb{}\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Download Plan Artifact}
+\PYG{+w}{        }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/download\PYGZhy{}artifact@v4}
+\PYG{+w}{        }\PYG{n+nt}{with}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform\PYGZhy{}plan\PYGZhy{}prod}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Init}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{          }\PYG{n+no}{terraform init \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}backend\PYGZhy{}config=\PYGZdq{}bucket=ishtar\PYGZhy{}terraform\PYGZhy{}state\PYGZhy{}prod\PYGZdq{} \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}backend\PYGZhy{}config=\PYGZdq{}key=prod/terraform.tfstate\PYGZdq{}}
+
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Terraform Apply}
+\PYG{+w}{        }\PYG{n+nt}{working\PYGZhy{}directory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{./infrastructure}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{terraform apply \PYGZhy{}auto\PYGZhy{}approve tfplan}
+\end{MintedVerbatim}

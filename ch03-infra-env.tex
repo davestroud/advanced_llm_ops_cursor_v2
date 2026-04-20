@@ -213,13 +213,8 @@ This simple math underscores two things: (1) newer hardware can indeed reduce ma
 
 Listing~\ref{lst:ch03_cost_calculation} provides a Python script for calculating cost per token based on hardware utilization and throughput.
 
-\begin{lstlisting}[
-  float=htbp,
-  style=springerfloat,
-  language=Python,
-  caption={Python script for calculating cost per token based on GPU hardware configuration and utilization levels, with multi-GPU comparison support. This utility enables infrastructure teams to model the cost implications of different GPU choices and utilization targets before committing to provisioning decisions, making the cost-throughput trade-off explicit and data-driven.},
-  label={lst:ch03_cost_calculation}
-]
+\begin{codebox}{Python script for calculating cost per token based on GPU hardware configuration and utilization levels, with multi-GPU comparison support. This utility enables infrastructure teams to model the cost implications of different GPU choices and utilization targets before committing to provisioning decisions, making the cost-throughput trade-off explicit and data-driven.}{lst:ch03_cost_calculation}
+\begin{minted}{python}
 #!/usr/bin/env python3
 """
 Calculate cost per token for LLM inference based on GPU utilization
@@ -333,7 +328,8 @@ if __name__ == "__main__":
     results_50 = compare_gpu_options([a100_80gb, h100_80gb], 50.0)
     for name, result in results_50.items():
         print(f"{name}: ${result.cost_per_1k_tokens_usd:.4f} per 1k tokens")
-\end{lstlisting}
+\end{minted}
+\end{codebox}
 
 \begin{quote}
 \textit{Example.} Google Cloud reports that advanced infrastructure and optimized inference runtimes (e.g., JetStream on TPU v5e) can bring generation costs down to \$0.25–\$0.30 per million tokens, or $\sim$0.00025 per token~\cite{jouppi2023-tpuv4}.
@@ -723,12 +719,8 @@ By updating a single module (e.g., GPU AMI or IAM role), changes propagate consi
 
 Listing~\ref{lst:ch03_terraform_module} shows a reusable Terraform module for provisioning GPU-enabled Kubernetes node groups.
 
-\begin{lstlisting}[
-  float=htbp,
-  style=springerfloat,
-  caption={Reusable Terraform module for provisioning GPU-enabled EKS node groups with configurable instance types, autoscaling limits, Kubernetes taints and labels for workload isolation, and least-privilege IAM roles. This module encapsulates the GPU infrastructure pattern so that teams can stamp out consistent node groups across environments without duplicating configuration or risking security policy drift.},
-  label={lst:ch03_terraform_module}
-]
+\begin{codebox}{Reusable Terraform module for provisioning GPU-enabled EKS node groups with configurable instance types, autoscaling limits, Kubernetes taints and labels for workload isolation, and least-privilege IAM roles. This module encapsulates the GPU infrastructure pattern so that teams can stamp out consistent node groups across environments without duplicating configuration or risking security policy drift.}{lst:ch03_terraform_module}
+\begin{minted}{terraform}
 # modules/gpu-node-group/main.tf
 # Reusable module for GPU-enabled Kubernetes node groups
 
@@ -869,7 +861,8 @@ output "node_group_arn" {
 output "node_group_id" {
   value = aws_eks_node_group.gpu_nodes.id
 }
-\end{lstlisting}
+\end{minted}
+\end{codebox}
 
 \subsection{Compliance, Security, and Auditing}
 \label{sec:iac-compliance}
@@ -892,12 +885,8 @@ IaC should be integrated into CI/CD pipelines:
 
 Listing~\ref{lst:ch03_iac_pipeline} shows a GitHub Actions workflow that implements CI/CD for Infrastructure-as-Code with validation, security scanning, and multi-environment promotion.
 
-\begin{lstlisting}[
-  float=htbp,
-  style=springerfloat,
-  caption={GitHub Actions workflow implementing a full Infrastructure-as-Code CI/CD pipeline with Terraform format checking, validation, TFLint linting, Checkov security scanning, and multi-environment promotion from dev to production with plan-artifact handoff. This pipeline ensures that every infrastructure change is validated, security-scanned, and promoted through environments with human approval gates, preventing misconfigurations from reaching production GPU clusters.},
-  label={lst:ch03_iac_pipeline}
-]
+\begin{codebox}{GitHub Actions workflow implementing a full Infrastructure-as-Code CI/CD pipeline with Terraform format checking, validation, TFLint linting, Checkov security scanning, and multi-environment promotion from dev to production with plan-artifact handoff. This pipeline ensures that every infrastructure change is validated, security-scanned, and promoted through environments with human approval gates, preventing misconfigurations from reaching production GPU clusters.}{lst:ch03_iac_pipeline}
+\begin{minted}{yaml}
 # .github/workflows/terraform-infra.yml
 name: Infrastructure CI/CD
 
@@ -1120,7 +1109,8 @@ jobs:
       - name: Terraform Apply
         working-directory: ./infrastructure
         run: terraform apply -auto-approve tfplan
-\end{lstlisting}
+\end{minted}
+\end{codebox}
 
 \subsection{Documentation as Code}
 \label{sec:iac-docs}
@@ -1207,12 +1197,8 @@ When running on partially trusted networks (or exposing inference gateways publi
 
 
 
-\begin{lstlisting}[
-  float=htbp,
-  style=springerfloat,
-  caption={Kubernetes Deployment and Service manifests for an LLM inference service with GPU resource requests, node-selector and taint-based scheduling for GPU isolation, pod anti-affinity for high availability across hosts, extended readiness probes that account for model loading time, and a non-root security context. This production-grade manifest demonstrates the operational patterns needed to reliably serve large language models on shared GPU clusters.},
-  label={lst:ch03_k8s_deployment}
-]
+\begin{codebox}{Kubernetes Deployment and Service manifests for an LLM inference service with GPU resource requests, node-selector and taint-based scheduling for GPU isolation, pod anti-affinity for high availability across hosts, extended readiness probes that account for model loading time, and a non-root security context. This production-grade manifest demonstrates the operational patterns needed to reliably serve large language models on shared GPU clusters.}{lst:ch03_k8s_deployment}
+\begin{minted}{yaml}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1337,7 +1323,8 @@ spec:
     targetPort: 8000
     protocol: TCP
   type: ClusterIP
-\end{lstlisting}
+\end{minted}
+\end{codebox}
 
 In summary, Kubernetes provides a powerful abstraction for LLMOps but requires careful tuning of scheduling constraints to effectively use GPU resources. Many distributions (OpenShift, GKE) simplify GPU management further---for example, GKE automatically taints GPU nodes with \texttt{cloud.google.com/gke-nodepool=GPU}, requiring matching tolerations. The key is to integrate Kubernetes with your IaC definitions: define the node groups and taints in IaC, then define your Deployments/StatefulSets with matching tolerations and resource requests.
 

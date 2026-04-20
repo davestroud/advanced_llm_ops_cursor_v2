@@ -1,0 +1,14 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n}{state} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{n}{query}\PYG{p}{,} \PYG{n}{user\PYGZus{}context}\PYG{p}{\PYGZcb{}}
+
+\PYG{n}{ctx} \PYG{o}{=} \PYG{n}{RetrievalAgent}\PYG{p}{(}\PYG{n}{state}\PYG{o}{.}\PYG{n}{query}\PYG{p}{)}
+\PYG{n}{draft} \PYG{o}{=} \PYG{n}{SynthesisAgent}\PYG{p}{(}\PYG{n}{state}\PYG{o}{.}\PYG{n}{query}\PYG{p}{,} \PYG{n}{ctx}\PYG{p}{)}
+
+\PYG{n}{verified} \PYG{o}{=} \PYG{n}{VerificationAgent}\PYG{p}{(}\PYG{n}{draft}\PYG{p}{,} \PYG{n}{ctx}\PYG{p}{)}
+\PYG{n}{safe} \PYG{o}{=} \PYG{n}{SafetyAgent}\PYG{p}{(}\PYG{n}{verified}\PYG{p}{)}
+
+\PYG{k}{if} \PYG{n}{safe}\PYG{o}{.}\PYG{n}{requires\PYGZus{}translation}\PYG{p}{:}
+    \PYG{n}{safe} \PYG{o}{=} \PYG{n}{TranslationAgent}\PYG{p}{(}\PYG{n}{safe}\PYG{p}{,} \PYG{n}{target\PYGZus{}lang}\PYG{o}{=}\PYG{n}{state}\PYG{o}{.}\PYG{n}{user\PYGZus{}context}\PYG{o}{.}\PYG{n}{lang}\PYG{p}{)}
+
+\PYG{k}{return} \PYG{n}{safe}
+\end{MintedVerbatim}

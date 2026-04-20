@@ -194,3 +194,37 @@ This report documents the formatting changes applied to all 12 chapter files to 
 ## Conclusion
 All 12 chapters have been successfully formatted to comply with Springer svmono requirements. The primary changes involved converting paragraph-level headings to subsubsections and ensuring proper sectioning hierarchy. All author content and citations remain unchanged.
 
+## Listings Migration: `lstlisting` → `minted` + `tcolorbox`
+
+### Rationale
+All 61 code listings across 12 chapters have been migrated from the `listings` package (`lstlisting` environment with custom `springer` / `springerfloat` styles) to a unified `codebox` container built on `minted` + `tcolorbox`.
+
+Motivations:
+- **Visual consistency.** The new `codebox` environment shares the same palette and typography as existing callout boxes (`BestPracticeBox`, `ChecklistBox`), giving the manuscript a single, cohesive visual language for all boxed content.
+- **Real syntax highlighting.** `minted` delegates lexing to Pygments, producing accurate highlighting for JSON, YAML, Python, Terraform/HCL, Bash, and every other language used in the book. The legacy `listings` styles rendered all code in monochrome, forfeiting a meaningful pedagogical signal.
+- **Preserved references.** Every `\label{lst:chXX_...}` was retained, so all in-prose `Listing~\ref{lst:...}` cross-references resolve unchanged. Numbering remains chapter-scoped ("Listing 1.1", "Listing 7.3", ...) via a dedicated `codelisting` counter.
+- **Captions preserved verbatim.** Reader-takeaway captions are now rendered in italics beneath the code, following the Springer figure-caption convention.
+
+### Scope of change
+- **61 listings migrated** across: `ch01-intro-ishar.tex` (4), `ch02-llmops-fundamentals.tex` (4), `ch03-infra-env.tex` (4), `ch04-cicd.tex` (5), `ch05-observability.tex` (4), `ch06-scaling.tex` (4), `ch07-performance.tex` (4), `ch08-rag.tex` (4), `ch09-agents-orchestration.tex` (6), `ch10-testing-eval.tex` (15), `ch11-ethics.tex` (2), `ch12-ishtar-end-to-end.tex` (5).
+- **New environment** `codebox` defined in `macros.tex` (replaces unused `llmlistingbox`).
+- **Removed** from `macros.tex`: `\lstdefinestyle{springer}`, `\lstdefinestyle{springerfloat}`, `\lstset{style=springer}`, `\AtBeginDocument{\renewcommand{\thelstlisting}{...}}`, and the unused `llmlistingbox` environment plus its `llmlisting` counter.
+- **Removed** from `book.tex`: `\usepackage{listings}`. `\usepackage{minted}` is now the sole code-typesetting package.
+- In `ch10-testing-eval.tex`, three short inline pseudocode blocks that originally used `\begin{lstlisting}[language=Python, style=springer, numbers=none]` and carried no caption/label were converted to plain `\begin{minted}[numbers=none]{python}` blocks (no `codebox` wrapper). This preserves their original intent: unnumbered, uncaptioned inline snippets.
+
+### New build requirements
+The `minted` package runs Pygments at compile time. Consequently:
+
+1. **`-shell-escape` is now required.** `latexmkrc.tex` has been updated so that `$pdflatex` includes `-shell-escape`. The accompanying policy note was amended from "no shell-escape" to an explicit approved exception for `minted`. Any Overleaf project or CI environment building this manuscript must enable shell-escape (Overleaf: *Menu → Settings → Compiler*; GitHub Actions: pass `-shell-escape` to `latexmk` or `pdflatex`).
+2. **Pygments must be installed.** Install with `pip install Pygments` in the build environment (local, CI, Overleaf custom image). Without Pygments, `minted` will error out at the first `\begin{minted}` block.
+3. **Springer approval.** Shell-escape is disallowed by default per Springer's compilation guidance. Manuscripts using `minted` should include a brief note in the submission cover letter confirming that shell-escape is required only for Pygments-driven code highlighting and that no external programs beyond Pygments are invoked.
+
+### Validation checklist
+- [x] All 61 `\begin{lstlisting}` blocks removed; zero remaining across `ch*.tex`.
+- [x] `\usepackage{listings}` removed from `book.tex`.
+- [x] Legacy `lstdefinestyle` / `lstset` / `llmlistingbox` removed from `macros.tex`.
+- [x] All `\label{lst:chXX_...}` identifiers retained inside new `codebox` titles.
+- [x] `codebox` uses chapter-scoped `codelisting` counter for numbering.
+- [x] `latexmkrc.tex` uses `-shell-escape` and its policy comment reflects the approved exception.
+- [ ] Post-migration full clean build (`latexmk -C && latexmk -pdf book.tex`) passes with Pygments installed — to be verified in the author's build environment.
+

@@ -1,0 +1,15 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n+nt}{agents}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{retrieval}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{tools}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}vector\PYGZus{}search\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}keyword\PYGZus{}search\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{  }\PYG{n+nt}{synthesis}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{tools}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[]}\PYG{+w}{   }\PYG{c+c1}{\PYGZsh{} generation only}
+\PYG{+w}{  }\PYG{n+nt}{verification}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{tools}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}vector\PYGZus{}search\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{  }\PYG{n+nt}{safety}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{tools}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}pii\PYGZus{}redactor\PYGZdq{}}\PYG{p+pIndicator}{]}
+
+\PYG{n+nt}{global}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}tool\PYGZus{}calls\PYGZus{}per\PYGZus{}request}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8}
+\PYG{+w}{  }\PYG{n+nt}{high\PYGZus{}risk\PYGZus{}tools\PYGZus{}require\PYGZus{}human}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}db\PYGZus{}write\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}email\PYGZus{}send\PYGZdq{}}\PYG{p+pIndicator}{]}
+\end{MintedVerbatim}

@@ -1,0 +1,44 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Prompt template metadata}
+\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.3.0\PYGZdq{}}
+\PYG{n+nt}{template\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}event\PYGZus{}synthesis\PYGZdq{}}
+\PYG{n+nt}{created}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}2024\PYGZhy{}01\PYGZhy{}15\PYGZdq{}}
+\PYG{n+nt}{author}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZhy{}team\PYGZdq{}}
+\PYG{n+nt}{changelog}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Added}\PYG{n+nv}{ }\PYG{l+s}{citation}\PYG{n+nv}{ }\PYG{l+s}{requirements}\PYG{n+nv}{ }\PYG{l+s}{and}\PYG{n+nv}{ }\PYG{l+s}{tone}\PYG{n+nv}{ }\PYG{l+s}{guidelines\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Template structure}
+\PYG{n+nt}{system\PYGZus{}message}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{  }\PYG{n+no}{You are a conflict journalism assistant. Your role is to synthesize}
+\PYG{+w}{  }\PYG{n+no}{information from multiple sources into accurate, neutral summaries.}
+\PYG{+w}{  }\PYG{n+no}{Always cite sources using [Source: ID] format. Maintain journalistic}
+\PYG{+w}{  }\PYG{n+no}{objectivity and avoid speculation.}
+
+\PYG{n+nt}{user\PYGZus{}template}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{  }\PYG{n+no}{Synthesize the following information about \PYGZob{}event\PYGZus{}type\PYGZcb{}:}
+
+\PYG{+w}{  }\PYG{n+no}{Sources:}
+\PYG{+w}{  }\PYG{n+no}{\PYGZob{}retrieved\PYGZus{}documents\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n+no}{User query: \PYGZob{}user\PYGZus{}query\PYGZcb{}}
+
+\PYG{c+c1}{\PYGZsh{} Few\PYGZhy{}shot examples (optional)}
+\PYG{n+nt}{few\PYGZus{}shot\PYGZus{}examples}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{user}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}What}\PYG{n+nv}{ }\PYG{l+s}{happened}\PYG{n+nv}{ }\PYG{l+s}{in}\PYG{n+nv}{ }\PYG{l+s}{the}\PYG{n+nv}{ }\PYG{l+s}{northern}\PYG{n+nv}{ }\PYG{l+s}{region}\PYG{n+nv}{ }\PYG{l+s}{yesterday?\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{assistant}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{      }\PYG{n+no}{According to official reports [Source: OFF\PYGZhy{}001] and NGO bulletins}
+\PYG{+w}{      }\PYG{n+no}{[Source: NGO\PYGZhy{}042], ceasefire violations occurred in three villages.}
+\PYG{+w}{      }\PYG{n+no}{[Source: OFF\PYGZhy{}001] reports two civilian casualties, while [Source:}
+\PYG{+w}{      }\PYG{n+no}{NGO\PYGZhy{}042] documents infrastructure damage. Both sources agree on the}
+\PYG{+w}{      }\PYG{n+no}{timeline: incidents occurred between 14:00 and 18:00 local time.}
+
+\PYG{c+c1}{\PYGZsh{} Configuration}
+\PYG{n+nt}{parameters}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{temperature}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.3}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}tokens}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{500}
+\PYG{+w}{  }\PYG{n+nt}{citation\PYGZus{}required}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{safety\PYGZus{}level}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}high\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Test suite references}
+\PYG{n+nt}{test\PYGZus{}suite}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tests/prompts/ishtar\PYGZus{}event\PYGZus{}synthesis\PYGZus{}v1.3.yaml\PYGZdq{}}
+\PYG{n+nt}{regression\PYGZus{}baseline}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}v1.2.0\PYGZdq{}}
+\end{MintedVerbatim}

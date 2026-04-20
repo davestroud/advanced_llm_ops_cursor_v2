@@ -1,0 +1,44 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} chunking\PYGZus{}config.yaml}
+\PYG{n+nt}{strategy\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}IshtarNewsChunking\PYGZdq{}}
+\PYG{n+nt}{description}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Configuration}\PYG{n+nv}{ }\PYG{l+s}{for}\PYG{n+nv}{ }\PYG{l+s}{chunking}\PYG{n+nv}{ }\PYG{l+s}{news}\PYG{n+nv}{ }\PYG{l+s}{articles}\PYG{n+nv}{ }\PYG{l+s}{for}\PYG{n+nv}{ }\PYG{l+s}{RAG.\PYGZdq{}}
+
+\PYG{n+nt}{default\PYGZus{}strategy}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}recursive\PYGZus{}text\PYGZus{}splitter\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{chunk\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{512}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Max tokens per chunk}
+\PYG{+w}{  }\PYG{n+nt}{chunk\PYGZus{}overlap}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{128}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Overlap between consecutive chunks}
+\PYG{+w}{  }\PYG{n+nt}{separators}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}\PYGZbs{}n\PYGZbs{}n\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}\PYGZbs{}n\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}.}\PYG{n+nv}{ }\PYG{l+s}{\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}?}\PYG{n+nv}{ }\PYG{l+s}{\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}!}\PYG{n+nv}{ }\PYG{l+s}{\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{};}\PYG{n+nv}{ }\PYG{l+s}{\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}}\PYG{n+nv}{ }\PYG{l+s}{\PYGZdq{}}\PYG{p+pIndicator}{]}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Prioritized separators}
+
+\PYG{c+c1}{\PYGZsh{} Specific strategies for different document types}
+\PYG{n+nt}{document\PYGZus{}type\PYGZus{}strategies}\PYG{p}{:}
+\PYG{+w}{  }\PYG{l+s}{\PYGZdq{}report\PYGZdq{}}\PYG{p+pIndicator}{:}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}structural\PYGZus{}splitter\PYGZdq{}}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Split by sections, headings}
+\PYG{+w}{    }\PYG{n+nt}{max\PYGZus{}chunk\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1024}
+\PYG{+w}{    }\PYG{n+nt}{min\PYGZus{}chunk\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{100}
+\PYG{+w}{    }\PYG{n+nt}{section\PYGZus{}delimiters}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}\PYGZsh{}\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}\PYGZsh{}\PYGZsh{}\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}\PYGZsh{}\PYGZsh{}\PYGZsh{}\PYGZdq{}}\PYG{p+pIndicator}{]}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Markdown headings}
+\PYG{+w}{  }\PYG{l+s}{\PYGZdq{}legal\PYGZus{}document\PYGZdq{}}\PYG{p+pIndicator}{:}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}sentence\PYGZus{}splitter\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{max\PYGZus{}sentences\PYGZus{}per\PYGZus{}chunk}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5}
+\PYG{+w}{    }\PYG{n+nt}{overlap\PYGZus{}sentences}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1}
+\PYG{+w}{    }\PYG{n+nt}{metadata\PYGZus{}to\PYGZus{}include}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}case\PYGZus{}id\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}paragraph\PYGZus{}id\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{  }\PYG{l+s}{\PYGZdq{}social\PYGZus{}media\PYGZus{}post\PYGZdq{}}\PYG{p+pIndicator}{:}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}fixed\PYGZus{}size\PYGZus{}splitter\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{chunk\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{128}
+\PYG{+w}{    }\PYG{n+nt}{chunk\PYGZus{}overlap}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0}
+\PYG{+w}{    }\PYG{n+nt}{add\PYGZus{}metadata}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{source}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}social\PYGZus{}media\PYGZdq{}}
+\PYG{+w}{      }\PYG{n+nt}{platform}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}twitter\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Global settings}
+\PYG{n+nt}{add\PYGZus{}document\PYGZus{}metadata}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{source\PYGZus{}system}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}IshtarIngestion\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{processing\PYGZus{}date}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}\PYGZob{}\PYGZob{}current\PYGZus{}date\PYGZcb{}\PYGZcb{}\PYGZdq{}}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Dynamic value}
+\PYG{+w}{  }\PYG{n+nt}{embedding\PYGZus{}model\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}sentence\PYGZhy{}transformers\PYGZhy{}v1.0\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Post\PYGZhy{}chunking filters}
+\PYG{n+nt}{filters}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}min\PYGZus{}token\PYGZus{}length\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{min\PYGZus{}tokens}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{50}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}remove\PYGZus{}boilerplate\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{patterns}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}\PYGZca{}Advertisement\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Copyright}\PYG{n+nv}{ }\PYG{l+s}{\PYGZbs{}\PYGZbs{}d\PYGZob{}4\PYGZcb{}\PYGZdq{}}\PYG{p+pIndicator}{]}
+\end{MintedVerbatim}

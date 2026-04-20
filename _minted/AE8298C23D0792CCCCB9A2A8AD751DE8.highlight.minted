@@ -1,0 +1,144 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{autoscaling/v2}
+\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{HorizontalPodAutoscaler}
+\PYG{n+nt}{metadata}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm\PYGZhy{}inference\PYGZhy{}hpa}
+\PYG{+w}{  }\PYG{n+nt}{namespace}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{production}
+\PYG{n+nt}{spec}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{scaleTargetRef}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{apps/v1}
+\PYG{+w}{    }\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Deployment}
+\PYG{+w}{    }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm\PYGZhy{}inference}
+
+\PYG{+w}{  }\PYG{n+nt}{minReplicas}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{2}
+\PYG{+w}{  }\PYG{n+nt}{maxReplicas}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{30}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Target tracking with multiple metrics}
+\PYG{+w}{  }\PYG{n+nt}{metrics}\PYG{p}{:}
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Primary metric: Token demand rate}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Pods}
+\PYG{+w}{    }\PYG{n+nt}{pods}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{metric}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{token\PYGZus{}demand\PYGZus{}rate}
+\PYG{+w}{      }\PYG{n+nt}{target}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{AverageValue}
+\PYG{+w}{        }\PYG{n+nt}{averageValue}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}8000\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} tokens/second per pod}
+
+\PYG{+w}{    }\PYG{c+c1}{\PYGZsh{} Secondary metric: Queue depth}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Pods}
+\PYG{+w}{    }\PYG{n+nt}{pods}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{metric}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{request\PYGZus{}queue\PYGZus{}depth}
+\PYG{+w}{      }\PYG{n+nt}{target}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{AverageValue}
+\PYG{+w}{        }\PYG{n+nt}{averageValue}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}10\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} requests per pod}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} LLM\PYGZhy{}specific metrics}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Pods}
+\PYG{+w}{    }\PYG{n+nt}{pods}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{metric}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{p95\PYGZus{}ttft\PYGZus{}ms}
+\PYG{+w}{      }\PYG{n+nt}{target}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{AverageValue}
+\PYG{+w}{        }\PYG{n+nt}{averageValue}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}300\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} milliseconds}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Pods}
+\PYG{+w}{    }\PYG{n+nt}{pods}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{metric}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{gpu\PYGZus{}utilization\PYGZus{}percent}
+\PYG{+w}{      }\PYG{n+nt}{target}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{AverageValue}
+\PYG{+w}{        }\PYG{n+nt}{averageValue}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}70\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} percent}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Behavior configuration}
+\PYG{+w}{  }\PYG{n+nt}{behavior}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{scaleDown}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{stabilizationWindowSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{300}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Wait 5min before scaling down}
+\PYG{+w}{      }\PYG{n+nt}{policies}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Percent}
+\PYG{+w}{        }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{25}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Scale down by max 25\PYGZpc{} at a time}
+\PYG{+w}{        }\PYG{n+nt}{periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{60}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Pods}
+\PYG{+w}{        }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{2}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Or scale down by max 2 pods}
+\PYG{+w}{        }\PYG{n+nt}{periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{60}
+\PYG{+w}{      }\PYG{n+nt}{selectPolicy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Min}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Use most conservative policy}
+
+\PYG{+w}{    }\PYG{n+nt}{scaleUp}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{stabilizationWindowSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Scale up immediately}
+\PYG{+w}{      }\PYG{n+nt}{policies}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Percent}
+\PYG{+w}{        }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{100}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Can double capacity quickly}
+\PYG{+w}{        }\PYG{n+nt}{periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{30}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Pods}
+\PYG{+w}{        }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Or add up to 5 pods}
+\PYG{+w}{        }\PYG{n+nt}{periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{30}
+\PYG{+w}{      }\PYG{n+nt}{selectPolicy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Max}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Use most aggressive policy}
+
+\PYG{n+nn}{\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{c+c1}{\PYGZsh{} Custom metrics adapter configuration}
+\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{v1}
+\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Service}
+\PYG{n+nt}{metadata}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{custom\PYGZhy{}metrics\PYGZhy{}api}
+\PYG{+w}{  }\PYG{n+nt}{namespace}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{kube\PYGZhy{}system}
+\PYG{n+nt}{spec}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{selector}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{app}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{prometheus\PYGZhy{}adapter}
+\PYG{+w}{  }\PYG{n+nt}{ports}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{port}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{443}
+\PYG{+w}{    }\PYG{n+nt}{targetPort}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{6443}
+
+\PYG{n+nn}{\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{c+c1}{\PYGZsh{} Prometheus adapter configuration for custom metrics}
+\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{v1}
+\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ConfigMap}
+\PYG{n+nt}{metadata}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{adapter\PYGZhy{}config}
+\PYG{+w}{  }\PYG{n+nt}{namespace}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{kube\PYGZhy{}system}
+\PYG{n+nt}{data}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{config.yaml}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{    }\PYG{n+no}{rules:}
+\PYG{+w}{    }\PYG{n+no}{\PYGZsh{} Token demand rate metric}
+\PYG{+w}{    }\PYG{n+no}{\PYGZhy{} seriesQuery: \PYGZsq{}ishtar\PYGZus{}token\PYGZus{}demand\PYGZus{}rate\PYGZob{}namespace!=\PYGZdq{}\PYGZdq{},pod!=\PYGZdq{}\PYGZdq{}\PYGZcb{}\PYGZsq{}}
+\PYG{+w}{      }\PYG{n+no}{resources:}
+\PYG{+w}{        }\PYG{n+no}{overrides:}
+\PYG{+w}{          }\PYG{n+no}{namespace: \PYGZob{}resource: \PYGZdq{}namespace\PYGZdq{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+no}{pod: \PYGZob{}resource: \PYGZdq{}pod\PYGZdq{}\PYGZcb{}}
+\PYG{+w}{      }\PYG{n+no}{name:}
+\PYG{+w}{        }\PYG{n+no}{matches: \PYGZdq{}\PYGZca{}ishtar\PYGZus{}token\PYGZus{}demand\PYGZus{}rate\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+no}{as: \PYGZdq{}token\PYGZus{}demand\PYGZus{}rate\PYGZdq{}}
+\PYG{+w}{      }\PYG{n+no}{metricsQuery: \PYGZsq{}sum(rate(\PYGZlt{}\PYGZlt{}.Series\PYGZgt{}\PYGZgt{}\PYGZob{}\PYGZlt{}\PYGZlt{}.LabelMatchers\PYGZgt{}\PYGZgt{}\PYGZcb{}[2m])) by (\PYGZlt{}\PYGZlt{}.GroupBy\PYGZgt{}\PYGZgt{})\PYGZsq{}}
+
+\PYG{+w}{    }\PYG{n+no}{\PYGZsh{} Queue depth metric}
+\PYG{+w}{    }\PYG{n+no}{\PYGZhy{} seriesQuery: \PYGZsq{}ishtar\PYGZus{}request\PYGZus{}queue\PYGZus{}depth\PYGZob{}namespace!=\PYGZdq{}\PYGZdq{},pod!=\PYGZdq{}\PYGZdq{}\PYGZcb{}\PYGZsq{}}
+\PYG{+w}{      }\PYG{n+no}{resources:}
+\PYG{+w}{        }\PYG{n+no}{overrides:}
+\PYG{+w}{          }\PYG{n+no}{namespace: \PYGZob{}resource: \PYGZdq{}namespace\PYGZdq{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+no}{pod: \PYGZob{}resource: \PYGZdq{}pod\PYGZdq{}\PYGZcb{}}
+\PYG{+w}{      }\PYG{n+no}{name:}
+\PYG{+w}{        }\PYG{n+no}{matches: \PYGZdq{}\PYGZca{}ishtar\PYGZus{}request\PYGZus{}queue\PYGZus{}depth\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+no}{as: \PYGZdq{}request\PYGZus{}queue\PYGZus{}depth\PYGZdq{}}
+\PYG{+w}{      }\PYG{n+no}{metricsQuery: \PYGZsq{}avg(\PYGZlt{}\PYGZlt{}.Series\PYGZgt{}\PYGZgt{}\PYGZob{}\PYGZlt{}\PYGZlt{}.LabelMatchers\PYGZgt{}\PYGZgt{}\PYGZcb{}) by (\PYGZlt{}\PYGZlt{}.GroupBy\PYGZgt{}\PYGZgt{})\PYGZsq{}}
+
+\PYG{+w}{    }\PYG{n+no}{\PYGZsh{} TTFT metric}
+\PYG{+w}{    }\PYG{n+no}{\PYGZhy{} seriesQuery: \PYGZsq{}ishtar\PYGZus{}ttft\PYGZus{}ms\PYGZob{}namespace!=\PYGZdq{}\PYGZdq{},pod!=\PYGZdq{}\PYGZdq{}\PYGZcb{}\PYGZsq{}}
+\PYG{+w}{      }\PYG{n+no}{resources:}
+\PYG{+w}{        }\PYG{n+no}{overrides:}
+\PYG{+w}{          }\PYG{n+no}{namespace: \PYGZob{}resource: \PYGZdq{}namespace\PYGZdq{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+no}{pod: \PYGZob{}resource: \PYGZdq{}pod\PYGZdq{}\PYGZcb{}}
+\PYG{+w}{      }\PYG{n+no}{name:}
+\PYG{+w}{        }\PYG{n+no}{matches: \PYGZdq{}\PYGZca{}ishtar\PYGZus{}ttft\PYGZus{}ms\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+no}{as: \PYGZdq{}p95\PYGZus{}ttft\PYGZus{}ms\PYGZdq{}}
+\PYG{+w}{      }\PYG{n+no}{metricsQuery: \PYGZsq{}histogram\PYGZus{}quantile(0.95, sum(rate(\PYGZlt{}\PYGZlt{}.Series\PYGZgt{}\PYGZgt{}\PYGZus{}bucket\PYGZob{}\PYGZlt{}\PYGZlt{}.LabelMatchers\PYGZgt{}\PYGZgt{}\PYGZcb{}[5m])) by (le, \PYGZlt{}\PYGZlt{}.GroupBy\PYGZgt{}\PYGZgt{}))\PYGZsq{}}
+
+\PYG{+w}{    }\PYG{n+no}{\PYGZsh{} GPU utilization metric}
+\PYG{+w}{    }\PYG{n+no}{\PYGZhy{} seriesQuery: \PYGZsq{}ishtar\PYGZus{}gpu\PYGZus{}utilization\PYGZus{}percent\PYGZob{}namespace!=\PYGZdq{}\PYGZdq{},pod!=\PYGZdq{}\PYGZdq{}\PYGZcb{}\PYGZsq{}}
+\PYG{+w}{      }\PYG{n+no}{resources:}
+\PYG{+w}{        }\PYG{n+no}{overrides:}
+\PYG{+w}{          }\PYG{n+no}{namespace: \PYGZob{}resource: \PYGZdq{}namespace\PYGZdq{}\PYGZcb{}}
+\PYG{+w}{          }\PYG{n+no}{pod: \PYGZob{}resource: \PYGZdq{}pod\PYGZdq{}\PYGZcb{}}
+\PYG{+w}{      }\PYG{n+no}{name:}
+\PYG{+w}{        }\PYG{n+no}{matches: \PYGZdq{}\PYGZca{}ishtar\PYGZus{}gpu\PYGZus{}utilization\PYGZus{}percent\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+no}{as: \PYGZdq{}gpu\PYGZus{}utilization\PYGZus{}percent\PYGZdq{}}
+\PYG{+w}{      }\PYG{n+no}{metricsQuery: \PYGZsq{}avg(\PYGZlt{}\PYGZlt{}.Series\PYGZgt{}\PYGZgt{}\PYGZob{}\PYGZlt{}\PYGZlt{}.LabelMatchers\PYGZgt{}\PYGZgt{}\PYGZcb{}) by (\PYGZlt{}\PYGZlt{}.GroupBy\PYGZgt{}\PYGZgt{})\PYGZsq{}}
+\end{MintedVerbatim}

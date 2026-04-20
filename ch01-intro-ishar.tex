@@ -308,12 +308,8 @@ Inability to reproduce incidents; incomplete lineage for audits \\
 
 Listing~\ref{lst:ch01_observability_schema} shows a standardized telemetry schema that captures the semantic path of LLM requests for debugging and governance.
 
-\begin{lstlisting}[
-  float=htbp,
-  style=springerfloat,
-  caption={Standardized observability telemetry schema capturing the full semantic path of an LLM request, from prompt and retrieval metadata through tool invocations to output quality signals and cost estimates. This structured trace format enables end-to-end debugging, governance auditing, and cost attribution across production LLM pipelines.},
-  label={lst:ch01_observability_schema}
-]
+\begin{codebox}{Standardized observability telemetry schema capturing the full semantic path of an LLM request, from prompt and retrieval metadata through tool invocations to output quality signals and cost estimates. This structured trace format enables end-to-end debugging, governance auditing, and cost attribution across production LLM pipelines.}{lst:ch01_observability_schema}
+\begin{minted}{json}
 {
   "trace_id": "550e8400-e29b-41d4-a716-446655440000",
   "span_id": "660e8400-e29b-41d4-a716-446655440001",
@@ -379,7 +375,8 @@ Listing~\ref{lst:ch01_observability_schema} shows a standardized telemetry schem
     "total_cost_usd": 0.0228
   }
 }
-\end{lstlisting}
+\end{minted}
+\end{codebox}
 
 \subsection{Security, Privacy, and New Threat Models}
 LLM deployments introduce attack vectors that are uncommon in conventional software because
@@ -410,12 +407,8 @@ Three high-leverage risk categories dominate production hardening:
   human escalation for high-stakes workflows). Organizations must enforce guardrails consistently across prompts, tools, and retrieval sources to satisfy legal, regulatory, and brand-safety constraints.
 \end{itemize}
 
-\begin{lstlisting}[
-  float=htbp,
-  style=springerfloat,
-  caption={Versioned tool schema with security controls for a source-verification tool, including authentication requirements, rate limiting, sandboxed execution, and contract test references. This defense-in-depth approach ensures that LLM-invoked tools operate within well-defined security boundaries while maintaining backward compatibility across schema versions.},
-  label={lst:ch01_tool_schema}
-]
+\begin{codebox}{Versioned tool schema with security controls for a source-verification tool, including authentication requirements, rate limiting, sandboxed execution, and contract test references. This defense-in-depth approach ensures that LLM-invoked tools operate within well-defined security boundaries while maintaining backward compatibility across schema versions.}{lst:ch01_tool_schema}
+\begin{minted}{json}
 {
   "tool_schema_version": "1.2.0",
   "tool_id": "verify_source",
@@ -484,7 +477,8 @@ Three high-leverage risk categories dominate production hardening:
     "1.1.0": "Initial version with basic verification"
   }
 }
-\end{lstlisting}
+\end{minted}
+\end{codebox}
 
 Fig.~\ref{fig:ch01_llm_threat_model} summarizes the main attack surfaces and a defense-in-depth
 control stack spanning input handling, retrieval governance, tool security, and output controls.
@@ -1494,12 +1488,8 @@ In \ishtar{}, newsroom prompts (\emph{quote extraction}, \emph{event synthesis},
 
 Listing~\ref{lst:ch01_prompt_template} illustrates a versioned prompt template structure that enables systematic prompt management.
 
-\begin{lstlisting}[
-  float=t,
-  style=springerfloat,
-  caption={Versioned prompt template structure with semantic versioning, few-shot examples, and regression test references. Treating prompts as versioned artifacts with changelogs and test suites enables systematic A/B testing, rollback on quality regressions, and auditable prompt evolution across production deployments.},
-  label={lst:ch01_prompt_template}
-]
+\begin{codebox}{Versioned prompt template structure with semantic versioning, few-shot examples, and regression test references. Treating prompts as versioned artifacts with changelogs and test suites enables systematic A/B testing, rollback on quality regressions, and auditable prompt evolution across production deployments.}{lst:ch01_prompt_template}
+\begin{minted}{yaml}
 # Prompt template metadata
 version: "1.3.0"
 template_id: "ishtar_event_synthesis"
@@ -1542,7 +1532,8 @@ parameters:
 # Test suite references
 test_suite: "tests/prompts/ishtar_event_synthesis_v1.3.yaml"
 regression_baseline: "v1.2.0"
-\end{lstlisting}
+\end{minted}
+\end{codebox}
 
 \subsection{Retrieval and RAG Pipelines}
 \label{subsec:rag}
@@ -1568,12 +1559,8 @@ Retrieval-Augmented Generation (RAG) grounds outputs in external evidence. It ad
 
 Listing~\ref{lst:ch01_rag_configuration} shows a production RAG configuration that balances retrieval quality, latency, and token efficiency.
 
-\begin{lstlisting}[
-  float=htbp,
-  style=springerfloat,
-  caption={RAG pipeline configuration covering embedding model selection, chunking strategy, HNSW vector store tuning, hybrid dense-sparse retrieval with reranking, and context assembly with SLO thresholds. This end-to-end configuration enables reproducible retrieval quality across environments and provides operational guardrails for latency, recall, and faithfulness in production.},
-  label={lst:ch01_rag_configuration}
-]
+\begin{codebox}{RAG pipeline configuration covering embedding model selection, chunking strategy, HNSW vector store tuning, hybrid dense-sparse retrieval with reranking, and context assembly with SLO thresholds. This end-to-end configuration enables reproducible retrieval quality across environments and provides operational guardrails for latency, recall, and faithfulness in production.}{lst:ch01_rag_configuration}
+\begin{minted}{yaml}
 # RAG Pipeline Configuration
 pipeline_version: "2.1.0"
 pipeline_id: "ishtar_conflict_journalism"
@@ -1633,7 +1620,8 @@ slo:
   recall_at_k: 0.85
   max_latency_ms: 250
   min_faithfulness_score: 0.8
-\end{lstlisting}
+\end{minted}
+\end{codebox}
 
 \subsection{Deployment and Serving}
 \label{subsec:serving}

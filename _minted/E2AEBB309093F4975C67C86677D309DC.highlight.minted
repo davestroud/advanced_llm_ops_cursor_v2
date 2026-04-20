@@ -1,0 +1,127 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Evaluation Harness Configuration}
+\PYG{n+nt}{eval\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}2.1.0\PYGZdq{}}
+\PYG{n+nt}{harness\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}comprehensive\PYGZus{}eval\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Dataset configuration}
+\PYG{n+nt}{datasets}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{golden\PYGZus{}set}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}datasets/golden/ishtar\PYGZus{}v1.0.jsonl\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.0.0\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1000}
+\PYG{+w}{    }\PYG{n+nt}{slices}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}domain:conflict\PYGZus{}reports\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}domain:ngo\PYGZus{}bulletins\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}risk\PYGZus{}level:high\PYGZus{}stakes\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{n+nt}{regression\PYGZus{}set}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}datasets/regression/ishtar\PYGZus{}regression\PYGZus{}v2.0.jsonl\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}2.0.0\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5000}
+
+\PYG{+w}{  }\PYG{n+nt}{adversarial\PYGZus{}set}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}datasets/adversarial/red\PYGZus{}team\PYGZus{}v1.2.jsonl\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.2.0\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{2000}
+
+\PYG{c+c1}{\PYGZsh{} Judge configuration}
+\PYG{n+nt}{judges}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{groundedness\PYGZus{}judge}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}gpt\PYGZhy{}4\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{prompt\PYGZus{}template}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}prompts/judges/groundedness\PYGZus{}v1.1.txt\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.1.0\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{seed}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{42}
+\PYG{+w}{    }\PYG{n+nt}{temperature}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.0}
+\PYG{+w}{    }\PYG{n+nt}{num\PYGZus{}judges}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{2}
+\PYG{+w}{    }\PYG{n+nt}{tie\PYGZus{}breaker}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}gpt\PYGZhy{}4\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{n+nt}{helpfulness\PYGZus{}judge}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}gpt\PYGZhy{}4\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{prompt\PYGZus{}template}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}prompts/judges/helpfulness\PYGZus{}v1.0.txt\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.0.0\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{seed}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{42}
+\PYG{+w}{    }\PYG{n+nt}{temperature}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.0}
+
+\PYG{+w}{  }\PYG{n+nt}{toxicity\PYGZus{}detector}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}perspective\PYGZus{}api\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}v1alpha1\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.20}
+
+\PYG{c+c1}{\PYGZsh{} Metric definitions}
+\PYG{n+nt}{metrics}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{groundedness}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llm\PYGZus{}as\PYGZus{}judge\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{judge}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}groundedness\PYGZus{}judge\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{aggregation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}mean\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.85}
+\PYG{+w}{    }\PYG{n+nt}{improvement\PYGZus{}threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.02}
+
+\PYG{+w}{  }\PYG{n+nt}{faithfulness}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ragas\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{metric}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}faithfulness\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.80}
+
+\PYG{+w}{  }\PYG{n+nt}{citation\PYGZus{}coverage}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}custom\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{script}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}metrics/citation\PYGZus{}coverage.py\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.90}
+
+\PYG{+w}{  }\PYG{n+nt}{toxicity}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}detector\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{detector}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}toxicity\PYGZus{}detector\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{aggregation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}max\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.20}
+\PYG{+w}{    }\PYG{n+nt}{must\PYGZus{}not\PYGZus{}increase}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{  }\PYG{n+nt}{latency}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}system\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{metric}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}p95\PYGZus{}ttft\PYGZus{}ms\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{600}
+
+\PYG{c+c1}{\PYGZsh{} Statistical tests}
+\PYG{n+nt}{statistical\PYGZus{}tests}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{groundedness}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{test}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}paired\PYGZus{}bootstrap\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{confidence\PYGZus{}level}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.95}
+\PYG{+w}{    }\PYG{n+nt}{min\PYGZus{}improvement}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.5}
+\PYG{+w}{    }\PYG{n+nt}{require\PYGZus{}ci\PYGZus{}excludes\PYGZus{}zero}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{  }\PYG{n+nt}{toxicity}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{test}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}mcnemar\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{alpha}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.05}
+\PYG{+w}{    }\PYG{n+nt}{require\PYGZus{}no\PYGZus{}increase}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{c+c1}{\PYGZsh{} Staging configuration}
+\PYG{n+nt}{stages}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{pre\PYGZus{}merge}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{datasets}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}golden\PYGZus{}set\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{sample\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{200}
+\PYG{+w}{    }\PYG{n+nt}{deterministic}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{static\PYGZus{}guards}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}prompt\PYGZus{}injection\PYGZus{}patterns\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}pii\PYGZus{}detection\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}schema\PYGZus{}validation\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{timeout\PYGZus{}minutes}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10}
+
+\PYG{+w}{  }\PYG{n+nt}{post\PYGZus{}merge}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{datasets}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}golden\PYGZus{}set\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}regression\PYGZus{}set\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{sample\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5000}
+\PYG{+w}{    }\PYG{n+nt}{judges}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}groundedness\PYGZus{}judge\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}helpfulness\PYGZus{}judge\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{metrics}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}groundedness\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}faithfulness\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}citation\PYGZus{}coverage\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{timeout\PYGZus{}minutes}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{60}
+
+\PYG{+w}{  }\PYG{n+nt}{nightly}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{datasets}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}golden\PYGZus{}set\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}regression\PYGZus{}set\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}adversarial\PYGZus{}set\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{sample\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{20000}
+\PYG{+w}{    }\PYG{n+nt}{judges}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}groundedness\PYGZus{}judge\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}helpfulness\PYGZus{}judge\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}toxicity\PYGZus{}detector\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{metrics}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}groundedness\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}faithfulness\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}toxicity\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}latency\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{timeout\PYGZus{}minutes}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{240}
+
+\PYG{c+c1}{\PYGZsh{} Reporting}
+\PYG{n+nt}{reporting}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{format}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}json\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{include\PYGZus{}slices}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{include\PYGZus{}examples}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{publish\PYGZus{}to}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}s3://ishtar\PYGZhy{}evals/reports/\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{artifact\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}eval\PYGZus{}report\PYGZus{}\PYGZob{}timestamp\PYGZcb{}.json\PYGZdq{}}
+\end{MintedVerbatim}

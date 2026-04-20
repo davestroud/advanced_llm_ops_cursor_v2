@@ -1,0 +1,20 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Pseudocode sketch (implementation details depend on your stack).}
+\PYG{c+c1}{\PYGZsh{} Goal: paraphrase invariance for \PYGZdq{}key facts\PYGZdq{} + schema validity.}
+
+\PYG{n}{SEED\PYGZus{}CASES} \PYG{o}{=} \PYG{n}{load\PYGZus{}seed\PYGZus{}cases}\PYG{p}{()}  \PYG{c+c1}{\PYGZsh{} curated, version\PYGZhy{}controlled}
+\PYG{k}{for} \PYG{n}{case} \PYG{o+ow}{in} \PYG{n}{SEED\PYGZus{}CASES}\PYG{p}{:}
+    \PYG{n}{base} \PYG{o}{=} \PYG{n}{run\PYGZus{}workflow}\PYG{p}{(}\PYG{n}{case}\PYG{o}{.}\PYG{n}{prompt}\PYG{p}{,} \PYG{n}{temperature}\PYG{o}{=}\PYG{l+m+mf}{0.0}\PYG{p}{)}
+    \PYG{k}{assert} \PYG{n}{is\PYGZus{}valid\PYGZus{}json}\PYG{p}{(}\PYG{n}{base}\PYG{o}{.}\PYG{n}{output}\PYG{p}{)}
+    \PYG{k}{assert} \PYG{n}{has\PYGZus{}required\PYGZus{}fields}\PYG{p}{(}\PYG{n}{base}\PYG{o}{.}\PYG{n}{output}\PYG{p}{,} \PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}answer\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}citations\PYGZdq{}}\PYG{p}{])}
+
+    \PYG{k}{for} \PYG{n}{p2} \PYG{o+ow}{in} \PYG{n}{generate\PYGZus{}paraphrases}\PYG{p}{(}\PYG{n}{case}\PYG{o}{.}\PYG{n}{prompt}\PYG{p}{):}
+        \PYG{n}{out} \PYG{o}{=} \PYG{n}{run\PYGZus{}workflow}\PYG{p}{(}\PYG{n}{p2}\PYG{p}{,} \PYG{n}{temperature}\PYG{o}{=}\PYG{l+m+mf}{0.0}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} Structural invariant}
+        \PYG{k}{assert} \PYG{n}{is\PYGZus{}valid\PYGZus{}json}\PYG{p}{(}\PYG{n}{out}\PYG{o}{.}\PYG{n}{output}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} Semantic relation (threshold tuned on a dev set)}
+        \PYG{n}{sim} \PYG{o}{=} \PYG{n}{embedding\PYGZus{}similarity}\PYG{p}{(}\PYG{n}{base}\PYG{o}{.}\PYG{n}{output}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}answer\PYGZdq{}}\PYG{p}{],} \PYG{n}{out}\PYG{o}{.}\PYG{n}{output}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}answer\PYGZdq{}}\PYG{p}{])}
+        \PYG{k}{assert} \PYG{n}{sim} \PYG{o}{\PYGZgt{}=} \PYG{l+m+mf}{0.85}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}paraphrase invariance violation\PYGZdq{}}
+\end{MintedVerbatim}

@@ -1,0 +1,11 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Pseudocode: if retrieval repeatedly fails, bypass it temporarily.}
+\PYG{k}{if} \PYG{n}{retrieval\PYGZus{}failures\PYGZus{}last\PYGZus{}minute} \PYG{o}{\PYGZgt{}} \PYG{n}{THRESHOLD}\PYG{p}{:}
+    \PYG{n}{circuit\PYGZus{}state} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}OPEN\PYGZdq{}}       \PYG{c+c1}{\PYGZsh{} bypass retrieval for a cooldown window}
+    \PYG{n}{cooldown\PYGZus{}until} \PYG{o}{=} \PYG{n}{now} \PYG{o}{+} \PYG{l+m+mi}{120}\PYG{n}{s}
+
+\PYG{k}{if} \PYG{n}{circuit\PYGZus{}state} \PYG{o}{==} \PYG{l+s+s2}{\PYGZdq{}OPEN\PYGZdq{}} \PYG{o+ow}{and} \PYG{n}{now} \PYG{o}{\PYGZlt{}} \PYG{n}{cooldown\PYGZus{}until}\PYG{p}{:}
+    \PYG{n}{evidence} \PYG{o}{=} \PYG{p}{[]}                \PYG{c+c1}{\PYGZsh{} graceful degradation}
+\PYG{k}{else}\PYG{p}{:}
+    \PYG{n}{evidence} \PYG{o}{=} \PYG{n}{retrieve}\PYG{p}{(}\PYG{n}{query}\PYG{p}{)}   \PYG{c+c1}{\PYGZsh{} normal path}
+\end{MintedVerbatim}

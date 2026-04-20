@@ -1,0 +1,17 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n}{result\PYGZus{}analysis} \PYG{o}{=} \PYG{n}{call}\PYG{p}{(}\PYG{n}{AnalysisAgent}\PYG{p}{,} \PYG{n}{query}\PYG{p}{,} \PYG{n}{timeout}\PYG{o}{=}\PYG{l+m+mi}{10}\PYG{n}{s}\PYG{p}{)}
+\PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{result\PYGZus{}analysis}\PYG{p}{:}
+    \PYG{c+c1}{\PYGZsh{} Analysis failed or timed out}
+    \PYG{n}{log}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Analysis failed for query\PYGZdq{}}\PYG{p}{,} \PYG{n}{query}\PYG{p}{)}
+    \PYG{n}{result\PYGZus{}analysis} \PYG{o}{=} \PYG{n}{call}\PYG{p}{(}\PYG{n}{AnalysisAgent}\PYG{p}{,} \PYG{n}{query}\PYG{p}{,} \PYG{n}{params}\PYG{o}{=}\PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}brief\PYGZdq{}}\PYG{p}{:} \PYG{k+kc}{True}\PYG{p}{\PYGZcb{},} \PYG{n}{timeout}\PYG{o}{=}\PYG{l+m+mi}{10}\PYG{n}{s}\PYG{p}{)}
+    \PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{result\PYGZus{}analysis}\PYG{p}{:}
+        \PYG{k}{return} \PYG{n}{ConversationAgent}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}I\PYGZsq{}m sorry, I\PYGZsq{}m having trouble analyzing this request.\PYGZdq{}}\PYG{p}{,} \PYG{n}{tone}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}apology\PYGZdq{}}\PYG{p}{)}
+
+\PYG{n}{result\PYGZus{}verif} \PYG{o}{=} \PYG{n}{call}\PYG{p}{(}\PYG{n}{VerificationAgent}\PYG{p}{,} \PYG{n}{result\PYGZus{}analysis}\PYG{p}{,} \PYG{n}{timeout}\PYG{o}{=}\PYG{l+m+mi}{5}\PYG{n}{s}\PYG{p}{)}
+\PYG{k}{if} \PYG{o+ow}{not} \PYG{n}{result\PYGZus{}verif} \PYG{o+ow}{or} \PYG{n}{result\PYGZus{}verif}\PYG{o}{.}\PYG{n}{contains}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}UNVERIFIED\PYGZdq{}}\PYG{p}{):}
+    \PYG{n}{warning} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}Note: some information could not be verified.\PYGZdq{}}
+\PYG{k}{else}\PYG{p}{:}
+    \PYG{n}{warning} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}\PYGZdq{}}
+\PYG{n}{final\PYGZus{}answer} \PYG{o}{=} \PYG{n}{format\PYGZus{}answer}\PYG{p}{(}\PYG{n}{result\PYGZus{}verif} \PYG{o+ow}{or} \PYG{n}{result\PYGZus{}analysis}\PYG{p}{)} \PYG{o}{+} \PYG{n}{warning}
+\PYG{k}{return} \PYG{n}{ConversationAgent}\PYG{p}{(}\PYG{n}{final\PYGZus{}answer}\PYG{p}{)}
+\end{MintedVerbatim}

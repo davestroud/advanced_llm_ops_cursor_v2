@@ -1,0 +1,28 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{test\PYGZus{}rag\PYGZus{}chain\PYGZus{}with\PYGZus{}citations}\PYG{p}{():}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Test that RAG chain produces answers with valid citations.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{query} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}What are the main causes of the 2008 financial crisis?\PYGZdq{}}
+
+    \PYG{c+c1}{\PYGZsh{} Run full RAG pipeline}
+    \PYG{n}{result} \PYG{o}{=} \PYG{n}{rag\PYGZus{}chain}\PYG{o}{.}\PYG{n}{run}\PYG{p}{(}\PYG{n}{query}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} Validate answer structure}
+    \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}answer\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{result}
+    \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}citations\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{result}
+    \PYG{k}{assert} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{result}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}citations\PYGZdq{}}\PYG{p}{])} \PYG{o}{\PYGZgt{}=} \PYG{l+m+mi}{2}
+
+    \PYG{c+c1}{\PYGZsh{} Validate citation correctness}
+    \PYG{k}{for} \PYG{n}{citation} \PYG{o+ow}{in} \PYG{n}{result}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}citations\PYGZdq{}}\PYG{p}{]:}
+        \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}source\PYGZus{}id\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{citation}
+        \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}passage\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{citation}
+        \PYG{c+c1}{\PYGZsh{} Check that cited passage is relevant}
+        \PYG{n}{similarity} \PYG{o}{=} \PYG{n}{embedding\PYGZus{}similarity}\PYG{p}{(}
+            \PYG{n}{result}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}answer\PYGZdq{}}\PYG{p}{],} \PYG{n}{citation}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}passage\PYGZdq{}}\PYG{p}{]}
+        \PYG{p}{)}
+        \PYG{k}{assert} \PYG{n}{similarity} \PYG{o}{\PYGZgt{}} \PYG{l+m+mf}{0.7}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}Citation not relevant to answer\PYGZdq{}}
+
+    \PYG{c+c1}{\PYGZsh{} Check for hallucinations: no uncited facts}
+    \PYG{n}{answer\PYGZus{}claims} \PYG{o}{=} \PYG{n}{extract\PYGZus{}claims}\PYG{p}{(}\PYG{n}{result}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}answer\PYGZdq{}}\PYG{p}{])}
+    \PYG{k}{for} \PYG{n}{claim} \PYG{o+ow}{in} \PYG{n}{answer\PYGZus{}claims}\PYG{p}{:}
+        \PYG{k}{assert} \PYG{n}{is\PYGZus{}supported\PYGZus{}by\PYGZus{}citations}\PYG{p}{(}\PYG{n}{claim}\PYG{p}{,} \PYG{n}{result}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}citations\PYGZdq{}}\PYG{p}{])}
+\end{MintedVerbatim}

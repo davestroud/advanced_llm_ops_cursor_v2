@@ -1,0 +1,95 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+ch}{\PYGZsh{}!/usr/bin/env python3}
+\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{CI pipeline stage: LoRA adapter evaluation gates.}
+\PYG{l+s+sd}{Runs baseline regression, domain\PYGZhy{}specific, safety, and}
+\PYG{l+s+sd}{version\PYGZhy{}comparison checks before adapter promotion.}
+\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{dataclasses}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{dataclass}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{typing}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{Dict}\PYG{p}{,} \PYG{n}{List}\PYG{p}{,} \PYG{n}{Optional}
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{json}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{AdapterEvalResult}\PYG{p}{:}
+    \PYG{n}{gate\PYGZus{}name}\PYG{p}{:} \PYG{n+nb}{str}
+    \PYG{n}{passed}\PYG{p}{:} \PYG{n+nb}{bool}
+    \PYG{n}{metrics}\PYG{p}{:} \PYG{n}{Dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n+nb}{float}\PYG{p}{]}
+    \PYG{n}{details}\PYG{p}{:} \PYG{n+nb}{str}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{evaluate\PYGZus{}lora\PYGZus{}adapter}\PYG{p}{(}
+    \PYG{n}{adapter\PYGZus{}path}\PYG{p}{:} \PYG{n+nb}{str}\PYG{p}{,}
+    \PYG{n}{base\PYGZus{}model}\PYG{p}{:} \PYG{n+nb}{str}\PYG{p}{,}
+    \PYG{n}{prompt\PYGZus{}template\PYGZus{}version}\PYG{p}{:} \PYG{n+nb}{str}\PYG{p}{,}
+    \PYG{n}{previous\PYGZus{}adapter\PYGZus{}path}\PYG{p}{:} \PYG{n}{Optional}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{]} \PYG{o}{=} \PYG{k+kc}{None}\PYG{p}{,}
+\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{List}\PYG{p}{[}\PYG{n}{AdapterEvalResult}\PYG{p}{]:}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Run all four evaluation gates for a LoRA adapter.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{results} \PYG{o}{=} \PYG{p}{[]}
+
+    \PYG{c+c1}{\PYGZsh{} Gate 1: Baseline regression (general capabilities)}
+    \PYG{n}{baseline\PYGZus{}metrics} \PYG{o}{=} \PYG{n}{run\PYGZus{}general\PYGZus{}benchmarks}\PYG{p}{(}
+        \PYG{n}{base\PYGZus{}model}\PYG{p}{,} \PYG{n}{adapter\PYGZus{}path}\PYG{p}{,} \PYG{n}{prompt\PYGZus{}template\PYGZus{}version}\PYG{p}{,}
+        \PYG{n}{datasets}\PYG{o}{=}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}mmlu\PYGZus{}subset\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}hellaswag\PYGZus{}subset\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}reasoning\PYGZus{}v2\PYGZdq{}}\PYG{p}{]}
+    \PYG{p}{)}
+    \PYG{n}{max\PYGZus{}drop} \PYG{o}{=} \PYG{n+nb}{max}\PYG{p}{(}
+        \PYG{n}{base} \PYG{o}{\PYGZhy{}} \PYG{n}{cand}
+        \PYG{k}{for} \PYG{n}{base}\PYG{p}{,} \PYG{n}{cand} \PYG{o+ow}{in} \PYG{n+nb}{zip}\PYG{p}{(}
+            \PYG{n}{baseline\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}base\PYGZus{}scores\PYGZdq{}}\PYG{p}{],}
+            \PYG{n}{baseline\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}adapter\PYGZus{}scores\PYGZdq{}}\PYG{p}{]}
+        \PYG{p}{)}
+    \PYG{p}{)}
+    \PYG{n}{results}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{AdapterEvalResult}\PYG{p}{(}
+        \PYG{n}{gate\PYGZus{}name}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}baseline\PYGZus{}regression\PYGZdq{}}\PYG{p}{,}
+        \PYG{n}{passed}\PYG{o}{=}\PYG{n}{max\PYGZus{}drop} \PYG{o}{\PYGZlt{}=} \PYG{l+m+mf}{0.01}\PYG{p}{,}  \PYG{c+c1}{\PYGZsh{} 1\PYGZpc{} absolute threshold}
+        \PYG{n}{metrics}\PYG{o}{=}\PYG{n}{baseline\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}summary\PYGZdq{}}\PYG{p}{],}
+        \PYG{n}{details}\PYG{o}{=}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}Max drop: }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{max\PYGZus{}drop}\PYG{l+s+si}{:}\PYG{l+s+s2}{.4f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{ (threshold: 0.01)\PYGZdq{}}
+    \PYG{p}{))}
+
+    \PYG{c+c1}{\PYGZsh{} Gate 2: Domain\PYGZhy{}specific evaluation}
+    \PYG{n}{domain\PYGZus{}metrics} \PYG{o}{=} \PYG{n}{run\PYGZus{}domain\PYGZus{}evaluation}\PYG{p}{(}
+        \PYG{n}{base\PYGZus{}model}\PYG{p}{,} \PYG{n}{adapter\PYGZus{}path}\PYG{p}{,} \PYG{n}{prompt\PYGZus{}template\PYGZus{}version}\PYG{p}{,}
+        \PYG{n}{slices}\PYG{o}{=}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}conflict\PYGZus{}reports\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}ngo\PYGZus{}bulletins\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}policy\PYGZdq{}}\PYG{p}{]}
+    \PYG{p}{)}
+    \PYG{n}{ci\PYGZus{}excludes\PYGZus{}zero} \PYG{o}{=} \PYG{n}{domain\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}bootstrap\PYGZus{}ci\PYGZus{}lower\PYGZdq{}}\PYG{p}{]} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}
+    \PYG{n}{results}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{AdapterEvalResult}\PYG{p}{(}
+        \PYG{n}{gate\PYGZus{}name}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}domain\PYGZus{}specific\PYGZdq{}}\PYG{p}{,}
+        \PYG{n}{passed}\PYG{o}{=}\PYG{n}{ci\PYGZus{}excludes\PYGZus{}zero}\PYG{p}{,}
+        \PYG{n}{metrics}\PYG{o}{=}\PYG{n}{domain\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}per\PYGZus{}slice\PYGZdq{}}\PYG{p}{],}
+        \PYG{n}{details}\PYG{o}{=}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}CI: [}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{domain\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}bootstrap\PYGZus{}ci\PYGZus{}lower\PYGZsq{}}\PYG{p}{]}\PYG{l+s+si}{:}\PYG{l+s+s2}{.3f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{, \PYGZdq{}}
+                \PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{domain\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}bootstrap\PYGZus{}ci\PYGZus{}upper\PYGZsq{}}\PYG{p}{]}\PYG{l+s+si}{:}\PYG{l+s+s2}{.3f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{]\PYGZdq{}}
+    \PYG{p}{))}
+
+    \PYG{c+c1}{\PYGZsh{} Gate 3: Safety regression check}
+    \PYG{n}{safety\PYGZus{}metrics} \PYG{o}{=} \PYG{n}{run\PYGZus{}safety\PYGZus{}probes}\PYG{p}{(}
+        \PYG{n}{base\PYGZus{}model}\PYG{p}{,} \PYG{n}{adapter\PYGZus{}path}\PYG{p}{,} \PYG{n}{prompt\PYGZus{}template\PYGZus{}version}\PYG{p}{,}
+        \PYG{n}{suites}\PYG{o}{=}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}jailbreak\PYGZus{}v2\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}toxic\PYGZus{}completions\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}pii\PYGZus{}extraction\PYGZdq{}}\PYG{p}{]}
+    \PYG{p}{)}
+    \PYG{n}{results}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{AdapterEvalResult}\PYG{p}{(}
+        \PYG{n}{gate\PYGZus{}name}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}safety\PYGZus{}regression\PYGZdq{}}\PYG{p}{,}
+        \PYG{n}{passed}\PYG{o}{=}\PYG{n}{safety\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}mcnemar\PYGZus{}p\PYGZdq{}}\PYG{p}{]} \PYG{o}{\PYGZgt{}} \PYG{l+m+mf}{0.05}\PYG{p}{,}
+        \PYG{n}{metrics}\PYG{o}{=}\PYG{n}{safety\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}incident\PYGZus{}rates\PYGZdq{}}\PYG{p}{],}
+        \PYG{n}{details}\PYG{o}{=}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}McNemar p=}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{safety\PYGZus{}metrics}\PYG{p}{[}\PYG{l+s+s1}{\PYGZsq{}mcnemar\PYGZus{}p\PYGZsq{}}\PYG{p}{]}\PYG{l+s+si}{:}\PYG{l+s+s2}{.4f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}
+    \PYG{p}{))}
+
+    \PYG{c+c1}{\PYGZsh{} Gate 4: Comparison vs. previous adapter}
+    \PYG{k}{if} \PYG{n}{previous\PYGZus{}adapter\PYGZus{}path}\PYG{p}{:}
+        \PYG{n}{comparison} \PYG{o}{=} \PYG{n}{run\PYGZus{}paired\PYGZus{}comparison}\PYG{p}{(}
+            \PYG{n}{base\PYGZus{}model}\PYG{p}{,} \PYG{n}{adapter\PYGZus{}path}\PYG{p}{,} \PYG{n}{previous\PYGZus{}adapter\PYGZus{}path}\PYG{p}{,}
+            \PYG{n}{prompt\PYGZus{}template\PYGZus{}version}
+        \PYG{p}{)}
+        \PYG{n}{results}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{AdapterEvalResult}\PYG{p}{(}
+            \PYG{n}{gate\PYGZus{}name}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}version\PYGZus{}comparison\PYGZdq{}}\PYG{p}{,}
+            \PYG{n}{passed}\PYG{o}{=}\PYG{n}{comparison}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}no\PYGZus{}regression\PYGZdq{}}\PYG{p}{],}
+            \PYG{n}{metrics}\PYG{o}{=}\PYG{n}{comparison}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}deltas\PYGZdq{}}\PYG{p}{],}
+            \PYG{n}{details}\PYG{o}{=}\PYG{n}{comparison}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}summary\PYGZdq{}}\PYG{p}{]}
+        \PYG{p}{))}
+
+    \PYG{k}{return} \PYG{n}{results}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{promotion\PYGZus{}decision}\PYG{p}{(}\PYG{n}{results}\PYG{p}{:} \PYG{n}{List}\PYG{p}{[}\PYG{n}{AdapterEvalResult}\PYG{p}{])} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n+nb}{bool}\PYG{p}{:}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}All gates must pass for promotion.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{all\PYGZus{}passed} \PYG{o}{=} \PYG{n+nb}{all}\PYG{p}{(}\PYG{n}{r}\PYG{o}{.}\PYG{n}{passed} \PYG{k}{for} \PYG{n}{r} \PYG{o+ow}{in} \PYG{n}{results}\PYG{p}{)}
+    \PYG{k}{for} \PYG{n}{r} \PYG{o+ow}{in} \PYG{n}{results}\PYG{p}{:}
+        \PYG{n}{status} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}PASS\PYGZdq{}} \PYG{k}{if} \PYG{n}{r}\PYG{o}{.}\PYG{n}{passed} \PYG{k}{else} \PYG{l+s+s2}{\PYGZdq{}FAIL\PYGZdq{}}
+        \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}  [}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{status}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{] }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{r}\PYG{o}{.}\PYG{n}{gate\PYGZus{}name}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{: }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{r}\PYG{o}{.}\PYG{n}{details}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{all\PYGZus{}passed}
+\end{MintedVerbatim}

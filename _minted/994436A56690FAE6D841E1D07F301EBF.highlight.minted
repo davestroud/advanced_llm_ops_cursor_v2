@@ -1,0 +1,103 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} vLLM Inference Engine Configuration}
+\PYG{n+nt}{engine\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}0.6.0\PYGZdq{}}
+\PYG{n+nt}{model\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llama\PYGZhy{}3.1\PYGZhy{}13b\PYGZhy{}chat\PYGZdq{}}
+\PYG{n+nt}{deployment\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZhy{}inference\PYGZhy{}v1\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Model configuration}
+\PYG{n+nt}{model}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}/models/llama\PYGZhy{}3.1\PYGZhy{}13b\PYGZhy{}chat\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{dtype}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}float16\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{trust\PYGZus{}remote\PYGZus{}code}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+\PYG{+w}{  }\PYG{n+nt}{download\PYGZus{}dir}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}/models/cache\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Engine configuration}
+\PYG{n+nt}{engine}\PYG{p}{:}
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Batching configuration}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}model\PYGZus{}len}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{16384}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}num\PYGZus{}batched\PYGZus{}tokens}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8192}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}num\PYGZus{}seqs}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{256}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Continuous batching}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}chunked\PYGZus{}prefill}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{preemption\PYGZus{}mode}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}recompute\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} or \PYGZdq{}swap\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} KV cache management}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}prefix\PYGZus{}caching}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{block\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{16}
+\PYG{+w}{  }\PYG{n+nt}{gpu\PYGZus{}memory\PYGZus{}utilization}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.90}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} PagedAttention configuration}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}paged\PYGZus{}attention}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{paged\PYGZus{}attention\PYGZus{}v2}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Quantization (if applicable)}
+\PYG{+w}{  }\PYG{n+nt}{quantization}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{null}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} or \PYGZdq{}awq\PYGZdq{}, \PYGZdq{}gptq\PYGZdq{}, \PYGZdq{}squeezellm\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{load\PYGZus{}in\PYGZus{}4bit}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+\PYG{+w}{  }\PYG{n+nt}{load\PYGZus{}in\PYGZus{}8bit}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+
+\PYG{c+c1}{\PYGZsh{} Serving configuration}
+\PYG{n+nt}{serving}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{host}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}0.0.0.0\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{port}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8000}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} API configuration}
+\PYG{+w}{  }\PYG{n+nt}{api\PYGZus{}keys}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{null}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} or list of API keys}
+\PYG{+w}{  }\PYG{n+nt}{allowed\PYGZus{}origins}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}https://ishtar.ai\PYGZdq{}}\PYG{p+pIndicator}{]}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Streaming}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}streaming}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{stream\PYGZus{}interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Stream every N tokens}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Request limits}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}request\PYGZus{}length}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{16384}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}batch\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{256}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}sequence\PYGZus{}length}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{16384}
+
+\PYG{c+c1}{\PYGZsh{} Performance tuning}
+\PYG{n+nt}{performance}\PYG{p}{:}
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Tensor parallelism}
+\PYG{+w}{  }\PYG{n+nt}{tensor\PYGZus{}parallel\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Set \PYGZgt{} 1 for multi\PYGZhy{}GPU}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Pipeline parallelism}
+\PYG{+w}{  }\PYG{n+nt}{pipeline\PYGZus{}parallel\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Worker configuration}
+\PYG{+w}{  }\PYG{n+nt}{worker\PYGZus{}use\PYGZus{}ray}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+\PYG{+w}{  }\PYG{n+nt}{worker\PYGZus{}use\PYGZus{}ray\PYGZus{}compiled\PYGZus{}dag}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} CUDA configuration}
+\PYG{+w}{  }\PYG{n+nt}{disable\PYGZus{}custom\PYGZus{}all\PYGZus{}reduce}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}lora}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Attention implementation}
+\PYG{+w}{  }\PYG{n+nt}{attention\PYGZus{}backend}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}FLASHINFER\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} or \PYGZdq{}FLASH\PYGZus{}ATTN\PYGZdq{}, \PYGZdq{}XFORMERS\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Decoding}
+\PYG{+w}{  }\PYG{n+nt}{disable\PYGZus{}log\PYGZus{}stats}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}lora}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+
+\PYG{c+c1}{\PYGZsh{} Monitoring}
+\PYG{n+nt}{monitoring}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}metrics}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{metrics\PYGZus{}port}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8001}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Prometheus metrics}
+\PYG{+w}{  }\PYG{n+nt}{prometheus\PYGZus{}endpoint}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}/metrics\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Tracked metrics}
+\PYG{+w}{  }\PYG{n+nt}{metrics}\PYG{p}{:}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}vllm:num\PYGZus{}requests\PYGZus{}running\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}vllm:num\PYGZus{}requests\PYGZus{}waiting\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}vllm:gpu\PYGZus{}cache\PYGZus{}usage\PYGZus{}percent\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}vllm:gpu\PYGZus{}memory\PYGZus{}usage\PYGZus{}percent\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}vllm:time\PYGZus{}to\PYGZus{}first\PYGZus{}token\PYGZus{}seconds\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}vllm:time\PYGZus{}per\PYGZus{}output\PYGZus{}token\PYGZus{}seconds\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Logging}
+\PYG{n+nt}{logging}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{level}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}INFO\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{log\PYGZus{}requests}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{log\PYGZus{}stats}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{log\PYGZus{}level}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}INFO\PYGZdq{}}
+\end{MintedVerbatim}

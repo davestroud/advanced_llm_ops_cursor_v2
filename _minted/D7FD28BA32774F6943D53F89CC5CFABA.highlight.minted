@@ -1,0 +1,94 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Evaluation Metrics Configuration}
+\PYG{n+nt}{evaluation\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.2.0\PYGZdq{}}
+\PYG{n+nt}{evaluation\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}comprehensive\PYGZdq{}}
+
+\PYG{n+nt}{metrics}\PYG{p}{:}
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Factual Consistency}
+\PYG{+w}{  }\PYG{n+nt}{factual\PYGZus{}consistency}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{measurement\PYGZus{}method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}claim\PYGZus{}verification\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{tools}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}fact\PYGZus{}checker\PYGZus{}v1.0\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}rag\PYGZus{}faithfulness\PYGZus{}scorer\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.85}
+\PYG{+w}{    }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.30}
+\PYG{+w}{    }\PYG{n+nt}{slice\PYGZus{}analysis}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}domain:conflict\PYGZus{}reports\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}domain:ngo\PYGZus{}bulletins\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Coherence \PYGZam{} Style Adherence}
+\PYG{+w}{  }\PYG{n+nt}{coherence}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{measurement\PYGZus{}method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llm\PYGZus{}as\PYGZus{}judge\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{judge\PYGZus{}model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}gpt\PYGZhy{}4\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{judge\PYGZus{}prompt}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}prompts/judges/coherence\PYGZus{}v1.0.txt\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.80}
+\PYG{+w}{    }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.20}
+
+\PYG{+w}{  }\PYG{n+nt}{style\PYGZus{}adherence}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{measurement\PYGZus{}method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}classifier\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{classifier\PYGZus{}model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}style\PYGZus{}classifier\PYGZus{}v2.1\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{required\PYGZus{}attributes}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}neutral\PYGZus{}tone\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}journalistic\PYGZus{}format\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}citation\PYGZus{}format\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.90}
+\PYG{+w}{    }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.15}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Safety \PYGZam{} Toxicity}
+\PYG{+w}{  }\PYG{n+nt}{safety}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{measurement\PYGZus{}method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}multi\PYGZus{}detector\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{detectors}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}toxicity\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}perspective\PYGZus{}api\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.20}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}bias\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}bias\PYGZus{}detector\PYGZus{}v1.3\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.15}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}harmful\PYGZus{}content\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}safety\PYGZus{}classifier\PYGZus{}v2.0\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.10}
+\PYG{+w}{    }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.25}
+\PYG{+w}{    }\PYG{n+nt}{fail\PYGZus{}on\PYGZus{}violation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Latency \PYGZam{} Cost}
+\PYG{+w}{  }\PYG{n+nt}{latency}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{metrics}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ttft\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{p50\PYGZus{}threshold\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{300}
+\PYG{+w}{        }\PYG{n+nt}{p95\PYGZus{}threshold\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{600}
+\PYG{+w}{        }\PYG{n+nt}{p99\PYGZus{}threshold\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1000}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tokens\PYGZus{}per\PYGZus{}second\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{min\PYGZus{}threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10.0}
+\PYG{+w}{    }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.10}
+
+\PYG{+w}{  }\PYG{n+nt}{cost}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{tracking}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cost\PYGZus{}per\PYGZus{}request\PYGZus{}usd\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tokens\PYGZus{}per\PYGZus{}request\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cost\PYGZus{}per\PYGZus{}1k\PYGZus{}tokens\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{budget\PYGZus{}threshold\PYGZus{}usd}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.05}
+\PYG{+w}{    }\PYG{n+nt}{alert\PYGZus{}on\PYGZus{}exceed}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.10}
+
+\PYG{c+c1}{\PYGZsh{} Aggregation}
+\PYG{n+nt}{aggregation}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}weighted\PYGZus{}average\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{overall\PYGZus{}threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.82}
+\PYG{+w}{  }\PYG{n+nt}{require\PYGZus{}all\PYGZus{}critical}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{critical\PYGZus{}metrics}\PYG{p}{:}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}safety\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}factual\PYGZus{}consistency\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Reporting}
+\PYG{n+nt}{reporting}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{format}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}json\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{include\PYGZus{}slices}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{include\PYGZus{}examples}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{publish\PYGZus{}to}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}s3://ishtar\PYGZhy{}evals/reports/\PYGZdq{}}
+\end{MintedVerbatim}

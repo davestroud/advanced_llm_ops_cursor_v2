@@ -1,0 +1,126 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Caching Configuration}
+\PYG{n+nt}{caching\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}2.1.0\PYGZdq{}}
+\PYG{n+nt}{cache\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}production\PYGZus{}cache\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Response cache configuration}
+\PYG{n+nt}{response\PYGZus{}cache}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{backend}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}redis\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{redis\PYGZus{}config}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{host}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}redis\PYGZhy{}cluster.ishtar.internal\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{port}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{6379}
+\PYG{+w}{    }\PYG{n+nt}{db}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0}
+\PYG{+w}{    }\PYG{n+nt}{password\PYGZus{}env}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}REDIS\PYGZus{}PASSWORD\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{cluster\PYGZus{}mode}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{tls\PYGZus{}enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Cache key strategy}
+\PYG{+w}{  }\PYG{n+nt}{key\PYGZus{}strategy}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{include\PYGZus{}fields}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}prompt\PYGZus{}hash\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}model\PYGZus{}version\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}temperature\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}max\PYGZus{}tokens\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}prompt\PYGZus{}template\PYGZus{}id\PYGZdq{}}
+
+\PYG{+w}{    }\PYG{n+nt}{hash\PYGZus{}algorithm}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}sha256\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{key\PYGZus{}prefix}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar:response:\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} TTL configuration}
+\PYG{+w}{  }\PYG{n+nt}{ttl}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{default\PYGZus{}seconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{3600}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} 1 hour}
+\PYG{+w}{    }\PYG{n+nt}{by\PYGZus{}query\PYGZus{}type}\PYG{p}{:}
+\PYG{+w}{      }\PYG{l+s}{\PYGZdq{}breaking\PYGZus{}news\PYGZdq{}}\PYG{p+pIndicator}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{900}\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} 15 minutes}
+\PYG{+w}{      }\PYG{l+s}{\PYGZdq{}historical\PYGZus{}analysis\PYGZdq{}}\PYG{p+pIndicator}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{86400}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} 24 hours}
+\PYG{+w}{      }\PYG{l+s}{\PYGZdq{}fact\PYGZus{}checking\PYGZdq{}}\PYG{p+pIndicator}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1800}\PYG{+w}{     }\PYG{c+c1}{\PYGZsh{} 30 minutes}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Eviction policy}
+\PYG{+w}{  }\PYG{n+nt}{eviction\PYGZus{}policy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}lfu\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Least Frequently Used}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}size\PYGZus{}mb}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10000}\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} 10GB max}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}entries}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1000000}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Compression}
+\PYG{+w}{  }\PYG{n+nt}{compression}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{algorithm}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}lz4\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{min\PYGZus{}size\PYGZus{}bytes}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1024}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Compress entries \PYGZgt{} 1KB}
+
+\PYG{c+c1}{\PYGZsh{} Embedding cache configuration}
+\PYG{n+nt}{embedding\PYGZus{}cache}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{backend}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}pgvector\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} PostgreSQL with pgvector extension}
+\PYG{+w}{  }\PYG{n+nt}{postgres\PYGZus{}config}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{host}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}postgres\PYGZhy{}cluster.ishtar.internal\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{port}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5432}
+\PYG{+w}{    }\PYG{n+nt}{database}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}embeddings\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{user}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}embedding\PYGZus{}cache\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{password\PYGZus{}env}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}POSTGRES\PYGZus{}PASSWORD\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{ssl\PYGZus{}mode}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}require\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Cache key strategy}
+\PYG{+w}{  }\PYG{n+nt}{key\PYGZus{}strategy}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{include\PYGZus{}fields}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}content\PYGZus{}hash\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}embedding\PYGZus{}model\PYGZus{}id\PYGZdq{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}embedding\PYGZus{}model\PYGZus{}version\PYGZdq{}}
+
+\PYG{+w}{    }\PYG{n+nt}{hash\PYGZus{}algorithm}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}sha256\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{key\PYGZus{}column}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}content\PYGZus{}hash\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Vector storage}
+\PYG{+w}{  }\PYG{n+nt}{vector\PYGZus{}config}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{dimension}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{384}
+\PYG{+w}{    }\PYG{n+nt}{index\PYGZus{}type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}hnsw\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{index\PYGZus{}params}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{m}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{16}
+\PYG{+w}{      }\PYG{n+nt}{ef\PYGZus{}construction}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{200}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} TTL configuration}
+\PYG{+w}{  }\PYG{n+nt}{ttl}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{default\PYGZus{}days}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{30}
+\PYG{+w}{    }\PYG{n+nt}{by\PYGZus{}content\PYGZus{}type}\PYG{p}{:}
+\PYG{+w}{      }\PYG{l+s}{\PYGZdq{}news\PYGZus{}article\PYGZdq{}}\PYG{p+pIndicator}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{7}\PYG{+w}{   }\PYG{c+c1}{\PYGZsh{} 7 days}
+\PYG{+w}{      }\PYG{l+s}{\PYGZdq{}reference\PYGZus{}doc\PYGZdq{}}\PYG{p+pIndicator}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{90}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} 90 days}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Invalidation triggers}
+\PYG{+w}{  }\PYG{n+nt}{invalidation}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{on\PYGZus{}model\PYGZus{}update}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{on\PYGZus{}content\PYGZus{}update}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{manual\PYGZus{}flush\PYGZus{}endpoint}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}/admin/cache/flush\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Prefix cache (for shared prompt prefixes)}
+\PYG{n+nt}{prefix\PYGZus{}cache}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{backend}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}redis\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{key\PYGZus{}strategy}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{prefix\PYGZus{}length}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{512}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Cache first 512 tokens}
+\PYG{+w}{    }\PYG{n+nt}{include\PYGZus{}system\PYGZus{}prompt}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{  }\PYG{n+nt}{ttl\PYGZus{}seconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{7200}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} 2 hours}
+
+\PYG{c+c1}{\PYGZsh{} Cache warming}
+\PYG{n+nt}{warming}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{strategy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}popular\PYGZus{}queries\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{popular\PYGZus{}queries\PYGZus{}dataset}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}datasets/cache\PYGZus{}warming/popular\PYGZus{}v1.0.jsonl\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{warming\PYGZus{}schedule}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}0}\PYG{n+nv}{ }\PYG{l+s}{2}\PYG{n+nv}{ }\PYG{l+s}{*}\PYG{n+nv}{ }\PYG{l+s}{*}\PYG{n+nv}{ }\PYG{l+s}{*\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Daily at 2 AM}
+\PYG{+w}{  }\PYG{n+nt}{batch\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{100}
+
+\PYG{c+c1}{\PYGZsh{} Monitoring}
+\PYG{n+nt}{monitoring}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{track\PYGZus{}hit\PYGZus{}rate}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{track\PYGZus{}miss\PYGZus{}rate}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{track\PYGZus{}latency\PYGZus{}savings}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{track\PYGZus{}cost\PYGZus{}savings}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{  }\PYG{n+nt}{metrics}\PYG{p}{:}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cache\PYGZus{}hit\PYGZus{}rate\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cache\PYGZus{}miss\PYGZus{}rate\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}avg\PYGZus{}latency\PYGZus{}reduction\PYGZus{}ms\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cost\PYGZus{}savings\PYGZus{}percent\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{n+nt}{alerting}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{hit\PYGZus{}rate\PYGZus{}threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.10}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Alert if hit rate \PYGZlt{} 10\PYGZpc{}}
+\PYG{+w}{    }\PYG{n+nt}{latency\PYGZus{}increase\PYGZus{}threshold\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Alert if cache adds \PYGZgt{}5ms latency}
+\end{MintedVerbatim}

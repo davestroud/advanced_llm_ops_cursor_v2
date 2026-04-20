@@ -1,0 +1,27 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}request\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}req\PYGZus{}a1b2c3d4e5f6\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}timestamp\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2025\PYGZhy{}11\PYGZhy{}15T14:32:07.123Z\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}user\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}usr\PYGZus{}hashed\PYGZus{}9f8e7d\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}session\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}sess\PYGZus{}abc123\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}model\PYGZus{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}ishtar\PYGZhy{}v1.2.3\PYGZhy{}gpt4\PYGZhy{}ft\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}prompt\PYGZus{}template\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}tmpl\PYGZus{}conflict\PYGZus{}summary\PYGZus{}v2\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}prompt\PYGZus{}hash\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}sha256:3a7f9c...\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}retrieval\PYGZus{}context\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}index\PYGZus{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}idx\PYGZus{}2025\PYGZhy{}11\PYGZhy{}14\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}sources\PYGZus{}used\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}AP\PYGZhy{}2025\PYGZhy{}11\PYGZhy{}15\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Reuters\PYGZhy{}2025\PYGZhy{}11\PYGZhy{}14\PYGZdq{}}\PYG{p}{],}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}num\PYGZus{}chunks\PYGZus{}retrieved\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{8}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}response\PYGZus{}hash\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}sha256:b2e8d1...\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}safety\PYGZus{}scores\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}toxicity\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.02}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}bias\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.04}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}hallucination\PYGZus{}risk\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.12}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}latency\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{847}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}tokens\PYGZus{}used\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n+nt}{\PYGZdq{}prompt\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{1523}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nt}{\PYGZdq{}completion\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{412}\PYG{p}{\PYGZcb{},}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}human\PYGZus{}override\PYGZus{}flag\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{false}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}escalation\PYGZus{}triggered\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{false}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}consent\PYGZus{}basis\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}contractual\PYGZus{}necessity\PYGZdq{}}
+\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

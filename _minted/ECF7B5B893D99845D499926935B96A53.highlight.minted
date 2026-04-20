@@ -1,0 +1,48 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Evaluation harness configuration}
+\PYG{n+nt}{suite}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}smoke\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.2\PYGZdq{}}
+
+\PYG{n+nt}{datasets}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}golden\PYGZus{}set\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}data/golden\PYGZus{}queries.jsonl\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}qa\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}incident\PYGZus{}set\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}data/incidents.jsonl\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}qa\PYGZdq{}}
+
+\PYG{n+nt}{metrics}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}correctness\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llm\PYGZus{}judge\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{judge\PYGZus{}model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}gpt\PYGZhy{}4\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{rubric}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}data/rubric.yaml\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}faithfulness\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ragas\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.85}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}latency\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}p95\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5000}
+
+\PYG{n+nt}{gates}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{metric}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}correctness\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{operator}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}\PYGZgt{}=\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.90}
+\PYG{+w}{    }\PYG{n+nt}{slice}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}high\PYGZus{}stakes\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{metric}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}faithfulness\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{operator}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}\PYGZgt{}=\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.85}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{metric}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}latency\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{operator}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}\PYGZlt{}=\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5000}
+
+\PYG{n+nt}{reporting}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{format}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}html\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{output}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}reports/eval\PYGZus{}report.html\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{include\PYGZus{}slices}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\end{MintedVerbatim}

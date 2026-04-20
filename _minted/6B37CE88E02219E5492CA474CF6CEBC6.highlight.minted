@@ -1,0 +1,61 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} RAG Pipeline Configuration}
+\PYG{n+nt}{pipeline\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}2.1.0\PYGZdq{}}
+\PYG{n+nt}{pipeline\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}conflict\PYGZus{}journalism\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Embedding model configuration}
+\PYG{n+nt}{embedding}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}sentence\PYGZhy{}transformers/all\PYGZhy{}MiniLM\PYGZhy{}L6\PYGZhy{}v2\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{model\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}v2.2.2\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{dimension}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{384}
+\PYG{+w}{  }\PYG{n+nt}{batch\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{32}
+\PYG{+w}{  }\PYG{n+nt}{device}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cuda\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Chunking strategy}
+\PYG{n+nt}{chunking}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{strategy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}structural\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} structural, token\PYGZhy{}window, recursive}
+\PYG{+w}{  }\PYG{n+nt}{chunk\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{512}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} tokens}
+\PYG{+w}{  }\PYG{n+nt}{overlap}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{50}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} tokens}
+\PYG{+w}{  }\PYG{n+nt}{preserve\PYGZus{}sections}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{min\PYGZus{}chunk\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{100}
+
+\PYG{c+c1}{\PYGZsh{} Vector store configuration}
+\PYG{n+nt}{vector\PYGZus{}store}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}hnsw\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} HNSW, IVF, flat}
+\PYG{+w}{  }\PYG{n+nt}{index\PYGZus{}params}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{m}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{16}
+\PYG{+w}{    }\PYG{n+nt}{ef\PYGZus{}construction}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{200}
+\PYG{+w}{    }\PYG{n+nt}{ef\PYGZus{}search}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{50}
+\PYG{+w}{  }\PYG{n+nt}{metadata\PYGZus{}fields}\PYG{p}{:}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{source\PYGZus{}id}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{published\PYGZus{}at}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{source\PYGZus{}type}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{reliability\PYGZus{}score}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{access\PYGZus{}level}
+
+\PYG{c+c1}{\PYGZsh{} Retrieval configuration}
+\PYG{n+nt}{retrieval}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{top\PYGZus{}k}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10}
+\PYG{+w}{  }\PYG{n+nt}{rerank}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{reranker\PYGZus{}model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cross\PYGZhy{}encoder/ms\PYGZhy{}marco\PYGZhy{}MiniLM\PYGZhy{}L\PYGZhy{}6\PYGZhy{}v2\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{rerank\PYGZus{}top\PYGZus{}k}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5}
+\PYG{+w}{  }\PYG{n+nt}{hybrid\PYGZus{}search}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{dense\PYGZus{}weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.7}
+\PYG{+w}{    }\PYG{n+nt}{sparse\PYGZus{}weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.3}
+\PYG{+w}{    }\PYG{n+nt}{sparse\PYGZus{}method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}bm25\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Context assembly}
+\PYG{n+nt}{context\PYGZus{}assembly}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}tokens}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{2000}
+\PYG{+w}{  }\PYG{n+nt}{deduplicate}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{order\PYGZus{}by}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}relevance\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} relevance, recency, source}
+\PYG{+w}{  }\PYG{n+nt}{include\PYGZus{}metadata}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{citation\PYGZus{}format}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}[Source:}\PYG{n+nv}{ }\PYG{l+s}{\PYGZob{}source\PYGZus{}id\PYGZcb{}]\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Monitoring SLOs}
+\PYG{n+nt}{slo}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{recall\PYGZus{}at\PYGZus{}k}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.85}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}latency\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{250}
+\PYG{+w}{  }\PYG{n+nt}{min\PYGZus{}faithfulness\PYGZus{}score}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.8}
+\end{MintedVerbatim}

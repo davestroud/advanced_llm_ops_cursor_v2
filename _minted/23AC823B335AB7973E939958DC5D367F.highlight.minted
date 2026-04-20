@@ -1,0 +1,15 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}release}
+\PYG{n+nt}{on}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{push}\PYG{p+pIndicator}{]}
+\PYG{n+nt}{jobs}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{test}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{pytest \PYGZhy{}q}
+\PYG{+w}{  }\PYG{n+nt}{eval}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{python eval/run\PYGZus{}offline\PYGZus{}eval.py \PYGZhy{}\PYGZhy{}index\PYGZus{}version v2025.12.01}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{python eval/check\PYGZus{}gates.py}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} fails if metrics regress}
+\PYG{+w}{  }\PYG{n+nt}{deploy}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{kubectl apply \PYGZhy{}f k8s/rollout.yaml}\PYG{+w}{   }\PYG{c+c1}{\PYGZsh{} canary rollout}
+\end{MintedVerbatim}

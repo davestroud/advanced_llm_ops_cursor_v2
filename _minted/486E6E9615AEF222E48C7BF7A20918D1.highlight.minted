@@ -1,0 +1,51 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} retrieval\PYGZus{}config.yaml}
+\PYG{n+nt}{retrieval\PYGZus{}pipeline\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}hybrid\PYGZus{}retrieval\PYGZus{}v2\PYGZdq{}}
+\PYG{n+nt}{description}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Configuration}\PYG{n+nv}{ }\PYG{l+s}{for}\PYG{n+nv}{ }\PYG{l+s}{hybrid}\PYG{n+nv}{ }\PYG{l+s}{retrieval}\PYG{n+nv}{ }\PYG{l+s}{in}\PYG{n+nv}{ }\PYG{l+s}{Ishtar}\PYG{n+nv}{ }\PYG{l+s}{AI}\PYG{n+nv}{ }\PYG{l+s}{RAG}\PYG{n+nv}{ }\PYG{l+s}{pipeline.\PYGZdq{}}
+
+\PYG{n+nt}{query\PYGZus{}processing}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{query\PYGZus{}expansion}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llm\PYGZus{}rewrite\PYGZdq{}}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Use a small LLM to rewrite/expand query}
+\PYG{+w}{    }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llama\PYGZhy{}3.1\PYGZhy{}8b\PYGZhy{}query\PYGZhy{}rewriter\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{num\PYGZus{}variants}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{3}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Generate 3 variants of the query}
+
+\PYG{+w}{  }\PYG{n+nt}{query\PYGZus{}compression}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Not enabled by default for initial retrieval}
+\PYG{+w}{    }\PYG{n+nt}{method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}hyde\PYGZdq{}}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Hypothetical Document Embedding}
+
+\PYG{n+nt}{retrievers}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}dense\PYGZus{}vector\PYGZus{}search\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}vector\PYGZus{}db\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{vector\PYGZus{}store\PYGZus{}index}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZhy{}news\PYGZhy{}vector\PYGZhy{}index\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{top\PYGZus{}k}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Retrieve top 10 candidates from vector DB}
+\PYG{+w}{    }\PYG{n+nt}{filters}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{published\PYGZus{}date}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{gte}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}now\PYGZhy{}30d\PYGZdq{}}\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Only recent documents}
+\PYG{+w}{      }\PYG{n+nt}{category}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}politics\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}conflict\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{    }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.7}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Weight in hybrid search}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}sparse\PYGZus{}keyword\PYGZus{}search\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}keyword\PYGZus{}search\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{search\PYGZus{}engine}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}elasticsearch\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{index\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZhy{}news\PYGZhy{}keywords\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{top\PYGZus{}k}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{20}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Retrieve top 20 candidates from keyword search}
+\PYG{+w}{    }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.3}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Weight in hybrid search}
+
+\PYG{n+nt}{reranker}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cross\PYGZhy{}encoder/ms\PYGZhy{}marco\PYGZhy{}MiniLM\PYGZhy{}L\PYGZhy{}6\PYGZhy{}v2\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{top\PYGZus{}n}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Select top 5 after reranking all candidates from retrievers}
+\PYG{+w}{  }\PYG{n+nt}{batch\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{32}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Batch size for reranker inference}
+
+\PYG{n+nt}{post\PYGZus{}retrieval\PYGZus{}filters}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}deduplication\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{strategy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}embedding\PYGZus{}similarity\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.95}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}access\PYGZus{}control\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{policy\PYGZus{}engine}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}opa\PYGZdq{}}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Open Policy Agent}
+\PYG{+w}{    }\PYG{n+nt}{policy\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}document\PYGZus{}access\PYGZus{}policy\PYGZus{}v1\PYGZdq{}}
+
+\PYG{n+nt}{monitoring}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{metrics\PYGZus{}enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{log\PYGZus{}retrieved\PYGZus{}documents}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} Log full content of retrieved docs (after redaction)}
+\end{MintedVerbatim}

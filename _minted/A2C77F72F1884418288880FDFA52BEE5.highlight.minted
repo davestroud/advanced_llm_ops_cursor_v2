@@ -1,0 +1,27 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{pytest}
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{json}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{test\PYGZus{}date\PYGZus{}conversion\PYGZus{}prompt}\PYG{p}{():}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Test that date conversion prompt produces valid JSON.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{prompt} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}Convert 2024\PYGZhy{}01\PYGZhy{}15 to readable format\PYGZdq{}}
+    \PYG{n}{response} \PYG{o}{=} \PYG{n}{run\PYGZus{}prompt}\PYG{p}{(}\PYG{n}{prompt}\PYG{p}{,} \PYG{n}{temperature}\PYG{o}{=}\PYG{l+m+mf}{0.0}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} Structural invariant: valid JSON}
+    \PYG{n}{parsed} \PYG{o}{=} \PYG{n}{json}\PYG{o}{.}\PYG{n}{loads}\PYG{p}{(}\PYG{n}{response}\PYG{p}{)}
+    \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}date\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{parsed}
+
+    \PYG{c+c1}{\PYGZsh{} Semantic invariant: correct conversion}
+    \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}January\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{parsed}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}date\PYGZdq{}}\PYG{p}{]} \PYG{o+ow}{or} \PYG{l+s+s2}{\PYGZdq{}Jan\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{parsed}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}date\PYGZdq{}}\PYG{p}{]}
+    \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}15\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{parsed}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}date\PYGZdq{}}\PYG{p}{]}
+    \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}2024\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{parsed}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}date\PYGZdq{}}\PYG{p}{]}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{test\PYGZus{}retrieval\PYGZus{}function}\PYG{p}{():}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}Test retrieval returns relevant results.\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{query} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}Capital of France\PYGZdq{}}
+    \PYG{n}{results} \PYG{o}{=} \PYG{n}{retrieve}\PYG{p}{(}\PYG{n}{query}\PYG{p}{,} \PYG{n}{top\PYGZus{}k}\PYG{o}{=}\PYG{l+m+mi}{3}\PYG{p}{)}
+
+    \PYG{k}{assert} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{results}\PYG{p}{)} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}
+    \PYG{c+c1}{\PYGZsh{} Relevance check: top result should mention Paris}
+    \PYG{k}{assert} \PYG{l+s+s2}{\PYGZdq{}Paris\PYGZdq{}} \PYG{o+ow}{in} \PYG{n}{results}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{][}\PYG{l+s+s2}{\PYGZdq{}content\PYGZdq{}}\PYG{p}{]}\PYG{o}{.}\PYG{n}{lower}\PYG{p}{()}
+\end{MintedVerbatim}

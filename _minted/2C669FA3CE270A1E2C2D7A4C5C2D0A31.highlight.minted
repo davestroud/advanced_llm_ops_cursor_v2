@@ -1,0 +1,12 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Example (conceptual) Terraform module interface}
+\PYG{k+kr}{module}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}ishtar\PYGZus{}cluster\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+na}{source}\PYG{+w}{        }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}./modules/k8s\PYGZus{}cluster\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+na}{region}\PYG{+w}{        }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}us\PYGZhy{}east\PYGZhy{}1\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+na}{cpu\PYGZus{}node\PYGZus{}size}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}m7i.2xlarge\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+na}{gpu\PYGZus{}node\PYGZus{}size}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}p4d.24xlarge\PYGZdq{}}\PYG{c+c1}{   \PYGZsh{} or equivalent}
+\PYG{+w}{  }\PYG{n+na}{gpu\PYGZus{}min}\PYG{+w}{       }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m}{2}
+\PYG{+w}{  }\PYG{n+na}{gpu\PYGZus{}max}\PYG{+w}{       }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m}{16}
+\PYG{+w}{  }\PYG{n+na}{enable\PYGZus{}oidc}\PYG{+w}{   }\PYG{o}{=}\PYG{+w}{ }\PYG{n+no}{true}\PYG{c+c1}{             \PYGZsh{} enables workload identity / OIDC}
+\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

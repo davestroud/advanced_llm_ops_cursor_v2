@@ -1,0 +1,149 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}prompt\PYGZus{}id\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}ishtar\PYGZus{}event\PYGZus{}synthesis\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}1.4.0\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}semantic\PYGZus{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}major\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}minor\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{4}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}patch\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{0}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}metadata\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}created\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2024\PYGZhy{}01\PYGZhy{}10T10:00:00Z\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}updated\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2024\PYGZhy{}01\PYGZhy{}15T14:30:00Z\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}author\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}ishtar\PYGZhy{}team\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}reviewer\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}alice.smith\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}pr\PYGZus{}number\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}1234\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}commit\PYGZus{}sha\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}abc123def456\PYGZdq{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}changelog\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}1.4.0\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}date\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2024\PYGZhy{}01\PYGZhy{}15\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}author\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}ishtar\PYGZhy{}team\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}changes\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}
+\PYG{+w}{        }\PYG{l+s+s2}{\PYGZdq{}Enhanced citation format requirements\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{l+s+s2}{\PYGZdq{}Added explicit neutrality guidelines\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{l+s+s2}{\PYGZdq{}Improved few\PYGZhy{}shot examples for conflict reporting\PYGZdq{}}
+\PYG{+w}{      }\PYG{p}{],}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}breaking\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{false}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}migration\PYGZus{}notes\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}None \PYGZhy{} backward compatible\PYGZdq{}}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}1.3.0\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}date\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2024\PYGZhy{}01\PYGZhy{}05\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}changes\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}
+\PYG{+w}{        }\PYG{l+s+s2}{\PYGZdq{}Added chain\PYGZhy{}of\PYGZhy{}thought structure\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{l+s+s2}{\PYGZdq{}Updated system message tone\PYGZdq{}}
+\PYG{+w}{      }\PYG{p}{],}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}breaking\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{false}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}template\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}system\PYGZus{}message\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{|}
+\PYG{+w}{      }\PYG{err}{You}\PYG{+w}{ }\PYG{err}{are}\PYG{+w}{ }\PYG{err}{a}\PYG{+w}{ }\PYG{err}{co}\PYG{k+kc}{nfl}\PYG{err}{ic}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{err}{jour}\PYG{k+kc}{nal}\PYG{err}{ism}\PYG{+w}{ }\PYG{err}{assis}\PYG{k+kc}{tant}\PYG{err}{.}\PYG{+w}{ }\PYG{err}{Your}\PYG{+w}{ }\PYG{err}{role}\PYG{+w}{ }\PYG{err}{is}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{o}\PYG{+w}{ }\PYG{err}{sy}\PYG{k+kc}{nt}\PYG{err}{hesize}
+\PYG{+w}{      }\PYG{err}{i}\PYG{k+kc}{nf}\PYG{err}{orma}\PYG{k+kc}{t}\PYG{err}{io}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{k+kc}{fr}\PYG{err}{om}\PYG{+w}{ }\PYG{err}{mul}\PYG{k+kc}{t}\PYG{err}{iple}\PYG{+w}{ }\PYG{err}{sources}\PYG{+w}{ }\PYG{err}{i}\PYG{k+kc}{nt}\PYG{err}{o}\PYG{+w}{ }\PYG{err}{accura}\PYG{k+kc}{te}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kc}{neutral}\PYG{+w}{ }\PYG{err}{summaries.}
+\PYG{+w}{      }\PYG{err}{Always}\PYG{+w}{ }\PYG{err}{ci}\PYG{k+kc}{te}\PYG{+w}{ }\PYG{err}{sources}\PYG{+w}{ }\PYG{err}{usi}\PYG{k+kc}{n}\PYG{err}{g}\PYG{+w}{ }\PYG{p}{[}\PYG{err}{Source}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{ID}\PYG{p}{]}\PYG{+w}{ }\PYG{k+kc}{f}\PYG{err}{orma}\PYG{k+kc}{t}\PYG{err}{.}\PYG{+w}{ }\PYG{err}{Mai}\PYG{k+kc}{nta}\PYG{err}{i}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{err}{jour}\PYG{k+kc}{nal}\PYG{err}{is}\PYG{k+kc}{t}\PYG{err}{ic}
+\PYG{+w}{      }\PYG{err}{objec}\PYG{k+kc}{t}\PYG{err}{ivi}\PYG{k+kc}{t}\PYG{err}{y}\PYG{+w}{ }\PYG{err}{a}\PYG{k+kc}{n}\PYG{err}{d}\PYG{+w}{ }\PYG{err}{avoid}\PYG{+w}{ }\PYG{err}{specula}\PYG{k+kc}{t}\PYG{err}{io}\PYG{k+kc}{n}\PYG{err}{.}\PYG{+w}{ }\PYG{err}{I}\PYG{k+kc}{f}\PYG{+w}{ }\PYG{err}{i}\PYG{k+kc}{nf}\PYG{err}{orma}\PYG{k+kc}{t}\PYG{err}{io}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{err}{co}\PYG{k+kc}{nfl}\PYG{err}{ic}\PYG{k+kc}{ts}\PYG{p}{,}\PYG{+w}{ }\PYG{k+kc}{n}\PYG{err}{o}\PYG{k+kc}{te}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}
+\PYG{+w}{      }\PYG{err}{discrepa}\PYG{k+kc}{n}\PYG{err}{cy}\PYG{+w}{ }\PYG{err}{a}\PYG{k+kc}{n}\PYG{err}{d}\PYG{+w}{ }\PYG{err}{ci}\PYG{k+kc}{te}\PYG{+w}{ }\PYG{err}{all}\PYG{+w}{ }\PYG{err}{releva}\PYG{k+kc}{nt}\PYG{+w}{ }\PYG{err}{sources.}
+
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}user\PYGZus{}template\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{|}
+\PYG{+w}{      }\PYG{err}{A}\PYG{k+kc}{nal}\PYG{err}{yze}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}\PYG{+w}{ }\PYG{k+kc}{f}\PYG{err}{ollowi}\PYG{k+kc}{n}\PYG{err}{g}\PYG{+w}{ }\PYG{err}{si}\PYG{k+kc}{tuat}\PYG{err}{io}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{err}{s}\PYG{k+kc}{te}\PYG{err}{p}\PYG{+w}{ }\PYG{err}{by}\PYG{+w}{ }\PYG{err}{s}\PYG{k+kc}{te}\PYG{err}{p}\PYG{p}{:}
+
+\PYG{+w}{      }\PYG{err}{Sources}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p}{\PYGZob{}}\PYG{err}{re}\PYG{k+kc}{tr}\PYG{err}{ieved\PYGZus{}docume}\PYG{k+kc}{nts}\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{err}{Ques}\PYG{k+kc}{t}\PYG{err}{io}\PYG{k+kc}{n}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{err}{user\PYGZus{}query}\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{      }\PYG{err}{Thi}\PYG{k+kc}{n}\PYG{err}{k}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{hrough}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{his}\PYG{+w}{ }\PYG{err}{sys}\PYG{k+kc}{te}\PYG{err}{ma}\PYG{k+kc}{t}\PYG{err}{ically}\PYG{p}{:}
+\PYG{+w}{      }\PYG{l+m+mf}{1.}\PYG{+w}{ }\PYG{err}{Wha}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{err}{are}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}\PYG{+w}{ }\PYG{err}{key}\PYG{+w}{ }\PYG{k+kc}{fa}\PYG{err}{c}\PYG{k+kc}{ts}\PYG{+w}{ }\PYG{k+kc}{fr}\PYG{err}{om}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}\PYG{+w}{ }\PYG{err}{sources?}
+\PYG{+w}{      }\PYG{l+m+mf}{2.}\PYG{+w}{ }\PYG{err}{Wha}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{err}{are}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}\PYG{+w}{ }\PYG{err}{di}\PYG{k+kc}{fferent}\PYG{+w}{ }\PYG{err}{perspec}\PYG{k+kc}{t}\PYG{err}{ives}\PYG{+w}{ }\PYG{err}{or}\PYG{+w}{ }\PYG{err}{claims?}
+\PYG{+w}{      }\PYG{l+m+mf}{3.}\PYG{+w}{ }\PYG{err}{Wha}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{err}{are}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}\PYG{+w}{ }\PYG{err}{implica}\PYG{k+kc}{t}\PYG{err}{io}\PYG{k+kc}{ns}\PYG{err}{?}
+\PYG{+w}{      }\PYG{l+m+mf}{4.}\PYG{+w}{ }\PYG{err}{Wha}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{err}{is}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}\PYG{+w}{ }\PYG{err}{mos}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{err}{reliable}\PYG{+w}{ }\PYG{err}{co}\PYG{k+kc}{n}\PYG{err}{clusio}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{err}{based}\PYG{+w}{ }\PYG{err}{o}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}\PYG{+w}{ }\PYG{err}{evide}\PYG{k+kc}{n}\PYG{err}{ce?}
+
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}few\PYGZus{}shot\PYGZus{}examples\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}
+\PYG{+w}{      }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}user\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}What happened in Region X yesterday?\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}assistant\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{|}
+\PYG{+w}{          }\PYG{err}{Le}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{err}{me}\PYG{+w}{ }\PYG{err}{a}\PYG{k+kc}{nal}\PYG{err}{yze}\PYG{+w}{ }\PYG{k+kc}{t}\PYG{err}{he}\PYG{+w}{ }\PYG{err}{available}\PYG{+w}{ }\PYG{err}{sources}\PYG{p}{:}
+
+\PYG{+w}{          }\PYG{l+m+mf}{1.}\PYG{+w}{ }\PYG{err}{**Key}\PYG{+w}{ }\PYG{k+kc}{fa}\PYG{err}{c}\PYG{k+kc}{ts}\PYG{p}{:}\PYG{err}{**}
+\PYG{+w}{             }\PYG{l+m+mi}{\PYGZhy{}}\PYG{+w}{ }\PYG{err}{O}\PYG{k+kc}{ff}\PYG{err}{icial}\PYG{+w}{ }\PYG{err}{sources}\PYG{+w}{ }\PYG{p}{[}\PYG{err}{Source}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{OFF}\PYG{l+m+mi}{\PYGZhy{}001}\PYG{p}{]}\PYG{+w}{ }\PYG{err}{repor}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{+w}{ }\PYG{err}{i}\PYG{k+kc}{n}\PYG{err}{cide}\PYG{k+kc}{nts}
+\PYG{+w}{             }\PYG{l+m+mi}{\PYGZhy{}}\PYG{+w}{ }\PYG{err}{NGO}\PYG{+w}{ }\PYG{err}{sources}\PYG{+w}{ }\PYG{p}{[}\PYG{err}{Source}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{NGO}\PYG{l+m+mi}{\PYGZhy{}042}\PYG{p}{]}\PYG{+w}{ }\PYG{err}{repor}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{l+m+mi}{3}\PYG{+w}{ }\PYG{err}{i}\PYG{k+kc}{n}\PYG{err}{cide}\PYG{k+kc}{nts}
+\PYG{+w}{             }\PYG{l+m+mi}{\PYGZhy{}}\PYG{+w}{ }\PYG{err}{Bo}\PYG{k+kc}{t}\PYG{err}{h}\PYG{+w}{ }\PYG{err}{agree}\PYG{+w}{ }\PYG{err}{o}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{err}{loca}\PYG{k+kc}{t}\PYG{err}{io}\PYG{k+kc}{n}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{n}\PYG{err}{or}\PYG{k+kc}{t}\PYG{err}{her}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{err}{villages}
+
+\PYG{+w}{          }\PYG{l+m+mf}{2.}\PYG{+w}{ }\PYG{err}{**Di}\PYG{k+kc}{fferent}\PYG{+w}{ }\PYG{err}{perspec}\PYG{k+kc}{t}\PYG{err}{ives}\PYG{p}{:}\PYG{err}{**}
+\PYG{+w}{             }\PYG{l+m+mi}{\PYGZhy{}}\PYG{+w}{ }\PYG{err}{Timeli}\PYG{k+kc}{ne}\PYG{+w}{ }\PYG{err}{discrepa}\PYG{k+kc}{n}\PYG{err}{cy}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{OFF}\PYG{l+m+mi}{\PYGZhy{}001}\PYG{+w}{ }\PYG{err}{says}\PYG{+w}{ }\PYG{l+m+mi}{14}\PYG{p}{:}\PYG{l+m+mi}{00\PYGZhy{}18}\PYG{p}{:}\PYG{l+m+mi}{00}\PYG{p}{,}
+\PYG{+w}{               }\PYG{err}{NGO}\PYG{l+m+mi}{\PYGZhy{}042}\PYG{+w}{ }\PYG{err}{says}\PYG{+w}{ }\PYG{l+m+mi}{13}\PYG{p}{:}\PYG{l+m+mi}{30\PYGZhy{}19}\PYG{p}{:}\PYG{l+m+mi}{00}
+
+\PYG{+w}{          }\PYG{l+m+mf}{3.}\PYG{+w}{ }\PYG{err}{**Implica}\PYG{k+kc}{t}\PYG{err}{io}\PYG{k+kc}{ns}\PYG{p}{:}\PYG{err}{**}
+\PYG{+w}{             }\PYG{l+m+mi}{\PYGZhy{}}\PYG{+w}{ }\PYG{err}{Core}\PYG{+w}{ }\PYG{err}{eve}\PYG{k+kc}{nts}\PYG{+w}{ }\PYG{err}{co}\PYG{k+kc}{nf}\PYG{err}{irmed}\PYG{+w}{ }\PYG{err}{by}\PYG{+w}{ }\PYG{err}{bo}\PYG{k+kc}{t}\PYG{err}{h}\PYG{+w}{ }\PYG{err}{sources}
+\PYG{+w}{             }\PYG{l+m+mi}{\PYGZhy{}}\PYG{+w}{ }\PYG{err}{Discrepa}\PYG{k+kc}{n}\PYG{err}{cy}\PYG{+w}{ }\PYG{err}{sugges}\PYG{k+kc}{ts}\PYG{+w}{ }\PYG{err}{possible}\PYG{+w}{ }\PYG{err}{u}\PYG{k+kc}{n}\PYG{err}{derrepor}\PYG{k+kc}{t}\PYG{err}{i}\PYG{k+kc}{n}\PYG{err}{g}
+
+\PYG{+w}{          }\PYG{l+m+mf}{4.}\PYG{+w}{ }\PYG{err}{**Reliable}\PYG{+w}{ }\PYG{err}{co}\PYG{k+kc}{n}\PYG{err}{clusio}\PYG{k+kc}{n}\PYG{p}{:}\PYG{err}{**}
+\PYG{+w}{             }\PYG{err}{A}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{err}{leas}\PYG{k+kc}{t}\PYG{+w}{ }\PYG{l+m+mi}{2\PYGZhy{}3}\PYG{+w}{ }\PYG{err}{i}\PYG{k+kc}{n}\PYG{err}{cide}\PYG{k+kc}{nts}\PYG{+w}{ }\PYG{err}{occurred}\PYG{+w}{ }\PYG{err}{i}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{k+kc}{n}\PYG{err}{or}\PYG{k+kc}{t}\PYG{err}{her}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{err}{villages}
+\PYG{+w}{             }\PYG{err}{be}\PYG{k+kc}{t}\PYG{err}{wee}\PYG{k+kc}{n}\PYG{+w}{ }\PYG{l+m+mi}{13}\PYG{p}{:}\PYG{l+m+mi}{30\PYGZhy{}19}\PYG{p}{:}\PYG{l+m+mi}{00}\PYG{+w}{ }\PYG{p}{[}\PYG{err}{Source}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{OFF}\PYG{l+m+mi}{\PYGZhy{}001}\PYG{p}{,}\PYG{+w}{ }\PYG{err}{Source}\PYG{p}{:}\PYG{+w}{ }\PYG{err}{NGO}\PYG{l+m+mi}{\PYGZhy{}042}\PYG{p}{]}\PYG{err}{.}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{p}{],}
+
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}parameters\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}temperature\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.3}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}max\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{800}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}top\PYGZus{}p\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.9}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}frequency\PYGZus{}penalty\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.1}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}output\PYGZus{}schema\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}object\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}required\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}analysis\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}citations\PYGZdq{}}\PYG{p}{],}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}properties\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}analysis\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{          }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}string\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{          }\PYG{n+nt}{\PYGZdq{}description\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Synthesized analysis\PYGZdq{}}
+\PYG{+w}{        }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{        }\PYG{n+nt}{\PYGZdq{}citations\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{          }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}array\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{          }\PYG{n+nt}{\PYGZdq{}items\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{            }\PYG{n+nt}{\PYGZdq{}type\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}string\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{            }\PYG{n+nt}{\PYGZdq{}pattern\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}\PYGZca{}\PYGZbs{}\PYGZbs{}[Source: [A\PYGZhy{}Z]\PYGZob{}3\PYGZcb{}\PYGZhy{}\PYGZbs{}\PYGZbs{}d\PYGZob{}3\PYGZcb{}\PYGZbs{}\PYGZbs{}]\PYGZdl{}\PYGZdq{}}
+\PYG{+w}{          }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{        }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}safety\PYGZus{}guardrails\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}refusal\PYGZus{}keywords\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}classified\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}secret\PYGZdq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}confidential\PYGZdq{}}\PYG{p}{],}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}citation\PYGZus{}required\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}neutrality\PYGZus{}required\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{k+kc}{true}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}max\PYGZus{}length\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{1000}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}test\PYGZus{}suites\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}unit\PYGZus{}tests\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}tests/prompts/ishtar\PYGZus{}event\PYGZus{}synthesis\PYGZus{}unit\PYGZus{}v1.4.yaml\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}regression\PYGZus{}tests\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}tests/prompts/ishtar\PYGZus{}event\PYGZus{}synthesis\PYGZus{}regression\PYGZus{}v1.4.yaml\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}safety\PYGZus{}tests\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}tests/prompts/ishtar\PYGZus{}event\PYGZus{}synthesis\PYGZus{}safety\PYGZus{}v1.4.yaml\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}integration\PYGZus{}tests\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}tests/prompts/ishtar\PYGZus{}event\PYGZus{}synthesis\PYGZus{}integration\PYGZus{}v1.4.yaml\PYGZdq{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}regression\PYGZus{}baseline\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}version\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}1.3.0\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}metrics\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}groundedness\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.87}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}citation\PYGZus{}coverage\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.92}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}neutrality\PYGZus{}score\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{0.89}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{},}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}test\PYGZus{}results\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}s3://ishtar\PYGZhy{}evals/baselines/v1.3.0/results.json\PYGZdq{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{},}
+
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}deployment\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}canary\PYGZus{}percentage\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mi}{10}\PYG{p}{,}
+\PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}promotion\PYGZus{}criteria\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}groundedness\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}\PYGZgt{}= 0.85\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}citation\PYGZus{}coverage\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}\PYGZgt{}= 0.90\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}toxicity\PYGZus{}rate\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}\PYGZlt{}= 0.05\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{      }\PYG{n+nt}{\PYGZdq{}latency\PYGZus{}p95\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}\PYGZlt{}= 600\PYGZdq{}}
+\PYG{+w}{    }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

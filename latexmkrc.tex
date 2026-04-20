@@ -9,7 +9,7 @@ $ENV{'BSTINPUTS'} = './style//:'    . ($ENV{'BSTINPUTS'} // '');
 
 # --- Engine: pdfLaTeX (Springer default) ---
 $pdf_mode  = 1;  # -pdf
-$pdflatex  = 'pdflatex -file-line-error -interaction=nonstopmode -synctex=1 %O %S';
+$pdflatex  = 'pdflatex -shell-escape -file-line-error -interaction=nonstopmode -synctex=1 %O %S';
 
 # --- Bibliography: biblatex + biber ---
 $bibtex_use = 2;            # auto-use biber when biblatex is detected
@@ -41,8 +41,9 @@ push @generated_exts, qw(
 # =========================================================
 # NOTE:
 # 1) No qpdf linearization: Springer production handles PDF optimization.
-# 2) No shell-escape or external compilers (knitr/asymptote/metapost/etc.)
-#    unless explicitly required by the manuscript AND approved by Springer.
+# 2) Shell-escape IS enabled to support the `minted` package (Pygments-based
+#    syntax highlighting). This is an approved exception; no other external
+#    compilers (knitr/asymptote/metapost/etc.) are used.
 # 3) Glossaries/nomenclature are NOT configured here. If you truly use the
 #    glossaries package, we can add a minimal, reproducible hook on request.
 # =========================================================

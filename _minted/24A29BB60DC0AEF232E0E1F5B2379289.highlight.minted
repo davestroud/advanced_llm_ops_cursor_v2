@@ -1,0 +1,21 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} GitHub Actions\PYGZhy{}style pseudocode.}
+\PYG{c+c1}{\PYGZsh{} Run a small eval suite and fail the build if gates do not pass.}
+
+\PYG{n+nt}{jobs}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{eval}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{runs\PYGZhy{}on}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ubuntu\PYGZhy{}latest}
+\PYG{+w}{    }\PYG{n+nt}{steps}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{uses}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{actions/checkout@v4}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Install dependencies}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{pip install \PYGZhy{}r requirements.txt}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Run evaluation suite}
+\PYG{+w}{        }\PYG{n+nt}{env}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{OPENAI\PYGZus{}API\PYGZus{}KEY}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{\PYGZdl{}\PYGZob{}\PYGZob{} secrets.OPENAI\PYGZus{}API\PYGZus{}KEY \PYGZcb{}\PYGZcb{}}
+\PYG{+w}{        }\PYG{n+nt}{run}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{          }\PYG{n+no}{python \PYGZhy{}m evals.run \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}\PYGZhy{}suite ishtar\PYGZus{}smoke \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}\PYGZhy{}model candidate\PYGZus{}model\PYGZus{}id \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}\PYGZhy{}baseline baseline\PYGZus{}model\PYGZus{}id \PYGZbs{}}
+\PYG{+w}{            }\PYG{n+no}{\PYGZhy{}\PYGZhy{}gates gates/ishtar\PYGZus{}smoke.yaml}
+\end{MintedVerbatim}

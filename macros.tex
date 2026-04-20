@@ -133,10 +133,6 @@
   \newcounter{llmalgorithm}[chapter]
   \renewcommand{\thellmalgorithm}{\thechapter.\arabic{llmalgorithm}}
 }{}
-\@ifundefined{c@llmlisting}{%
-  \newcounter{llmlisting}[chapter]
-  \renewcommand{\thellmlisting}{\thechapter.\arabic{llmlisting}}
-}{}
 \@ifundefined{llmalgobox}{%
   \newenvironment{llmalgobox}[1]{%
     \refstepcounter{llmalgorithm}%
@@ -153,69 +149,7 @@
     ]
   }{\end{tcolorbox}}%
 }{}
-\@ifundefined{llmlistingbox}{%
-  \newenvironment{llmlistingbox}[1]{%
-    \refstepcounter{llmlisting}%
-    \begin{tcolorbox}[
-      title={\textbf{Listing \thellmlisting: #1}},
-      colback=black!2,
-      colframe=black!50,
-      colbacktitle=black!12,
-      coltitle=black,
-      fonttitle=\bfseries,
-      boxrule=0.6pt,
-      arc=3pt,
-      left=3mm, right=3mm, top=2mm, bottom=4mm,
-      breakable,
-      after skip=6pt
-    ]
-  }{\end{tcolorbox}}%
-}{}
 \makeatother
-
-% --- Listings default style (production-safe) ---
-\lstdefinestyle{springer}{
-  basicstyle=\ttfamily\small,
-  columns=fullflexible,
-  breaklines=true,
-  breakatwhitespace=true,
-  numbers=left,
-  numberstyle=\tiny,
-  stepnumber=1,
-  numbersep=6pt,
-  frame=single,
-  framerule=0.2pt,
-  xleftmargin=1.5em,
-  tabsize=2,
-  showstringspaces=false
-}
-\lstset{style=springer}
-
-% --- Professional float style for Springer listings ---
-\lstdefinestyle{springerfloat}{
-  basicstyle=\ttfamily\small,
-  columns=fullflexible,
-  breaklines=true,
-  breakatwhitespace=true,
-  numbers=left,
-  numberstyle=\tiny\color{gray!60},
-  stepnumber=1,
-  numbersep=8pt,
-  frame=tb,
-  framerule=0.4pt,
-  rulecolor=\color{black!40},
-  backgroundcolor=\color{gray!3},
-  xleftmargin=2em,
-  framexleftmargin=2em,
-  tabsize=2,
-  showstringspaces=false,
-  aboveskip=8pt,
-  belowskip=4pt,
-  captionpos=b,
-}
-
-% --- Listings float numbering: chapter-based (Listing 3.1, etc.) ---
-\AtBeginDocument{\renewcommand{\thelstlisting}{\thechapter.\arabic{lstlisting}}}
 
 % ==========================================================
 % Figure fitting helpers (SNmono-safe)
@@ -242,4 +176,131 @@
   \begin{adjustbox}{center}%
 }{%
   \end{adjustbox}%
+}
+
+% ==========================================================
+% Code Listings: minted + tcolorbox
+% ==========================================================
+% Produces a tcolorbox container that matches the visual language of
+% \BestPracticeBox and \ChecklistBox. Code is typeset by minted (real
+% syntax highlighting via Pygments). Numbering is chapter-scoped:
+% "Listing 1.1", "Listing 7.3", etc.
+%
+% Usage:
+%   \begin{codebox}{Caption stating the reader takeaway.}{lst:chXX_my_label}
+%   \begin{minted}{json}      % or python, yaml, bash, etc.
+%   ...code...
+%   \end{minted}
+%   \end{codebox}
+%
+% For listings without a label, pass an empty third argument: {}
+% ==========================================================
+
+% Default minted setup -- grayscale-safe, Springer-friendly font sizing.
+\setminted{
+  style=bw,
+  fontsize=\footnotesize,
+  breaklines=true,
+  breakanywhere=false,
+  breaksymbolleft=\textcolor{black!40}{\tiny\ensuremath{\hookrightarrow}},
+  numbers=left,
+  numbersep=8pt,
+  xleftmargin=1.6em,
+  framesep=2mm,
+  tabsize=2,
+  autogobble=true,
+}
+
+% Chapter-scoped counter so "Listing X.Y" matches figure/table conventions.
+\newcounter{codelisting}[chapter]
+\renewcommand{\thecodelisting}{\thechapter.\arabic{codelisting}}
+
+% The container. Matches \BestPracticeBox / \ChecklistBox visual language.
+% Args: #1 = caption (reader takeaway), #2 = label (e.g., lst:ch01_foo)
+\newtcolorbox{codebox}[2]{%
+  enhanced, breakable,
+  colback=black!2,
+  colframe=black!55,
+  colbacktitle=black!10,
+  coltitle=black,
+  fonttitle=\bfseries\small,
+  title={\refstepcounter{codelisting}\label{#2}Listing \thecodelisting},
+  boxrule=0.4pt,
+  arc=2pt,
+  left=2mm, right=2mm, top=1mm, bottom=1mm,
+  before skip=10pt, after skip=10pt,
+  attach boxed title to top left={xshift=2mm, yshift=-2mm},
+  boxed title style={boxrule=0pt, arc=1pt},
+  after upper={\par\smallskip\noindent\itshape\footnotesize #1\par},
+}
+
+% ==========================================================
+% Figure style contract for TikZ + PGFPlots
+% ==========================================================
+% Single source of truth for diagram and chart aesthetics.
+% Every figure in the book should use these styles to ensure
+% grayscale safety, consistent typography, print-safe line
+% weights, and Springer textblock fit.
+% ==========================================================
+
+% Brand-neutral palette: each color has a distinct grayscale value
+% so figures remain legible in print without relying on hue alone.
+% Sources:
+%   - Hue separation: ~30 deg between adjacent slots
+%   - Lightness separation: at least 12 L* between adjacent slots
+\definecolor{llmblue}{RGB}{44,102,146}     % L* ~ 41
+\definecolor{llmorange}{RGB}{201,111,29}   % L* ~ 56
+\definecolor{llmgreen}{RGB}{34,139,96}     % L* ~ 51
+\definecolor{llmpurple}{RGB}{123,88,163}   % L* ~ 44
+\definecolor{llmgray}{RGB}{90,90,90}       % L* ~ 38
+
+% Diagram styles. Use these in every \begin{tikzpicture} so node
+% shapes, line weights, and arrow heads are uniform book-wide.
+\tikzset{
+  llm/box/.style={
+    draw=black!70, line width=0.6pt, rounded corners=3pt,
+    align=center, inner sep=4pt, minimum height=9mm, font=\small
+  },
+  llm/box/blue/.style   ={llm/box, fill=llmblue!12,   draw=llmblue!70},
+  llm/box/orange/.style ={llm/box, fill=llmorange!12, draw=llmorange!70},
+  llm/box/green/.style  ={llm/box, fill=llmgreen!12,  draw=llmgreen!70},
+  llm/box/purple/.style ={llm/box, fill=llmpurple!12, draw=llmpurple!70},
+  llm/box/gray/.style   ={llm/box, fill=black!4,      draw=black!50},
+  llm/arrow/.style={-{Latex[length=2.2mm,width=1.6mm]}, line width=0.7pt, color=black!75},
+  llm/arrow/dashed/.style={llm/arrow, dashed, dash pattern=on 3pt off 2pt, color=black!60},
+  llm/lane/.style={draw=black!40, rounded corners=4pt, dashed, inner sep=8pt},
+  llm/label/.style={font=\footnotesize, align=left, text=black!75},
+}
+
+% PGFPlots defaults. Apply with [llm/chart] inside \begin{axis}[...].
+\pgfplotsset{
+  llm/chart/.style={
+    width=0.92\linewidth,
+    height=6.5cm,
+    font=\small,
+    xlabel style={font=\small\bfseries},
+    ylabel style={font=\small\bfseries},
+    ticklabel style={font=\footnotesize},
+    legend style={
+      font=\footnotesize, draw=black!40, fill=white,
+      cells={anchor=west}, at={(0.02,0.97)}, anchor=north west
+    },
+    grid=major,
+    grid style={black!15, line width=0.3pt},
+    axis line style={line width=0.6pt, black!75},
+    tick align=outside,
+    tick style={black!60},
+    every axis plot/.append style={line width=1.2pt},
+  },
+  % Cycle list with print-safe lightness separation; uses dash patterns
+  % to remain distinguishable in grayscale.
+  llm/cycle/.style={
+    cycle list={
+      {color=llmblue,   solid,                          mark=*,        mark size=1.5pt},
+      {color=llmorange, dashed, dash pattern=on 4pt off 2pt, mark=square*, mark size=1.5pt},
+      {color=llmgreen,  dotted, dash pattern=on 1pt off 1.5pt, mark=triangle*, mark size=1.8pt},
+      {color=llmpurple, dashdotted,                     mark=diamond*, mark size=1.8pt},
+      {color=llmgray,   loosely dashed,                 mark=x,        mark size=1.8pt},
+    }
+  }
 }

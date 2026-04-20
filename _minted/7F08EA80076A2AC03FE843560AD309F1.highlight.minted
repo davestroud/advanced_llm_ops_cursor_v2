@@ -1,0 +1,25 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n}{state} \PYG{o}{=} \PYG{p}{\PYGZob{}}
+  \PYG{l+s+s2}{\PYGZdq{}query\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}...\PYGZdq{}}\PYG{p}{,}
+  \PYG{l+s+s2}{\PYGZdq{}context\PYGZus{}pack\PYGZdq{}}\PYG{p}{:} \PYG{n}{null}\PYG{p}{,}
+  \PYG{l+s+s2}{\PYGZdq{}draft\PYGZdq{}}\PYG{p}{:} \PYG{n}{null}\PYG{p}{,}
+  \PYG{l+s+s2}{\PYGZdq{}verified\PYGZdq{}}\PYG{p}{:} \PYG{n}{null}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n}{graph}\PYG{o}{.}\PYG{n}{add\PYGZus{}node}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}retrieve\PYGZdq{}}\PYG{p}{,} \PYG{n}{RetrievalAgent}\PYG{p}{)}
+\PYG{n}{graph}\PYG{o}{.}\PYG{n}{add\PYGZus{}node}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}synthesize\PYGZdq{}}\PYG{p}{,} \PYG{n}{SynthesisAgent}\PYG{p}{)}
+\PYG{n}{graph}\PYG{o}{.}\PYG{n}{add\PYGZus{}node}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}verify\PYGZdq{}}\PYG{p}{,} \PYG{n}{VerificationAgent}\PYG{p}{)}
+\PYG{n}{graph}\PYG{o}{.}\PYG{n}{add\PYGZus{}node}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}safety\PYGZdq{}}\PYG{p}{,} \PYG{n}{SafetyAgent}\PYG{p}{)}
+
+\PYG{n}{graph}\PYG{o}{.}\PYG{n}{add\PYGZus{}edge}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}retrieve\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}synthesize\PYGZdq{}}\PYG{p}{)}
+\PYG{n}{graph}\PYG{o}{.}\PYG{n}{add\PYGZus{}edge}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}synthesize\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}verify\PYGZdq{}}\PYG{p}{)}
+\PYG{n}{graph}\PYG{o}{.}\PYG{n}{add\PYGZus{}edge}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}verify\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}safety\PYGZdq{}}\PYG{p}{)}
+
+\PYG{c+c1}{\PYGZsh{} Optional loop: if verification flags issues, route back to synthesis}
+\PYG{n}{graph}\PYG{o}{.}\PYG{n}{add\PYGZus{}conditional\PYGZus{}edge}\PYG{p}{(}
+  \PYG{l+s+s2}{\PYGZdq{}verify\PYGZdq{}}\PYG{p}{,}
+  \PYG{n}{condition}\PYG{o}{=}\PYG{k}{lambda} \PYG{n}{st}\PYG{p}{:} \PYG{n}{st}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}verified\PYGZdq{}}\PYG{p}{]}\PYG{o}{.}\PYG{n}{status} \PYG{o}{==} \PYG{l+s+s2}{\PYGZdq{}needs\PYGZus{}review\PYGZdq{}}\PYG{p}{,}
+  \PYG{n}{true\PYGZus{}node}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}synthesize\PYGZdq{}}\PYG{p}{,}
+  \PYG{n}{false\PYGZus{}node}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}safety\PYGZdq{}}
+\PYG{p}{)}
+\end{MintedVerbatim}

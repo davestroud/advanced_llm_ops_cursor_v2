@@ -1,0 +1,88 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Quantization Configuration}
+\PYG{n+nt}{quantization\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.3.0\PYGZdq{}}
+\PYG{n+nt}{model\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llama\PYGZhy{}3.1\PYGZhy{}13b\PYGZdq{}}
+\PYG{n+nt}{target\PYGZus{}hardware}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}nvidia\PYGZhy{}h100\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Quantization scheme}
+\PYG{n+nt}{scheme}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}mixed\PYGZus{}precision\PYGZdq{}}
+\PYG{n+nt}{precision\PYGZus{}map}\PYG{p}{:}
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Attention layers: FP8 for compute efficiency}
+\PYG{+w}{  }\PYG{n+nt}{attention}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{weights}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}fp8\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{activations}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}fp8\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{kv\PYGZus{}cache}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}int8\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Feed\PYGZhy{}forward networks: INT8 for memory efficiency}
+\PYG{+w}{  }\PYG{n+nt}{ffn}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{weights}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}int8\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{activations}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}fp16\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Embedding layers: FP16 for stability}
+\PYG{+w}{  }\PYG{n+nt}{embeddings}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{weights}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}fp16\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Output projection: FP16 for final accuracy}
+\PYG{+w}{  }\PYG{n+nt}{output\PYGZus{}projection}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{weights}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}fp16\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Calibration configuration}
+\PYG{n+nt}{calibration}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{method}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}smoothquant\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} smoothquant, gptq, awq}
+\PYG{+w}{  }\PYG{n+nt}{dataset\PYGZus{}path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}datasets/calibration/ishtar\PYGZus{}representative.jsonl\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{num\PYGZus{}samples}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{512}
+\PYG{+w}{  }\PYG{n+nt}{calibration\PYGZus{}batch\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} SmoothQuant specific}
+\PYG{+w}{  }\PYG{n+nt}{smoothquant\PYGZus{}alpha}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.5}
+\PYG{+w}{  }\PYG{n+nt}{per\PYGZus{}channel}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Outlier handling}
+\PYG{+w}{  }\PYG{n+nt}{preserve\PYGZus{}outliers}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{outlier\PYGZus{}threshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{3.0}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} standard deviations}
+
+\PYG{c+c1}{\PYGZsh{} Quality validation}
+\PYG{n+nt}{validation}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{golden\PYGZus{}set}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}datasets/golden/ishtar\PYGZus{}v1.0.jsonl\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{metrics}\PYG{p}{:}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}perplexity\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}task\PYGZus{}accuracy\PYGZdq{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}faithfulness\PYGZdq{}}
+
+\PYG{+w}{  }\PYG{n+nt}{thresholds}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{perplexity\PYGZus{}degradation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.05}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Max 5\PYGZpc{} increase}
+\PYG{+w}{    }\PYG{n+nt}{task\PYGZus{}accuracy\PYGZus{}drop}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.02}\PYG{+w}{     }\PYG{c+c1}{\PYGZsh{} Max 2\PYGZpc{} drop}
+\PYG{+w}{    }\PYG{n+nt}{faithfulness\PYGZus{}drop}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.01}\PYG{+w}{       }\PYG{c+c1}{\PYGZsh{} Max 1\PYGZpc{} drop}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Per\PYGZhy{}layer validation}
+\PYG{+w}{  }\PYG{n+nt}{layer\PYGZus{}wise\PYGZus{}validation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{problematic\PYGZus{}layers\PYGZus{}fallback}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}fp16\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Runtime configuration}
+\PYG{n+nt}{runtime}\PYG{p}{:}
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Enable quantization\PYGZhy{}aware kernels}
+\PYG{+w}{  }\PYG{n+nt}{use\PYGZus{}tensor\PYGZus{}cores}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}fp8\PYGZus{}tc}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} FP8 Tensor Cores on H100}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} KV cache quantization}
+\PYG{+w}{  }\PYG{n+nt}{kv\PYGZus{}cache\PYGZus{}quantization}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{dtype}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}int8\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{per\PYGZus{}token}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Per\PYGZhy{}channel quantization}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Dynamic quantization (if supported)}
+\PYG{+w}{  }\PYG{n+nt}{dynamic\PYGZus{}quantization}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{false}
+\PYG{+w}{  }\PYG{n+nt}{activation\PYGZus{}quantization}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}static\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Performance targets}
+\PYG{n+nt}{targets}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{memory\PYGZus{}reduction}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.50}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Target 50\PYGZpc{} reduction}
+\PYG{+w}{  }\PYG{n+nt}{speedup}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1.5}\PYG{+w}{            }\PYG{c+c1}{\PYGZsh{} Target 1.5x speedup}
+\PYG{+w}{  }\PYG{n+nt}{accuracy\PYGZus{}preservation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.98}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Preserve 98\PYGZpc{} accuracy}
+
+\PYG{c+c1}{\PYGZsh{} Deployment}
+\PYG{n+nt}{deployment}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{export\PYGZus{}format}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}onnx\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} or \PYGZdq{}tensorrt\PYGZdq{}, \PYGZdq{}torchscript\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}quantization\PYGZus{}ops}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}quantized\PYGZus{}v1.3.0\PYGZdq{}}
+\end{MintedVerbatim}

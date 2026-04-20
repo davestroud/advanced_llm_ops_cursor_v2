@@ -1,0 +1,126 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{apps/v1}
+\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Deployment}
+\PYG{n+nt}{metadata}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm\PYGZhy{}inference}
+\PYG{+w}{  }\PYG{n+nt}{namespace}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{production}
+\PYG{+w}{  }\PYG{n+nt}{labels}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{app}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm}
+\PYG{+w}{    }\PYG{n+nt}{component}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{inference}
+\PYG{+w}{    }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{v1.3.0}
+\PYG{n+nt}{spec}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{replicas}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{3}
+\PYG{+w}{  }\PYG{n+nt}{selector}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{matchLabels}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{app}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm}
+\PYG{+w}{      }\PYG{n+nt}{component}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{inference}
+\PYG{+w}{  }\PYG{n+nt}{template}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{metadata}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{labels}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{app}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm}
+\PYG{+w}{        }\PYG{n+nt}{component}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{inference}
+\PYG{+w}{        }\PYG{n+nt}{version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{v1.3.0}
+\PYG{+w}{    }\PYG{n+nt}{spec}\PYG{p}{:}
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} Node selection and taints}
+\PYG{+w}{      }\PYG{n+nt}{nodeSelector}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{nodeType}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{gpu}
+\PYG{+w}{        }\PYG{n+nt}{workload}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{llm\PYGZhy{}inference}
+\PYG{+w}{      }\PYG{n+nt}{tolerations}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{key}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}gpu\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{operator}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Equal\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}true\PYGZdq{}}
+\PYG{+w}{        }\PYG{n+nt}{effect}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}NoSchedule\PYGZdq{}}
+
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} Affinity rules for high availability}
+\PYG{+w}{      }\PYG{n+nt}{affinity}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{podAntiAffinity}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{preferredDuringSchedulingIgnoredDuringExecution}\PYG{p}{:}
+\PYG{+w}{          }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{weight}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{100}
+\PYG{+w}{            }\PYG{n+nt}{podAffinityTerm}\PYG{p}{:}
+\PYG{+w}{              }\PYG{n+nt}{labelSelector}\PYG{p}{:}
+\PYG{+w}{                }\PYG{n+nt}{matchExpressions}\PYG{p}{:}
+\PYG{+w}{                }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{key}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{app}
+\PYG{+w}{                  }\PYG{n+nt}{operator}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{In}
+\PYG{+w}{                  }\PYG{n+nt}{values}\PYG{p}{:}
+\PYG{+w}{                  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm}
+\PYG{+w}{              }\PYG{n+nt}{topologyKey}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{kubernetes.io/hostname}
+
+\PYG{+w}{      }\PYG{n+nt}{containers}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{inference\PYGZhy{}server}
+\PYG{+w}{        }\PYG{n+nt}{image}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar/llm\PYGZhy{}inference:v1.3.0}
+\PYG{+w}{        }\PYG{n+nt}{imagePullPolicy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Always}
+
+\PYG{+w}{        }\PYG{c+c1}{\PYGZsh{} GPU resource requests}
+\PYG{+w}{        }\PYG{n+nt}{resources}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{requests}\PYG{p}{:}
+\PYG{+w}{            }\PYG{n+nt}{nvidia.com/gpu}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1}
+\PYG{+w}{            }\PYG{n+nt}{memory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}40Gi\PYGZdq{}}
+\PYG{+w}{            }\PYG{n+nt}{cpu}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}8\PYGZdq{}}
+\PYG{+w}{          }\PYG{n+nt}{limits}\PYG{p}{:}
+\PYG{+w}{            }\PYG{n+nt}{nvidia.com/gpu}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1}
+\PYG{+w}{            }\PYG{n+nt}{memory}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}45Gi\PYGZdq{}}
+\PYG{+w}{            }\PYG{n+nt}{cpu}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}16\PYGZdq{}}
+
+\PYG{+w}{        }\PYG{c+c1}{\PYGZsh{} Environment variables}
+\PYG{+w}{        }\PYG{n+nt}{env}\PYG{p}{:}
+\PYG{+w}{        }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{MODEL\PYGZus{}NAME}
+\PYG{+w}{          }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llama\PYGZhy{}2\PYGZhy{}13b\PYGZhy{}chat\PYGZdq{}}
+\PYG{+w}{        }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{MODEL\PYGZus{}PATH}
+\PYG{+w}{          }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}/models/llama\PYGZhy{}2\PYGZhy{}13b\PYGZdq{}}
+\PYG{+w}{        }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{MAX\PYGZus{}BATCH\PYGZus{}SIZE}
+\PYG{+w}{          }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}8\PYGZdq{}}
+\PYG{+w}{        }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{PORT}
+\PYG{+w}{          }\PYG{n+nt}{value}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}8000\PYGZdq{}}
+
+\PYG{+w}{        }\PYG{c+c1}{\PYGZsh{} Health probes}
+\PYG{+w}{        }\PYG{n+nt}{livenessProbe}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{httpGet}\PYG{p}{:}
+\PYG{+w}{            }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{/health/live}
+\PYG{+w}{            }\PYG{n+nt}{port}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8000}
+\PYG{+w}{          }\PYG{n+nt}{initialDelaySeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{60}
+\PYG{+w}{          }\PYG{n+nt}{periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{30}
+\PYG{+w}{          }\PYG{n+nt}{timeoutSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5}
+\PYG{+w}{          }\PYG{n+nt}{failureThreshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{3}
+
+\PYG{+w}{        }\PYG{n+nt}{readinessProbe}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{httpGet}\PYG{p}{:}
+\PYG{+w}{            }\PYG{n+nt}{path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{/health/ready}
+\PYG{+w}{            }\PYG{n+nt}{port}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8000}
+\PYG{+w}{          }\PYG{n+nt}{initialDelaySeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{120}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Allow model loading time}
+\PYG{+w}{          }\PYG{n+nt}{periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10}
+\PYG{+w}{          }\PYG{n+nt}{timeoutSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5}
+\PYG{+w}{          }\PYG{n+nt}{failureThreshold}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{3}
+
+\PYG{+w}{        }\PYG{c+c1}{\PYGZsh{} Volume mounts for model storage}
+\PYG{+w}{        }\PYG{n+nt}{volumeMounts}\PYG{p}{:}
+\PYG{+w}{        }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{model\PYGZhy{}storage}
+\PYG{+w}{          }\PYG{n+nt}{mountPath}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{/models}
+\PYG{+w}{          }\PYG{n+nt}{readOnly}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{+w}{      }\PYG{n+nt}{volumes}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{model\PYGZhy{}storage}
+\PYG{+w}{        }\PYG{n+nt}{persistentVolumeClaim}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{claimName}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}models\PYGZhy{}pvc}
+
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} Security context}
+\PYG{+w}{      }\PYG{n+nt}{securityContext}\PYG{p}{:}
+\PYG{+w}{        }\PYG{n+nt}{runAsNonRoot}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{        }\PYG{n+nt}{runAsUser}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1000}
+\PYG{+w}{        }\PYG{n+nt}{fsGroup}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1000}
+
+\PYG{n+nn}{\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{v1}
+\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Service}
+\PYG{n+nt}{metadata}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm\PYGZhy{}inference}
+\PYG{+w}{  }\PYG{n+nt}{namespace}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{production}
+\PYG{n+nt}{spec}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{selector}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{app}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm}
+\PYG{+w}{    }\PYG{n+nt}{component}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{inference}
+\PYG{+w}{  }\PYG{n+nt}{ports}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{port}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{80}
+\PYG{+w}{    }\PYG{n+nt}{targetPort}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8000}
+\PYG{+w}{    }\PYG{n+nt}{protocol}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{TCP}
+\PYG{+w}{  }\PYG{n+nt}{type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ClusterIP}
+\end{MintedVerbatim}
