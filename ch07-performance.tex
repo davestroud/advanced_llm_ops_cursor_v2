@@ -381,12 +381,16 @@ deployment:
 \rowcolor{gray!15}
 \textbf{Scheme} & \textbf{Typical Memory Reduction} & \textbf{Speed Gain} & \textbf{Accuracy Impact} & \textbf{Hardware Compatibility} \\
 \midrule
+\rowcolor{blue!8}
 INT8 & $\sim$50\% vs.\ FP16 & Moderate & Minimal with calibration & Supported on most modern NVIDIA/AMD GPUs; widely available in inference frameworks. \\
 \addlinespace[2pt]
+\rowcolor{green!10}
 FP8 & $\sim$50\% vs.\ FP16 & Moderate--High (on supported HW) & Minimal--Low & Native support on NVIDIA H100; partial support on Hopper architecture; not supported on A100. \\
 \addlinespace[2pt]
-4-bit & $\sim$75\% vs.\ FP16 & High & Low--Moderate, task dependent & Supported via software toolkits (e.g., GPTQ, bitsandbytes) on NVIDIA GPUs; performance varies by architecture. \\
+\rowcolor{orange!10}
+4-bit & \textcolor{orange!70!black}{\textbf{$\sim$75\% vs.\ FP16}} & High & Low--Moderate, task dependent & Supported via software toolkits (e.g., GPTQ, bitsandbytes) on NVIDIA GPUs; performance varies by architecture. \\
 \addlinespace[2pt]
+\rowcolor{blue!8}
 Mixed Precision & Variable & Variable & Tunable trade-off & Framework-dependent; often combines FP16, FP8, and INT8 in compatible layers. \\
 \bottomrule
 \end{tabularx}
@@ -1711,11 +1715,16 @@ Table~\ref{tab:ch07_opt_priority} summarizes the framework.
 \rowcolor{gray!15}
 \textbf{Priority} & \textbf{Optimization} & \textbf{Expected Impact} & \textbf{Effort} & \textbf{Notes} \\
 \midrule
-1 & Batch size tuning + continuous batching & 2--8$\times$ throughput & Low & Near-free performance; enable in vLLM/TGI. Validate latency SLOs. \\
-2 & Quantization (INT8 / FP8) & 1.3--2$\times$ tokens/s; 50\% memory reduction & Moderate & Calibrate on representative data; validate with golden set. \\
-3 & KV-cache optimization (paged attention, quantized KV) & 1.5--3$\times$ effective batch capacity & Moderate & Critical for long contexts and high concurrency. \\
-4 & Model distillation & 2--10$\times$ smaller model; proportional cost reduction & High & Requires teacher--student training pipeline; best for stable workloads. \\
-5 & Custom kernels / FlashAttention & 10--30\% end-to-end speedup & High & Hardware-specific; requires kernel expertise or framework support. \\
+\rowcolor{green!10}
+\textcolor{green!70!black}{\textbf{1}} & Batch size tuning + continuous batching & 2--8$\times$ throughput & \textcolor{green!70!black}{\textbf{Low}} & Near-free performance; enable in vLLM/TGI. Validate latency SLOs. \\
+\rowcolor{blue!8}
+\textcolor{blue!70!black}{\textbf{2}} & Quantization (INT8 / FP8) & 1.3--2$\times$ tokens/s; 50\% memory reduction & Moderate & Calibrate on representative data; validate with golden set. \\
+\rowcolor{blue!8}
+\textcolor{blue!70!black}{\textbf{3}} & KV-cache optimization (paged attention, quantized KV) & 1.5--3$\times$ effective batch capacity & Moderate & Critical for long contexts and high concurrency. \\
+\rowcolor{orange!10}
+\textcolor{orange!70!black}{\textbf{4}} & Model distillation & 2--10$\times$ smaller model; proportional cost reduction & \textcolor{orange!70!black}{\textbf{High}} & Requires teacher--student training pipeline; best for stable workloads. \\
+\rowcolor{red!8}
+\textcolor{red!70!black}{\textbf{5}} & Custom kernels / FlashAttention & 10--30\% end-to-end speedup & \textcolor{red!70!black}{\textbf{High}} & Hardware-specific; requires kernel expertise or framework support. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1752,10 +1761,10 @@ Performance optimization is not a one-time task—it is an ongoing process that 
 \rowcolor{gray!15}
 \textbf{Metric} & \textbf{Before (baseline)} & \textbf{After (optimized)} & \textbf{Notes} \\
 \midrule
-Median latency (p50)     & 2.3 s  & 1.1 s  & INT8/4-bit + vLLM batching + RAG compression. \\
-Tail latency (p95)       & 5.0 s  & 2.0 s  & Fewer outliers; async streaming improved TTFT. \\
-Throughput (tokens/s/GPU)& 130    & 210    & $\sim$60\% gain from batching + engine swap. \\
-Cost per 1k tokens (USD) & 1.00   & 0.70   & $\sim$30\% GPU-hour reduction at same volume. \\
+Median latency (p50)     & \textcolor{orange!70!black}{\textbf{2.3 s}}  & \textcolor{green!70!black}{\textbf{1.1 s}}  & INT8/4-bit + vLLM batching + RAG compression. \\
+Tail latency (p95)       & \textcolor{orange!70!black}{\textbf{5.0 s}}  & \textcolor{green!70!black}{\textbf{2.0 s}}  & Fewer outliers; async streaming improved TTFT. \\
+Throughput (tokens/s/GPU)& \textcolor{orange!70!black}{\textbf{130}}    & \textcolor{green!70!black}{\textbf{210}}    & $\sim$60\% gain from batching + engine swap. \\
+Cost per 1k tokens (USD) & \textcolor{orange!70!black}{\textbf{1.00}}   & \textcolor{green!70!black}{\textbf{0.70}}   & $\sim$30\% GPU-hour reduction at same volume. \\
 \bottomrule
 \end{tabularx}
 \end{table}
