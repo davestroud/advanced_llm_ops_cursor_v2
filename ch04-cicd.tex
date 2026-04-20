@@ -108,22 +108,26 @@ To operationalize these principles, evaluation pipelines are typically organized
 \rowcolor{gray!15}
 \textbf{Stage} & \textbf{Primary Objectives} & \textbf{Metrics \& Checks} & \textbf{Representative Tools} \\
 \midrule
-Pre-merge (minutes) &
+\rowcolor{green!10}
+\textbf{Pre-merge (minutes)} &
 Block regressions early; perform fast sanity checks; enforce format and safety guards &
 $\sim$50--200 deterministic samples; static regex guards (PII, prompt injection); schema/format checks &
 Promptfoo GitHub Action; lightweight LangSmith evaluators \\
 
-Post-merge on main (hours) &
+\rowcolor{blue!8}
+\textbf{Post-merge on main (hours)} &
 Medium-scale functional and safety validation; statistical gating vs.~baseline &
 1--5k examples; model-graded rubrics (helpfulness, groundedness); retrieval hit rate; toxicity/bias probes &
 LangSmith evaluators; MLflow LLM evals; custom CI runners \\
 
-Nightly/Batch (cost-aware) &
+\rowcolor{orange!10}
+\textbf{Nightly/Batch (cost-aware)} &
 Heavy adversarial evaluation; fairness and robustness probes; long-context stress tests &
 5k--20k examples; Arena-style prompts; fairness slices; agent tool-use; contradiction/NLI checks &
 Arize Phoenix; TruLens; RAGAS/ARES; adversarial red-team scripts \\
 
-Canary/Shadow (real traffic) &
+\rowcolor{red!8}
+\textbf{Canary/Shadow (real traffic)} &
 Production-facing evaluation; monitor slice-level drift and safety in situ &
 Live traffic subset; online model-graded evaluators; groundedness/faithfulness dashboards; latency/cost monitors &
 LangSmith prod evals; Phoenix dashboards; Evidently; NannyML drift detectors \\
