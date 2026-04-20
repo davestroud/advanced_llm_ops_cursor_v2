@@ -741,7 +741,7 @@ if __name__ == "__main__":
 \end{minted}
 \end{codebox}
 
-\subsection{Cost Management}
+\subsection{Cost Management}\index{cost management!CI/CD}
 Evaluation is resource-intensive, and costs must be managed carefully. Retrievals and judge calls should be cached, and pairwise comparisons preferred over absolute scoring. Importance sampling can be used to focus on high-value slices while maintaining statistical power with smaller samples. Heavy evaluation suites are best run nightly or weekly, while pre-merge checks remain small and deterministic.
 
 \subsection{Documentation and Compliance}
@@ -752,7 +752,7 @@ A broad ecosystem of tools supports continuous evaluation. Open-source framework
 
 \BestPracticeBox{Continuous evaluation is no longer optional---it is the backbone of responsible LLMOps. Staged evaluation pipelines, model-graded judges, retrieval-aware groundedness checks, and statistical gates collectively enable reliable, auditable, and safe releases. Model judges offer scalability, but their biases must be controlled and their outputs triangulated with human assessments. In sum, evaluations should be treated both as executable code and as governance evidence.}
 
-\section{Fine-Tuning-Aware Workflows}
+\section{Fine-Tuning-Aware Workflows}\index{fine-tuning!workflows}
 \label{sec:cicd-finetune}
 \subsection{Model and prompt promotion as first-class releases}
 Fine-tuning introduces additional release artifacts beyond code: training datasets, checkpoints, evaluation reports, and model registry metadata. A robust workflow treats each model version and its associated prompt/tool contract as a promoted unit. Model registries (e.g., MLflow Model Registry) support staged promotion (\emph{staging} $\rightarrow$ \emph{production}), version tags, and audit trails that integrate naturally with CI/CD gates \cite{mlflow_model_registry,mlflow_model_registry_workflow}.
@@ -1185,7 +1185,7 @@ Unlike conventional microservices, LLM behavior depends on a triad of artifacts-
 \medskip
 In summary, shadow, canary, blue--green, and automated rollback form a layered defense that localizes risk, supports statistically credible decisions, and preserves reversibility. Embedding LLM-specific observability and artifact versioning into these patterns turns progressive delivery into a practical safety system for generative applications \cite{rohan_llmops,mlflow_llm_eval,langsmith_eval,phoenix_rag,trulens}.
 
-\section{Observability and CI Tooling}
+\section{Observability and CI Tooling}\index{observability!CI tooling}
 \label{sec:cicd-observability-ci}
 \subsection{Supply-Chain Security, Provenance, and Trusted Releases}
 Because LLM systems ship not only application code but also prompts, orchestration graphs, model binaries, container images, and sometimes private retrieval indices, CI/CD must address software supply-chain integrity. A practical baseline is to adopt SLSA (Supply-chain Levels for Software Artifacts) to incrementally improve build integrity and provenance guarantees \cite{slsa_about,slsa_levels}. In containerized deployments, Sigstore\texttt{/}cosign can sign images and attach attestations (including SBOMs and in-toto predicates), enabling verification before promotion to production \cite{sigstore_cosign,cosign_attestations}. This is especially important for GPU images, where driver/toolkit drift and opaque base images can create reproducibility and security failures.
@@ -1253,7 +1253,7 @@ Modern platforms support two complementary flows. First, \emph{manual curation}:
 \subsubsection{Integrating with CI/CD}
 A practical pattern is \emph{dataset replay as a first-class CI step}. Post--merge, the pipeline replays a fixed batch of recent high-signal traces (e.g., the last 24--72 hours of failing slices) against both the baseline and the candidate, producing paired metrics and significance tests that mirror offline evaluation (bootstrap for continuous rubrics; McNemar for binary safety flags). Nightly, a larger replay spans curated and mined datasets to estimate power on low-incidence harms. Promotion rules tie directly to slice-level SLOs (e.g., hallucination rate not worse; groundedness $+0.5$ with 95\% CI excluding zero).
 
-\section{Structured Prompt Testing}
+\section{Structured Prompt Testing}\index{prompt testing!structured}
 \label{sec:cicd-structured-prompt-testing}
 \BestPracticeBox{Prompts are treated as first-class artifacts:
 \begin{itemize}[leftmargin=1.5em, itemsep=4pt, topsep=2pt]
