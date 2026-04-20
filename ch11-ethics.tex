@@ -187,10 +187,10 @@ Table~\ref{tab:ch11_ethical_principles} maps high-level ethical principles to co
 \label{tab:ch11_ethical_principles}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Principle} & \textbf{Operational Mechanisms} & \textbf{Tools/Techniques} & \textbf{Compliance Requirements} \\
 \midrule
 \textbf{Transparency} & Model cards; data provenance documentation; user disclosure (AI-generated labels); policy publication & Model card templates \cite{mitchell_model_cards}; datasheets for datasets \cite{gebru_datasheets}; citation systems (RAG); content labeling & EU AI Act (transparency obligations); model documentation standards; user notification requirements \\
@@ -314,10 +314,10 @@ The OWASP Top 10 for LLM Applications\index{OWASP!LLM Top 10} identifies the mos
 \label{tab:ch11_owasp_mapping}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.2cm}@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{OWASP Risk} & \textbf{LLMOps Mitigation} & \textbf{Control Type} \\
 \midrule
 \textbf{LLM01: Prompt Injection} & Input sanitization filters; instruction hierarchy enforcement; canary-token detection in system prompts & Runtime filter \\
@@ -354,10 +354,10 @@ Table~\ref{tab:ch11_regulatory_mapping} provides a unified view mapping regulato
 \label{tab:ch11_regulatory_mapping}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{EU AI Act} & \textbf{NIST AI RMF} & \textbf{OWASP LLM} & \textbf{LLMOps Control} \\
 \midrule
 Art.\ 9 (Risk Mgmt) & Map, Measure & LLM03, LLM05 & Risk register; pre-deploy test suite; continuous monitoring \\
@@ -425,10 +425,10 @@ Table~\ref{tab:ch11_bias_mitigation} systematically maps bias sources to targete
 \label{tab:ch11_bias_mitigation}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Bias Source} & \textbf{Examples} & \textbf{Mitigation Techniques} & \textbf{Evaluation Methods} \\
 \midrule
 \textbf{Training Data Bias} & Skewed demographics (more men than women in tech discussions); Western-dominated corpora; stereotypical associations (``illegal immigrant'' in negative contexts); outdated/historical bias \cite{ar5iv_labs} & Data auditing and curation; rebalancing datasets; removing toxic content; including underrepresented voices; filtering extremist texts and PII \cite{bcg2023} & Representational balance analysis; sentiment analysis; protected-group mention detection; demographic distribution checks \\
@@ -730,10 +730,10 @@ A tiered retention schedule ensures that data is kept only as long as necessary 
 \label{tab:ch11_retention}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Data Category} & \textbf{Retention Period} & \textbf{Rationale} \\
 \midrule
 \textbf{Operational logs} (prompt hashes, latency, tokens) & 30 days & Sufficient for debugging and performance analysis \\
@@ -991,10 +991,10 @@ Table~\ref{tab:ch11_escalation_sla} defines four priority levels\index{escalatio
 \label{tab:ch11_escalation_sla}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Priority} & \textbf{Response SLA} & \textbf{Trigger Criteria} & \textbf{Required Action} \\
 \midrule
 \textbf{P1} & 15 minutes & Imminent safety risk (self-harm, violence incitement, source exposure); toxicity score $> 0.9$ & Immediate human takeover; output blocked; incident commander notified; system may be paused \\
@@ -1115,10 +1115,10 @@ Table~\ref{tab:ch11_energy_savings} maps these optimization techniques to their 
 \label{tab:ch11_energy_savings}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Technique} & \textbf{Estimated Energy Savings} & \textbf{Trade-Off} \\
 \midrule
 \textbf{Model distillation} & 60--80\% & Task-specific quality loss (typically 5--10\%) \\
@@ -1253,10 +1253,10 @@ Table~\ref{tab:ch11_maturity_matrix} provides a self-assessment framework mappin
 \label{tab:ch11_maturity_matrix}
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{1.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Level} & \textbf{Governance \& Accountability} & \textbf{Bias Testing \& Fairness} & \textbf{Privacy \& Data Protection} \\
 \midrule
 \textbf{1: Ad Hoc} & No formal roles; reactive only & No systematic testing & Basic compliance; ad~hoc PII handling \\
@@ -1269,7 +1269,7 @@ Table~\ref{tab:ch11_maturity_matrix} provides a self-assessment framework mappin
 \addlinespace[2pt]
 \textbf{5: Leading} & External audits; public reporting & Published fairness research; industry benchmarks & Privacy-by-design; DP fine-tuning; open tools \\
 \midrule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Level} & \textbf{Safety \& Content Moderation} & \textbf{Human Oversight} & \textbf{Documentation} \\
 \midrule
 \textbf{1: Ad Hoc} & Default model behavior only & No defined procedures & No model cards or audit logs \\

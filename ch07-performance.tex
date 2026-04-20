@@ -375,10 +375,10 @@ deployment:
 \label{tab:ch07_quantization_comparison}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash\bfseries}p{2.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Scheme} & \textbf{Typical Memory Reduction} & \textbf{Speed Gain} & \textbf{Accuracy Impact} & \textbf{Hardware Compatibility} \\
 \midrule
 INT8 & $\sim$50\% vs.\ FP16 & Moderate & Minimal with calibration & Supported on most modern NVIDIA/AMD GPUs; widely available in inference frameworks. \\
@@ -426,7 +426,7 @@ Table~\ref{tab:ch07_compression_summary} summarizes the compression and adaptati
 \label{tab:ch07_compression_summary}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash\bfseries}p{2.5cm}
                   >{\raggedright\arraybackslash}X
                   >{\raggedright\arraybackslash}X
@@ -434,7 +434,7 @@ Table~\ref{tab:ch07_compression_summary} summarizes the compression and adaptati
                   >{\raggedright\arraybackslash}X
                   >{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Technique} &
 \textbf{What it changes} &
 \textbf{Typical memory reduction} &
@@ -583,7 +583,7 @@ Table~\ref{tab:ch07_mem_vs_precision} shows how precision selection affects memo
 \label{tab:ch07_mem_vs_precision}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{1.2cm}
                   >{\raggedleft\arraybackslash}p{1.6cm}
                   >{\raggedleft\arraybackslash}p{1.8cm}
@@ -591,7 +591,7 @@ Table~\ref{tab:ch07_mem_vs_precision} shows how precision selection affects memo
                   >{\raggedleft\arraybackslash}p{1.8cm}
                   >{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Model} & \textbf{Params} & \textbf{FP16 (2\,B/param)} & \textbf{INT8 / FP8 (1\,B/param)} & \textbf{4-bit (0.5\,B/param)} & \textbf{Typical GPU fit (weights-only)} \\
 \midrule
 13B & $1.3\times 10^{10}$ & $\sim$26\,GB & $\sim$13\,GB & $\sim$6.5\,GB &
@@ -664,7 +664,7 @@ Table~\ref{tab:ch07_engine_bench} compares inference engine performance characte
 \begin{threeparttable}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.35}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.6cm}
   S[table-format=3]
   S[table-format=3]
@@ -672,7 +672,7 @@ Table~\ref{tab:ch07_engine_bench} compares inference engine performance characte
   >{\raggedright\arraybackslash}X
 @{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Engine (precision)} &
 {\textbf{Tokens/s}} &
 {\textbf{TTFT (ms)}} &
@@ -1346,14 +1346,14 @@ Table~\ref{tab:ch07_profiling_breakdown} illustrates a typical kernel-time break
 \label{tab:ch07_profiling_breakdown}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}l
   S[table-format=3.0]
   S[table-format=3.0]
   X
 @{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Kernel/Phase} & {\textbf{Before (\%)}} & {\textbf{After (\%)}} & \textbf{Notes / Action} \\
 \midrule
 Attention (QKV + softmax + proj.) & 60 & 45 & Fused attention (FlashAttention) and better tensor-core utilization. \\
@@ -1648,14 +1648,14 @@ Table~\ref{tab:ch07_ishtar_phase_metrics} shows the cumulative impact of each op
 \label{tab:ch07_ishtar_phase_metrics}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.8cm}
   >{\raggedright\arraybackslash}p{2.2cm}
   S[table-format=3.0]
   S[table-format=1.3]
   S[table-format=4.0]@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Phase} & \textbf{TTFT (P50\,/\,P99)} & {\textbf{Tokens/s}} & {\textbf{Cost/Req (\$)}} & {\textbf{P95 Lat.\,(ms)}} \\
 \midrule
 Baseline (no optimization) & 1200\,ms\,/\,3000\,ms & 45 & 0.032 & 4500 \\
@@ -1705,10 +1705,10 @@ Table~\ref{tab:ch07_opt_priority} summarizes the framework.
 \label{tab:ch07_opt_priority}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}c>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Priority} & \textbf{Optimization} & \textbf{Expected Impact} & \textbf{Effort} & \textbf{Notes} \\
 \midrule
 1 & Batch size tuning + continuous batching & 2--8$\times$ throughput & Low & Near-free performance; enable in vLLM/TGI. Validate latency SLOs. \\
@@ -1743,13 +1743,13 @@ Performance optimization is not a one-time task—it is an ongoing process that 
 \label{tab:ch07_ishtar_kpis}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}l
   >{\raggedleft\arraybackslash}p{2.6cm}
   >{\raggedleft\arraybackslash}p{2.6cm}
   >{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Metric} & \textbf{Before (baseline)} & \textbf{After (optimized)} & \textbf{Notes} \\
 \midrule
 Median latency (p50)     & 2.3 s  & 1.1 s  & INT8/4-bit + vLLM batching + RAG compression. \\
@@ -1916,10 +1916,10 @@ These formulas link low-level engineering decisions (e.g., quantization, batchin
 \label{tab:ch07_arch_comparison}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{3.2cm}XXX@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Dimension} & \textbf{Encoder-Only (BERT)} & \textbf{Decoder-Only (GPT)} & \textbf{Mixture-of-Experts (MoE)} \\
 \midrule
 \textbf{Latency / Throughput} 
@@ -2061,10 +2061,10 @@ logging:
   \label{tab:ch07_runtimes}
   \setlength{\tabcolsep}{6pt}
   \renewcommand{\arraystretch}{1.3}
-  \rowcolors{2}{gray!5}{white}
+  \rowcolors{2}{gray!8}{white}
   \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
     \toprule
-    \rowcolor{gray!10}
+    \rowcolor{gray!15}
     & \textbf{vLLM} \cite{Kwon2023vLLM} & \textbf{Hugging Face TGI} \cite{tgi_docs} & \textbf{TensorRT-LLM} \cite{tensorrt_llm_docs} \\
     \midrule
     \textbf{Batching/Scheduling} 

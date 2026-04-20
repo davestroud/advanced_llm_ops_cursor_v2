@@ -81,10 +81,10 @@ Beyond baseline resource limits, several operational realities make scaling LLM 
 \label{tab:ch06_scaling_challenges}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Challenge} & \textbf{Impact} & \textbf{Mitigation Strategy} \\
 \midrule
 \textbf{Non-linear latency scaling} & Doubling context length quadruples attention computation; latency plateaus or worsens under load \cite{vaswani2017_attention} & Paged attention; local/sliding-window attention; context compression; sequence parallelism \\
@@ -116,10 +116,10 @@ In \ishtar{}, these constraints manifested most visibly during breaking news cyc
 \label{tab:ch06_ishtar_scaling_strategies}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{4.2cm}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Strategy} & \textbf{Description} \\
 \midrule
 \textbf{Hierarchical model routing} & Lightweight distilled models handled simple classification and summarization, reserving full LLaMA-3.1/3.2 inference for complex, high-value prompts \cite{frugalgpt_2023}. \\
@@ -171,10 +171,10 @@ Whenever a capacity estimate is wrong, the most common failure mode is missing a
 \label{tab:ch06_capacity_planning}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Step} & \textbf{Activities} & \textbf{Key Metrics} & \textbf{Validation Method} \\
 \midrule
 \textbf{Step 1: Set SLOs} & Define latency targets matching human perception; separate short vs.\ long-context classes & P95 TTFT, P95 TBT; separate targets for context length classes & User experience testing; A/B latency perception studies \\
@@ -612,10 +612,10 @@ The final production architecture of \ishtar{} adopted a hybrid model. We mainta
 \label{tab:ch06_scaling_matrix}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Criteria} & \textbf{Vertical Scaling} & \textbf{Horizontal Scaling} & \textbf{Hybrid Scaling} \\
 \midrule
 \textbf{Latency}
@@ -978,14 +978,14 @@ Table~\ref{tab:ch06_distributed_inference} compares common distributed inference
 \label{tab:ch06_distributed_inference}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}
   >{\raggedright\arraybackslash}p{2.8cm}
   >{\raggedright\arraybackslash}X
   >{\raggedright\arraybackslash}X
   >{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Criteria} & \textbf{Model Parallelism} & \textbf{Tensor Parallelism} & \textbf{Pipeline Parallelism} \\
 \midrule
 Definition & Splits layers across GPUs (each device holds different blocks). & Splits a layer's ops across GPUs; results merged via collectives. & Partitions model into sequential stages executed as a pipeline. \\

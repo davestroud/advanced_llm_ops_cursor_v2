@@ -121,10 +121,10 @@ Teams should therefore prefer multi-agent designs when there is a clear need for
 \label{tab:ch09_monolithic_vs_multiagent}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{3.3cm}X X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Dimension} & \textbf{Monolithic LLM} & \textbf{Multi-agent system} \\
 \midrule
 Modularity & One prompt/model changes can have system-wide effects; limited isolation. & Components are replaceable; changes can be localized behind stable contracts. \\
@@ -372,10 +372,10 @@ In \ishtar{}, the retrieval agent emits a context pack with citation IDs (e.g., 
 \label{tab:ch09_ishtar_agent_contracts}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{2.6cm}p{3.1cm}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Agent} & \textbf{Input / Output} & \textbf{Contract invariants and key metrics} \\
 \midrule
 Ingestion &
@@ -647,10 +647,10 @@ Frameworks like LangGraph \cite{langchain} provide abstractions that blend these
 \label{tab:ch09_comm_patterns}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{3.2cm}p{3.4cm}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Pattern} & \textbf{Strengths} & \textbf{Operational considerations} \\
 \midrule
 Direct messaging &
@@ -861,10 +861,10 @@ Distinguishing these classes is critical: infrastructure failures warrant retrie
 \label{tab:ch09_agent_failure_taxonomy}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{3.3cm}X X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Failure class} & \textbf{Symptoms} & \textbf{Recommended response} \\
 \midrule
 Infrastructure / availability &
@@ -998,10 +998,10 @@ where $m$ is the number of model invocations. This makes \emph{budget governance
 \label{tab:ch09_agent_performance_metrics}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{3.5cm}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Metric} & \textbf{Why it matters} \\
 \midrule
 End-to-end latency (p50/p95/p99) & Captures user experience; p95/p99 reveal coordination overhead and retry storms. \\
@@ -1158,10 +1158,10 @@ Industry guidance such as the OWASP Top 10 for LLM Applications provides a usefu
 \label{tab:ch09_agentic_threats}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{3.3cm}X X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Threat} & \textbf{Attack surface} & \textbf{Mitigations} \\
 \midrule
 Prompt injection &
@@ -1211,10 +1211,10 @@ Security in multi-agent LLM systems spans authentication, authorization, and aud
 \label{tab:ch09_security_governance_controls}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}p{3.2cm}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Control Category} & \textbf{Implementation Practices} \\
 \midrule
 Authentication and Trust & Use mutual TLS (mTLS) with service mesh for inter-agent communication; require API keys or JWT tokens for orchestrator-to-agent calls; verify agent identity before accepting requests; implement network security policies to restrict inter-service communication to authorized paths. \\
@@ -1485,10 +1485,10 @@ Designing and operating a multi-agent LLM system is complex, but following best 
 \small
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.5}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Checklist Item} & \textbf{Description} \\
 \midrule
 \textbf{Define Agent Roles and Boundaries} & Each agent should have a single well-defined purpose and scope of responsibility. Avoid overlapping duties that could cause confusion or duplicated work. For example, only the verification agent should fact-check; the synthesis agent should not try to verify its own output beyond basic sanity. This clarity makes the system easier to maintain and extend. \\

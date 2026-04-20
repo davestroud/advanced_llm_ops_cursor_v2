@@ -105,10 +105,10 @@ The choice between RAG, fine-tuning, structured retrieval, and hybrid approaches
 \label{tab:ch08_rag_alternatives}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Scenario} & \textbf{Recommended Approach} & \textbf{Rationale} \\
 \midrule
 Frequently changing knowledge & RAG & Corpus updates propagate without retraining; freshness is a first-class property. \\
@@ -185,10 +185,10 @@ The remainder of this section walks through the main building blocks and the ope
 \label{tab:ch08_rag_components}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.2}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Component} & \textbf{Offline/Online} & \textbf{Key Responsibilities} & \textbf{Operational Concerns} \\
 \midrule
 \textbf{Document Ingestion} & Offline & Acquisition (file sync, crawlers, APIs); normalization (HTML/PDF extraction); quality gates (deduplication, spam filtering); metadata enrichment (timestamps, ACL tags, reliability scores) & Freshness SLOs; parsing failures; ingestion lag; source reliability tracking \\
@@ -596,10 +596,10 @@ Table~\ref{tab:ch08_chunking_strategies} compares different chunking strategies 
 \label{tab:ch08_chunking_strategies}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}p{2cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Strategy} & \textbf{Chunk Size} & \textbf{Overlap} & \textbf{Use Cases} & \textbf{Trade-offs} \\
 \midrule
 \textbf{Token-window} & 200--400 tokens (general text); larger for structured docs & 10--20\% overlap to avoid splitting facts & General-purpose text; documents without clear structure; baseline approach & Simple to implement; may split semantic units; requires overlap tuning \\
@@ -718,7 +718,7 @@ Table~\ref{tab:ch08_vector_index_comparison_landscape} provides a detailed compa
 \begin{threeparttable}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{%
   >{\raggedright\arraybackslash}p{1.4cm}  % Index Type
   >{\raggedright\arraybackslash}p{1.2cm}  % Recall
@@ -728,7 +728,7 @@ Table~\ref{tab:ch08_vector_index_comparison_landscape} provides a detailed compa
   >{\raggedright\arraybackslash}X  % Notes
 }
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Index Type} & \textbf{Recall} & \textbf{Latency} & \textbf{Memory} & \textbf{Scale} & \textbf{Notes / Tunables \& Use Cases} \\
 \midrule
 \textbf{Flat (Exact)} &
@@ -988,10 +988,10 @@ Table~\ref{tab:ch08_retriever_strategies} compares dense, sparse, and hybrid ret
 \begin{threeparttable}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Strategy} & \textbf{Strengths} & \textbf{Limitations} & \textbf{Scalability / Ops} & \textbf{Use Cases \& Notes} \\
 \midrule
 \textbf{Dense Retrieval} 
@@ -1103,10 +1103,10 @@ Finally, always separate passages clearly (delimiters, document IDs, and optiona
 \label{tab:ch08_prompt_patterns}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Pattern} & \textbf{Ordering Strategy} & \textbf{Use Case} & \textbf{Implementation Notes} \\
 \midrule
 \textbf{Relevance-first} & Highest-ranked passages first (default ordering) & General-purpose queries; when retrieval quality is high & Simple to implement; may suffer from positional bias on long contexts; works well with reranking \\
@@ -1319,10 +1319,10 @@ Security in RAG is the combination of standard data-system controls (access cont
 \label{tab:ch08_security_controls}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Control Area} & \textbf{Mechanism} & \textbf{Implementation} & \textbf{Compliance Alignment} \\
 \midrule
 \textbf{Access Control \& Tenant Isolation} & ACL metadata per chunk; user identity/entitlement filtering; separate indexes or strict metadata filters for multi-tenant systems & Attach ACL tags during ingestion; filter retrieval results at query time; enforce isolation via routing or separate indexes & GDPR (data minimization); SOC 2 (access controls); multi-tenant data residency requirements \\

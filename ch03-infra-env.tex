@@ -129,10 +129,10 @@ NVIDIA GPUs remain the dominant hardware for LLM workloads in 2024–2025. The N
   \label{tab:ch03_gpucompare}
   \setlength{\tabcolsep}{6pt}
   \renewcommand{\arraystretch}{1.3}
-  \rowcolors{2}{gray!5}{white}
+  \rowcolors{2}{gray!8}{white}
   \begin{tabularx}{\linewidth}{@{}X S[table-format=2.0] S[table-format=5.0] S[table-format=1.2] >{\raggedright\arraybackslash}p{38mm}@{}}
     \toprule
-    \rowcolor{gray!10}
+    \rowcolor{gray!15}
     \textbf{Processor} & {\textbf{Memory (GB)}} & {\textbf{Tokens/s (13B)}} & {\textbf{Price/hr (\$)}} & \textbf{Best Use Case} \\
     \midrule
     NVIDIA L4     & 24 & 2000 & 0.35 & Low-power, low-latency inference; embeddings \\
@@ -186,7 +186,7 @@ From an infrastructure owner's perspective, tracking cost per 1k tokens is very 
   \renewcommand{\arraystretch}{1.3}
   \begin{tabularx}{\linewidth}{@{}lccX@{}}
     \toprule
-    \rowcolor{gray!10}
+    \rowcolor{gray!15}
     \textbf{GPU Type} & \textbf{Utilization} & \textbf{Cost/hr} & \textbf{Cost per 1k tokens} \\
     \midrule
     \rowcolor{blue!8}
@@ -507,11 +507,11 @@ The effective cost per million tokens is calculated using Equation~\ref{eq:costp
   \label{tab:ch03_costcompare}
   \setlength{\tabcolsep}{6pt}
   \renewcommand{\arraystretch}{1.3}
-  \rowcolors{2}{gray!5}{white}
+  \rowcolors{2}{gray!8}{white}
   \begin{threeparttable}
   \begin{tabularx}{\linewidth}{@{}X S[table-format=1.2] S[table-format=5.0] S[table-format=1.3]@{}}
     \toprule
-    \rowcolor{gray!10}
+    \rowcolor{gray!15}
     \textbf{Accelerator} & {\textbf{Hourly Price (\$)}} & {\textbf{Throughput (tok/s)}} & {\textbf{Cost/1M tok (\$)}} \\
     \midrule
     NVIDIA A100-80GB & 3.80 & 8000 & {$\sim$0.13} \\
@@ -549,10 +549,10 @@ To make the cost analysis fully concrete, we now present an end-to-end deploymen
 \label{tab:ch03_e2e_cost}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{28mm} S[table-format=4.0] S[table-format=5.0] S[table-format=4.0] S[table-format=1.2]@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Configuration} & {\textbf{Monthly Cost (\$)}} & {\textbf{Throughput (tok/s)}} & {\textbf{TTFT P99 (ms)}} & {\textbf{Cost/1M tok (\$)}} \\
 \midrule
 3$\times$ A100-80GB (FP16, tensor parallel) &
@@ -685,10 +685,10 @@ In practice, LLMOps stacks often combine these tools. For instance, \ishtar{} us
   \label{tab:ch03_iaccompare}
   \setlength{\tabcolsep}{6pt}
   \renewcommand{\arraystretch}{1.3}
-  \rowcolors{2}{gray!5}{white}
+  \rowcolors{2}{gray!8}{white}
   \begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
     \toprule
-    \rowcolor{gray!10}
+    \rowcolor{gray!15}
     \textbf{Tool} & \textbf{Scope} & \textbf{Strength} & \textbf{Limitation} \\
     \midrule
     \textbf{Terraform} & Multi-cloud, K8s & Mature ecosystem; declarative workflow & DSL limits flexibility \\
@@ -1417,10 +1417,10 @@ The landscape of LLM serving is rapidly evolving. By combining robust serving fr
 \label{tab:ch03_servingcompare}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Framework} & \textbf{Strengths} & \textbf{Limitations} \\
 \midrule
 \textbf{TGI (Hugging Face)} &

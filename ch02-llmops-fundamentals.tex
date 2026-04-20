@@ -84,10 +84,10 @@ In summary, these characteristics—massive scale, probabilistic behavior, const
 \label{tab:ch02_llmops_vs_mlops}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Aspect} & \textbf{MLOps Approach} & \textbf{LLMOps Approach} \\
 \midrule
 \textbf{Prompt Management} & Fixed input schemas; feature engineering pipelines & Prompts as versioned artifacts; prompt templates, A/B testing, and optimization cycles \parencite{Chowdhery2022palm} \\
@@ -541,10 +541,10 @@ monitoring:
 \label{tab:ch02_pipeline_components}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Stage} & \textbf{Key Activities} & \textbf{Outputs/Artifacts} \\
 \midrule
 \textbf{Data Acquisition \& Preprocessing} & Curating text/code/multimodal data; cleaning, normalizing, deduplication; filtering sensitive content & Cleaned datasets; preprocessing pipelines; data quality reports \\
@@ -806,10 +806,10 @@ Table~\ref{tab:ch02_tool_vs_rag} provides decision criteria for choosing between
 \label{tab:ch02_tool_vs_rag}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{28mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Criterion} & \textbf{Tool Calling} & \textbf{RAG} \\
 \midrule
 Data structure & Structured (databases, APIs, schemas) & Unstructured (documents, articles, policies) \\
@@ -945,10 +945,10 @@ reporting:
 \label{tab:ch02_evaluation_metrics}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Metric Category} & \textbf{Description} & \textbf{Measurement Approach} & \textbf{Operational Impact} \\
 \midrule
 \textbf{Factual Consistency} & Output contains true statements; avoids contradicting known facts or source material & Cross-reference with trusted sources; claim-level verification; RAG faithfulness checks & Low scores indicate need for RAG integration or retrieval improvements \\
@@ -1178,10 +1178,10 @@ Let us revisit parameter memory with a quick table that aligns with Eq.~\ref{eq:
 \label{tab:ch02_param_memory}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}X S[table-format=1.2e2] S[table-format=3.0]@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Model} & {\textbf{Parameters $P$}} & {\textbf{$M_{\text{params}}$ (GB, approx.)}} \\
 \midrule
 7B   & 7e9   & {$\approx 14$} \\

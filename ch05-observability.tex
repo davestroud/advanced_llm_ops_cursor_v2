@@ -147,10 +147,10 @@ Frameworks such as RAGAS and ARES formalize groundedness (faithfulness), context
 \label{tab:ch05_rag_metrics_taxonomy}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Metric Category} & \textbf{Specific Metrics} & \textbf{Target Values} & \textbf{Monitoring Frequency} \\
 \midrule
 \textbf{Retrieval Quality} & Hit rate@K, MRR (Mean Reciprocal Rank), NDCG (Normalized Discounted Cumulative Gain), coverage of supporting evidence & Hit rate@K $\geq$ 85\%; MRR $\geq$ 0.75; NDCG $\geq$ 0.80 on golden queries & Continuous (per-query); aggregated hourly/daily trends \\
@@ -430,10 +430,10 @@ In production, \emph{structured} logs (e.g., JSON) with a stable schema are esse
 \label{tab:ch05_telemetry_schema}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{1.8cm}@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Field Name} & \textbf{Type/Format} & \textbf{Description} & \textbf{Required} \\
 \midrule
 \texttt{trace\_id} & UUID (string) & Globally unique identifier for the request trace & Yes \\
@@ -916,10 +916,10 @@ Table~\ref{tab:ch05_ishtar_obs_stack} summarizes a minimal-but-extensible stack 
 \label{tab:ch05_ishtar_obs_stack}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.33\linewidth}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Signal} & \textbf{Tools} & \textbf{Typical questions answered} \\
 \midrule
 Metrics & Prometheus/OpenMetrics \cite{prometheus_instrumentation,openmetrics_spec} + Grafana \cite{grafana_dashboards} & What is the impact? (P95 TTFT, request/error rate, tokens per request, cost per tenant) and is it getting worse? (burn-rate, change-point detection) \\
@@ -1149,10 +1149,10 @@ A useful organizing principle is a \emph{three-tier} layout, as summarized in Ta
 \label{tab:ch05_three_tier_layout}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{4cm}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Tier} & \textbf{Components \& Purpose} \\
 \midrule
 \textbf{Infra board} & 
@@ -1282,10 +1282,10 @@ Beyond these core principles, effective alerting in LLM systems is \emph{SLO-dri
 \label{tab:ch05_alert_types_thresholds}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Alert Type} & \textbf{SLI/Threshold} & \textbf{Window} & \textbf{Action/Playbook} \\
 \midrule
 \textbf{Latency Regression} & P99 TTFT $\leq$ 800\,ms; P95 tokens/s $\geq$ 50 & 5\,min (fast) + 1\,h (sustained) burn-rate & Reduce context cap by 20\%; lower \texttt{topK}; enable constrained decoding; rollback prompt version \\
@@ -1570,10 +1570,10 @@ Table~\ref{tab:ch05_troubleshooting_runbook} provides a quick-reference runbook 
 \label{tab:ch05_troubleshooting_runbook}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Symptom} & \textbf{Check Metric} & \textbf{Likely Cause} & \textbf{Action} \\
 \midrule
 High latency & TTFT P99; queue depth; GPU utilization & Overloaded GPU; batch size too large; KV-cache pressure & Scale up replicas; reduce batch size; enable KV-cache eviction \\
@@ -1625,10 +1625,10 @@ Cost attribution becomes actionable when it is broken down by multiple dimension
 \label{tab:ch05_cost_attribution}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{2cm}>{\raggedright\arraybackslash}p{2.2cm}@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Dimension} & \textbf{Example Segments} & \textbf{Cost Share} & \textbf{Optimization Lever} \\
 \midrule
 \textbf{By model tier} & GPT-4 class (70B); GPT-3.5 class (13B); Distilled (8B) & 60\% / 25\% / 15\% & Route simple queries to cheaper tiers \\

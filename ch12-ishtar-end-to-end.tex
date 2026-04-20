@@ -123,10 +123,10 @@ Table~\ref{tab:ch12_ishtar_requirements} summarizes representative targets used 
 \label{tab:ch12_ishtar_requirements}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{32mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Category} & \textbf{Requirement} & \textbf{Target / operationalization} \\
 \midrule
 Freshness & Ingest and index new reports quickly & Poll/stream sources continuously; end-to-end ingest $\rightarrow$ searchable in minutes; backlog alerting if lag grows. \\
@@ -603,10 +603,10 @@ Table~\ref{tab:ch12_runbook} codifies the most common \ishtar{} incidents into a
 \label{tab:ch12_runbook}
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{20mm}>{\raggedright\arraybackslash}p{20mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{22mm}@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Incident} & \textbf{Detection} & \textbf{Diagnosis} & \textbf{Resolution} & \textbf{Prevention} \\
 \midrule
 Retrieval failure (no relevant docs) & Faithfulness $< 0.5$ & Check index status, embedding model version, source freshness & Re-index corpus; verify embedding pipeline; restore from snapshot & Automated freshness checks; index health probes \\
@@ -710,10 +710,10 @@ These values are deployment-specific and should be interpreted as \emph{illustra
 \label{tab:ch12_ishtar_metrics}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{46mm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Metric} & \textbf{Observed} & \textbf{Notes} \\
 \midrule
 Indexed corpus size & $\sim$1.5M & Chunks/documents with versioned snapshots. \\
@@ -804,10 +804,10 @@ Table~\ref{tab:ch12_cost_breakdown} provides an illustrative cost breakdown for 
 \label{tab:ch12_cost_breakdown}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.3}
-\rowcolors{2}{gray!5}{white}
+\rowcolors{2}{gray!8}{white}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{30mm}>{\raggedright\arraybackslash}p{18mm}>{\raggedright\arraybackslash}p{20mm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-\rowcolor{gray!10}
+\rowcolor{gray!15}
 \textbf{Component} & \textbf{\% of Total} & \textbf{Monthly Est.} & \textbf{Optimization Lever} \\
 \midrule
 LLM Inference & 55\% & \$4{,}400 & Quantization, KV-cache optimization, prompt compression, model routing \\
