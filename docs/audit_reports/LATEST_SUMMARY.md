@@ -1,4 +1,4 @@
-# Full Springer Compliance Audit — 20260420T173644Z
+# Full Springer Compliance Audit — 20260420T182614Z
 
 ## Executive summary
 
