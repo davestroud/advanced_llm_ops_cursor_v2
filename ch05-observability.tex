@@ -1288,16 +1288,22 @@ Beyond these core principles, effective alerting in LLM systems is \emph{SLO-dri
 \rowcolor{gray!15}
 \textbf{Alert Type} & \textbf{SLI/Threshold} & \textbf{Window} & \textbf{Action/Playbook} \\
 \midrule
+\rowcolor{blue!8}
 \textbf{Latency Regression} & P99 TTFT $\leq$ 800\,ms; P95 tokens/s $\geq$ 50 & 5\,min (fast) + 1\,h (sustained) burn-rate & Reduce context cap by 20\%; lower \texttt{topK}; enable constrained decoding; rollback prompt version \\
 \addlinespace[2pt]
+\rowcolor{orange!10}
 \textbf{Quality Degradation} & Median groundedness $\geq$ 0.85; unsupported-claim rate $\leq$ 3\% & Two consecutive 15-minute windows below threshold & Increase retriever fan-out; switch re-ranker; rebuild index; rollback embedding model \\
 \addlinespace[2pt]
+\rowcolor{orange!10}
 \textbf{Cost Anomaly} & Token cost per request exceeds baseline by 2$\times$; cost per tenant exceeds daily budget & 1\,h rolling window; normalized by route/tenant & Cap max context length; reduce \texttt{topK}; route to cheaper model tier; enable passage deduplication \\
 \addlinespace[2pt]
+\rowcolor{red!8}
 \textbf{Safety Trigger} & Toxicity rate $\geq$ 5\%; jailbreak detection rate $\geq$ 1\% & 15-minute rolling window & Tighten guardrails; enable safe-mode decoding; route to constrained model; escalate to human review \\
 \addlinespace[2pt]
+\rowcolor{orange!10}
 \textbf{Retrieval Failure} & Recall@K $\leq$ 70\% on golden set; retriever latency P95 $\geq$ 200\,ms & Sustained over 30\,min & Switch to BM25 fallback; rebuild index; increase candidate fan-out; check index version \\
 \addlinespace[2pt]
+\rowcolor{red!8}
 \textbf{Error Rate Spike} & Error rate $\geq$ 5\%; provider timeout rate $\geq$ 2\% & 5\,min fast window; 1\,h sustained & Failover to backup provider; reduce batch size; enable retry with backoff; check provider status \\
 \bottomrule
 \end{tabularx}
