@@ -472,8 +472,8 @@ where $p_o$ is the observed agreement between raters and $p_e$ is the expected a
 
 A structured bias audit\index{bias audit} should be conducted at every major model release and on a quarterly schedule. Algorithm~\ref{alg:ch11_bias_audit} formalizes the audit pipeline, and Listing~\ref{lst:ch11_bias_detection} provides a practical Python implementation.
 
-\begin{algorithm}[t]
-\caption{Bias audit pipeline systematically measures fairness across demographic dimensions. For each dimension (gender, race, age), the algorithm generates test prompts, runs inference for all groups, computes sentiment or outcome scores, and flags disparities exceeding a threshold. This structured approach enables continuous bias monitoring and supports fairness validation before deployment.}\label{alg:ch11_bias_audit}
+\begin{llmalgobox}{Bias audit pipeline systematically measures fairness across demographic dimensions. For each dimension (gender, race, age), the algorithm generates test prompts, runs inference for all groups, computes sentiment or outcome scores, and flags disparities exceeding a threshold. This structured approach enables continuous bias monitoring and supports fairness validation before deployment.}
+\label{alg:ch11_bias_audit}
 \begin{algorithmic}[1]
 \Require Model $M$, evaluation dimensions $D = \{d_1, d_2, \ldots, d_k\}$ (e.g., gender, race, age), threshold $\tau$
 \Ensure Audit report $R$ with per-dimension bias scores and pass/fail status
@@ -494,7 +494,7 @@ A structured bias audit\index{bias audit} should be conducted at every major mod
 \State $\textsc{GenerateAuditReport}(R)$
 \State \Return $R$
 \end{algorithmic}
-\end{algorithm}
+\end{llmalgobox}
 
 The audit pipeline in Algorithm~\ref{alg:ch11_bias_audit} is designed to be integrated into CI/CD pipelines as a pre-deployment gate. When a new model version is proposed for promotion, the bias audit runs automatically against a standardized test suite. If any dimension produces a \textsc{Fail} result, the promotion is blocked and the audit report is routed to the fairness review team. The threshold $\tau$ should be calibrated based on the deployment context: a customer-facing chatbot might use $\tau = 0.05$ (strict), while an internal summarization tool might tolerate $\tau = 0.10$ (moderate). Importantly, the audit should test not only the model in isolation but also the end-to-end system, including retrieval augmentation and post-processing, since these components can introduce or amplify bias.
 
