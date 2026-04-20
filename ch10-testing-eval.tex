@@ -641,12 +641,8 @@ The metamorphic relation is: if the source input contains a factual predicate~$P
 \begin{itemize}[leftmargin=1.5em, itemsep=2pt]
     \item \emph{Source test case:} ``Is Paris the capital of France?'' $\;\to\;$ Expected: \texttt{Yes}.
     \item \emph{Transformed test case:} ``Is Paris NOT the capital of France?'' $\;\to\;$ Expected: \texttt{No}.
-    \item \emph{Invariant:} The boolean/sentiment polarity of the output must flip.
-    \item \emph{Programmatic check:}
+    \item \emph{Invariant:} The boolean/sentiment polarity of the output must flip --- equivalently, \texttt{extract\_boolean(base)} must differ from \texttt{extract\_boolean(negated)}.
 \end{itemize}
-\begin{minted}[numbers=none]{python}
-assert extract_boolean(base_output) != extract_boolean(negated_output)
-\end{minted}
 
 \noindent\textbf{(b) Paraphrase invariance.}\index{metamorphic testing!paraphrase invariance}
 The metamorphic relation is: if the source input~$q$ is rephrased into a semantically equivalent query~$q'$, the outputs should be semantically equivalent.
@@ -654,13 +650,8 @@ The metamorphic relation is: if the source input~$q$ is rephrased into a semanti
 \begin{itemize}[leftmargin=1.5em, itemsep=2pt]
     \item \emph{Source test case:} ``What causes rain?''
     \item \emph{Transformed test case:} ``What is the reason for precipitation?''
-    \item \emph{Invariant:} Semantic similarity between outputs exceeds a threshold (e.g., $> 0.85$).
-    \item \emph{Programmatic check:}
+    \item \emph{Invariant:} The embedding similarity between the two outputs exceeds a tunable threshold --- e.g., \texttt{embedding\_similarity(out\_q, out\_q')} $\geq 0.85$.
 \end{itemize}
-\begin{minted}[numbers=none]{python}
-sim = embedding_similarity(output_q, output_q_prime)
-assert sim >= 0.85, f"Paraphrase invariance violated: sim={sim:.2f}"
-\end{minted}
 
 \noindent\textbf{(c) Subset consistency.}\index{metamorphic testing!subset consistency}
 The metamorphic relation is: if the source input requests $k$ items satisfying a predicate, a follow-up requesting $k' > k$ items should produce a superset of the original items.
@@ -668,12 +659,8 @@ The metamorphic relation is: if the source input requests $k$ items satisfying a
 \begin{itemize}[leftmargin=1.5em, itemsep=2pt]
     \item \emph{Source test case:} ``Name 3 European capitals.'' $\;\to\;$ Output: \{Paris, Berlin, Rome\}.
     \item \emph{Transformed test case:} ``Name 5 European capitals.'' $\;\to\;$ Output: \{Paris, Berlin, Rome, Madrid, Vienna\}.
-    \item \emph{Invariant:} The source output set is a subset of the follow-up output set.
-    \item \emph{Programmatic check:}
+    \item \emph{Invariant:} The source output set is a subset of the follow-up output set --- e.g., \texttt{set(output\_3).issubset(set(output\_5))}.
 \end{itemize}
-\begin{minted}[numbers=none]{python}
-assert set(output_3).issubset(set(output_5)), "Subset consistency violated"
-\end{minted}
 
 Table~\ref{tab:ch10_metamorphic_relations} summarizes common metamorphic relations for LLM testing, showing how transformations like negation, paraphrase, and subset expansion can be used to validate model robustness without requiring ground-truth labels.
 
@@ -2095,19 +2082,21 @@ Batching; autoscaling; circuit breakers; admission control; degrade features \\
 \end{tabularx}
 \end{table}
 
-\begin{codebox}{Circuit breaker sketch for retrieval resilience. When retrieval failures exceed a threshold within a rolling window, the circuit opens and the system degrades gracefully by bypassing retrieval until the cooldown expires.}{lst:ch10_circuit_breaker}
-\begin{minted}{python}
-# Pseudocode: if retrieval repeatedly fails, bypass it temporarily.
-if retrieval_failures_last_minute > THRESHOLD:
-    circuit_state = "OPEN"       # bypass retrieval for a cooldown window
-    cooldown_until = now + 120s
-
-if circuit_state == "OPEN" and now < cooldown_until:
-    evidence = []                # graceful degradation
-else:
-    evidence = retrieve(query)   # normal path
-\end{minted}
-\end{codebox}
+\begin{llmalgobox}{Circuit breaker for retrieval resilience. When retrieval failures exceed a threshold within a rolling window, the circuit opens and the system degrades gracefully by bypassing retrieval until the cooldown expires.}
+\label{alg:ch10_circuit_breaker}
+\begin{algorithmic}[1]
+  \Require failure-rate threshold $\tau$, cooldown $C$
+  \State state $\gets$ \textsc{Closed};\quad cooldown\_until $\gets 0$
+  \If{retrieval\_failures\_last\_minute $> \tau$}
+    \State state $\gets$ \textsc{Open};\ cooldown\_until $\gets$ now $+\,C$
+  \EndIf
+  \If{state $=$ \textsc{Open} \textbf{and} now $<$ cooldown\_until}
+    \State evidence $\gets \emptyset$ \Comment{graceful degradation}
+  \Else
+    \State evidence $\gets$ \Call{Retrieve}{query} \Comment{normal path}
+  \EndIf
+\end{algorithmic}
+\end{llmalgobox}
 
 In resilience engineering, these patterns should be tested (Section~\ref{sec:ch10-robustness-testing}) and treated as part of the functional contract:
 a fallback model is not a theoretical idea; it is an executable branch that must be exercised regularly to remain trustworthy.
