@@ -1,3 +1,0 @@
-\begin{MintedVerbatim}[commandchars=\\\{\}]
-\PYG{k}{assert} \PYG{n}{extract\PYGZus{}boolean}\PYG{p}{(}\PYG{n}{base\PYGZus{}output}\PYG{p}{)} \PYG{o}{!=} \PYG{n}{extract\PYGZus{}boolean}\PYG{p}{(}\PYG{n}{negated\PYGZus{}output}\PYG{p}{)}
-\end{MintedVerbatim}

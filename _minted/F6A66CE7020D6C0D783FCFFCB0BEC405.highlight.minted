@@ -1,0 +1,56 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{autoscaling/v2}
+\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{HorizontalPodAutoscaler}
+\PYG{n+nt}{metadata}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ name}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{ishtar\PYGZhy{}llm\PYGZhy{}inference\PYGZhy{}hpa}\PYG{p+pIndicator}{,}\PYG{n+nt}{ namespace}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{production}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{n+nt}{spec}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{scaleTargetRef}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{apps/v1}
+\PYG{+w}{    }\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Deployment}
+\PYG{+w}{    }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ishtar\PYGZhy{}llm\PYGZhy{}inference}
+\PYG{+w}{  }\PYG{n+nt}{minReplicas}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{2}
+\PYG{+w}{  }\PYG{n+nt}{maxReplicas}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{30}
+
+\PYG{+w}{  }\PYG{n+nt}{metrics}\PYG{p}{:}\PYG{+w}{                              }\PYG{c+c1}{\PYGZsh{} All four are per\PYGZhy{}pod averages.}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{Pods}\PYG{p+pIndicator}{,}\PYG{n+nt}{ pods}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ metric}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ name}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{token\PYGZus{}demand\PYGZus{}rate}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{},}
+\PYG{n+nt}{        target}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{AverageValue}\PYG{p+pIndicator}{,}\PYG{n+nt}{ averageValue}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}8000\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{   }\PYG{c+c1}{\PYGZsh{} tokens/s}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{Pods}\PYG{p+pIndicator}{,}\PYG{n+nt}{ pods}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ metric}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ name}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{request\PYGZus{}queue\PYGZus{}depth}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{},}
+\PYG{n+nt}{        target}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{AverageValue}\PYG{p+pIndicator}{,}\PYG{n+nt}{ averageValue}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}10\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{     }\PYG{c+c1}{\PYGZsh{} requests}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{Pods}\PYG{p+pIndicator}{,}\PYG{n+nt}{ pods}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ metric}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ name}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{p95\PYGZus{}ttft\PYGZus{}ms}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{},}
+\PYG{n+nt}{        target}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{AverageValue}\PYG{p+pIndicator}{,}\PYG{n+nt}{ averageValue}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}300\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{    }\PYG{c+c1}{\PYGZsh{} ms}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{Pods}\PYG{p+pIndicator}{,}\PYG{n+nt}{ pods}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ metric}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ name}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{gpu\PYGZus{}utilization\PYGZus{}percent}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{},}
+\PYG{n+nt}{        target}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{AverageValue}\PYG{p+pIndicator}{,}\PYG{n+nt}{ averageValue}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}70\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}\PYG{+w}{     }\PYG{c+c1}{\PYGZsh{} percent}
+
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} Asymmetric: conservative scale\PYGZhy{}down (5 min stabilize, max 25\PYGZpc{} or 2 pods),}
+\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} aggressive scale\PYGZhy{}up (0s stabilize, can double or +5 pods every 30s).}
+\PYG{+w}{  }\PYG{n+nt}{behavior}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{scaleDown}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{stabilizationWindowSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{300}
+\PYG{+w}{      }\PYG{n+nt}{policies}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{Percent}\PYG{p+pIndicator}{,}\PYG{n+nt}{ value}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{25}\PYG{p+pIndicator}{,}\PYG{n+nt}{ periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{60}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{Pods}\PYG{p+pIndicator}{,}\PYG{n+nt}{    value}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{2}\PYG{p+pIndicator}{,}\PYG{n+nt}{  periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{60}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{n+nt}{selectPolicy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Min}
+\PYG{+w}{    }\PYG{n+nt}{scaleUp}\PYG{p}{:}
+\PYG{+w}{      }\PYG{n+nt}{stabilizationWindowSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0}
+\PYG{+w}{      }\PYG{n+nt}{policies}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{Percent}\PYG{p+pIndicator}{,}\PYG{n+nt}{ value}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{100}\PYG{p+pIndicator}{,}\PYG{n+nt}{ periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{30}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{Pods}\PYG{p+pIndicator}{,}\PYG{n+nt}{    value}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{5}\PYG{p+pIndicator}{,}\PYG{n+nt}{   periodSeconds}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{30}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{n+nt}{selectPolicy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{Max}
+
+\PYG{n+nn}{\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{c+c1}{\PYGZsh{} Prometheus adapter exposes the four ishtar\PYGZus{}* series as the custom metrics}
+\PYG{c+c1}{\PYGZsh{} referenced above.  Sketch of one rule (full ConfigMap in companion repo):}
+\PYG{n+nt}{apiVersion}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{v1}
+\PYG{n+nt}{kind}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{ConfigMap}
+\PYG{n+nt}{metadata}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ name}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{adapter\PYGZhy{}config}\PYG{p+pIndicator}{,}\PYG{n+nt}{ namespace}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{kube\PYGZhy{}system}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{n+nt}{data}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{config.yaml}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{    }\PYG{n+no}{rules:}
+\PYG{+w}{    }\PYG{n+no}{\PYGZhy{} seriesQuery: \PYGZsq{}ishtar\PYGZus{}token\PYGZus{}demand\PYGZus{}rate\PYGZob{}namespace!=\PYGZdq{}\PYGZdq{},pod!=\PYGZdq{}\PYGZdq{}\PYGZcb{}\PYGZsq{}}
+\PYG{+w}{      }\PYG{n+no}{resources: \PYGZob{} overrides: \PYGZob{} namespace: \PYGZob{} resource: \PYGZdq{}namespace\PYGZdq{} \PYGZcb{},}
+\PYG{+w}{                                }\PYG{n+no}{pod:       \PYGZob{} resource: \PYGZdq{}pod\PYGZdq{} \PYGZcb{} \PYGZcb{} \PYGZcb{}}
+\PYG{+w}{      }\PYG{n+no}{name: \PYGZob{} matches: \PYGZdq{}\PYGZca{}ishtar\PYGZus{}token\PYGZus{}demand\PYGZus{}rate\PYGZdq{}, as: \PYGZdq{}token\PYGZus{}demand\PYGZus{}rate\PYGZdq{} \PYGZcb{}}
+\PYG{+w}{      }\PYG{n+no}{metricsQuery: \PYGZsq{}sum(rate(\PYGZlt{}\PYGZlt{}.Series\PYGZgt{}\PYGZgt{}\PYGZob{}\PYGZlt{}\PYGZlt{}.LabelMatchers\PYGZgt{}\PYGZgt{}\PYGZcb{}[2m]))}
+\PYG{+w}{                     }\PYG{n+no}{by (\PYGZlt{}\PYGZlt{}.GroupBy\PYGZgt{}\PYGZgt{})\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+no}{\PYGZsh{} ... analogous rules for request\PYGZus{}queue\PYGZus{}depth (avg), p95\PYGZus{}ttft\PYGZus{}ms}
+\PYG{+w}{    }\PYG{n+no}{\PYGZsh{}     (histogram\PYGZus{}quantile 0.95 over 5m), and gpu\PYGZus{}utilization\PYGZus{}percent (avg).}
+\end{MintedVerbatim}

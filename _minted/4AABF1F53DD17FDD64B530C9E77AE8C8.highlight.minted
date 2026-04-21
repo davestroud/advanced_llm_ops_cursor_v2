@@ -1,0 +1,73 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{numpy}\PYG{+w}{ }\PYG{k}{as}\PYG{+w}{ }\PYG{n+nn}{np}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{scipy}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{stats}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{typing}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{Tuple}\PYG{p}{,} \PYG{n}{List}\PYG{p}{,} \PYG{n}{Dict}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{dataclasses}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{dataclass}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{GateResult}\PYG{p}{:}
+    \PYG{n}{passed}\PYG{p}{:} \PYG{n+nb}{bool}
+    \PYG{n}{metric\PYGZus{}name}\PYG{p}{:} \PYG{n+nb}{str}
+    \PYG{n}{baseline\PYGZus{}mean}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{candidate\PYGZus{}mean}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{improvement}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{confidence\PYGZus{}interval}\PYG{p}{:} \PYG{n}{Tuple}\PYG{p}{[}\PYG{n+nb}{float}\PYG{p}{,} \PYG{n+nb}{float}\PYG{p}{]}
+    \PYG{n}{p\PYGZus{}value}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{message}\PYG{p}{:} \PYG{n+nb}{str}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{paired\PYGZus{}bootstrap\PYGZus{}test}\PYG{p}{(}
+    \PYG{n}{baseline\PYGZus{}scores}\PYG{p}{:} \PYG{n}{List}\PYG{p}{[}\PYG{n+nb}{float}\PYG{p}{],}
+    \PYG{n}{candidate\PYGZus{}scores}\PYG{p}{:} \PYG{n}{List}\PYG{p}{[}\PYG{n+nb}{float}\PYG{p}{],}
+    \PYG{n}{confidence\PYGZus{}level}\PYG{p}{:} \PYG{n+nb}{float} \PYG{o}{=} \PYG{l+m+mf}{0.95}\PYG{p}{,}
+    \PYG{n}{n\PYGZus{}bootstrap}\PYG{p}{:} \PYG{n+nb}{int} \PYG{o}{=} \PYG{l+m+mi}{10000}\PYG{p}{,}
+    \PYG{n}{min\PYGZus{}improvement}\PYG{p}{:} \PYG{n+nb}{float} \PYG{o}{=} \PYG{l+m+mf}{0.5}
+\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{GateResult}\PYG{p}{:}
+    \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{baseline\PYGZus{}scores}\PYG{p}{)} \PYG{o}{!=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{candidate\PYGZus{}scores}\PYG{p}{):}
+        \PYG{k}{raise} \PYG{n+ne}{ValueError}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Baseline and candidate must have same length\PYGZdq{}}\PYG{p}{)}
+
+    \PYG{n}{n} \PYG{o}{=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n}{baseline\PYGZus{}scores}\PYG{p}{)}
+    \PYG{n}{differences} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{(}\PYG{n}{candidate\PYGZus{}scores}\PYG{p}{)} \PYG{o}{\PYGZhy{}} \PYG{n}{np}\PYG{o}{.}\PYG{n}{array}\PYG{p}{(}\PYG{n}{baseline\PYGZus{}scores}\PYG{p}{)}
+    \PYG{n}{mean\PYGZus{}diff} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{mean}\PYG{p}{(}\PYG{n}{differences}\PYG{p}{)}
+
+    \PYG{n}{bootstrap\PYGZus{}means} \PYG{o}{=} \PYG{p}{[]}
+    \PYG{k}{for} \PYG{n}{\PYGZus{}} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{n\PYGZus{}bootstrap}\PYG{p}{):}
+        \PYG{n}{indices} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{random}\PYG{o}{.}\PYG{n}{choice}\PYG{p}{(}\PYG{n}{n}\PYG{p}{,} \PYG{n}{size}\PYG{o}{=}\PYG{n}{n}\PYG{p}{,} \PYG{n}{replace}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{)}
+        \PYG{n}{bootstrap\PYGZus{}means}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{np}\PYG{o}{.}\PYG{n}{mean}\PYG{p}{(}\PYG{n}{differences}\PYG{p}{[}\PYG{n}{indices}\PYG{p}{]))}
+
+    \PYG{n}{alpha} \PYG{o}{=} \PYG{l+m+mi}{1} \PYG{o}{\PYGZhy{}} \PYG{n}{confidence\PYGZus{}level}
+    \PYG{n}{lower\PYGZus{}bound} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{percentile}\PYG{p}{(}\PYG{n}{bootstrap\PYGZus{}means}\PYG{p}{,} \PYG{l+m+mi}{100} \PYG{o}{*} \PYG{n}{alpha} \PYG{o}{/} \PYG{l+m+mi}{2}\PYG{p}{)}
+    \PYG{n}{upper\PYGZus{}bound} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{percentile}\PYG{p}{(}\PYG{n}{bootstrap\PYGZus{}means}\PYG{p}{,} \PYG{l+m+mi}{100} \PYG{o}{*} \PYG{p}{(}\PYG{l+m+mi}{1} \PYG{o}{\PYGZhy{}} \PYG{n}{alpha} \PYG{o}{/} \PYG{l+m+mi}{2}\PYG{p}{))}
+
+    \PYG{n}{ci\PYGZus{}excludes\PYGZus{}zero} \PYG{o}{=} \PYG{p}{(}\PYG{n}{lower\PYGZus{}bound} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0}\PYG{p}{)} \PYG{o+ow}{or} \PYG{p}{(}\PYG{n}{upper\PYGZus{}bound} \PYG{o}{\PYGZlt{}} \PYG{l+m+mi}{0}\PYG{p}{)}
+    \PYG{n}{meets\PYGZus{}improvement} \PYG{o}{=} \PYG{n}{mean\PYGZus{}diff} \PYG{o}{\PYGZgt{}=} \PYG{n}{min\PYGZus{}improvement}
+    \PYG{n}{passed} \PYG{o}{=} \PYG{n}{ci\PYGZus{}excludes\PYGZus{}zero} \PYG{o+ow}{and} \PYG{n}{meets\PYGZus{}improvement}
+
+    \PYG{k}{return} \PYG{n}{GateResult}\PYG{p}{(}
+        \PYG{n}{passed}\PYG{o}{=}\PYG{n}{passed}\PYG{p}{,}
+        \PYG{n}{metric\PYGZus{}name}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}groundedness\PYGZdq{}}\PYG{p}{,}
+        \PYG{n}{baseline\PYGZus{}mean}\PYG{o}{=}\PYG{n}{np}\PYG{o}{.}\PYG{n}{mean}\PYG{p}{(}\PYG{n}{baseline\PYGZus{}scores}\PYG{p}{),}
+        \PYG{n}{candidate\PYGZus{}mean}\PYG{o}{=}\PYG{n}{np}\PYG{o}{.}\PYG{n}{mean}\PYG{p}{(}\PYG{n}{candidate\PYGZus{}scores}\PYG{p}{),}
+        \PYG{n}{improvement}\PYG{o}{=}\PYG{n}{mean\PYGZus{}diff}\PYG{p}{,}
+        \PYG{n}{confidence\PYGZus{}interval}\PYG{o}{=}\PYG{p}{(}\PYG{n}{lower\PYGZus{}bound}\PYG{p}{,} \PYG{n}{upper\PYGZus{}bound}\PYG{p}{),}
+        \PYG{n}{p\PYGZus{}value}\PYG{o}{=}\PYG{k+kc}{None}\PYG{p}{,}
+        \PYG{n}{message}\PYG{o}{=}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}diff=}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{mean\PYGZus{}diff}\PYG{l+s+si}{:}\PYG{l+s+s2}{.3f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{ CI=[}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{lower\PYGZus{}bound}\PYG{l+s+si}{:}\PYG{l+s+s2}{.3f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{,}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{upper\PYGZus{}bound}\PYG{l+s+si}{:}\PYG{l+s+s2}{.3f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{]\PYGZdq{}}\PYG{p}{,}
+    \PYG{p}{)}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{mcnemar\PYGZus{}test}\PYG{p}{(}\PYG{n}{baseline\PYGZus{}flags}\PYG{p}{,} \PYG{n}{candidate\PYGZus{}flags}\PYG{p}{,} \PYG{n}{alpha}\PYG{o}{=}\PYG{l+m+mf}{0.05}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{GateResult}\PYG{p}{:}
+    \PYG{c+c1}{\PYGZsh{} ... (analogous: count discordant pairs (b, c), compute chi2 = (b\PYGZhy{}c)\PYGZca{}2/(b+c),}
+    \PYG{c+c1}{\PYGZsh{}      p\PYGZus{}value = 1 \PYGZhy{} chi2.cdf(chi2, df=1); pass if rate non\PYGZhy{}increasing AND}
+    \PYG{c+c1}{\PYGZsh{}      p\PYGZus{}value \PYGZgt{} alpha. Full source in companion repo.) ...}
+    \PYG{o}{...}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{evaluate\PYGZus{}ci\PYGZus{}gate}\PYG{p}{(}\PYG{n}{metrics}\PYG{p}{:} \PYG{n}{Dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{Dict}\PYG{p}{])} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{Dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{GateResult}\PYG{p}{]:}
+    \PYG{c+c1}{\PYGZsh{} Dispatcher: routes \PYGZdq{}fuzzy\PYGZus{}match\PYGZdq{}/\PYGZdq{}semantic\PYGZus{}similarity\PYGZdq{} \PYGZhy{}\PYGZgt{} paired\PYGZus{}bootstrap\PYGZus{}test,}
+    \PYG{c+c1}{\PYGZsh{} \PYGZdq{}exact\PYGZus{}match\PYGZdq{} \PYGZhy{}\PYGZgt{} mcnemar\PYGZus{}test. See companion repo for the dispatcher body and}
+    \PYG{c+c1}{\PYGZsh{} error envelope. Returns one GateResult per metric.}
+    \PYG{o}{...}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{summarize\PYGZus{}gate\PYGZus{}results}\PYG{p}{(}\PYG{n}{results}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{Tuple}\PYG{p}{[}\PYG{n+nb}{bool}\PYG{p}{,} \PYG{n+nb}{str}\PYG{p}{]:}
+    \PYG{n}{overall} \PYG{o}{=} \PYG{n+nb}{all}\PYG{p}{(}\PYG{n}{r}\PYG{o}{.}\PYG{n}{passed} \PYG{k}{for} \PYG{n}{r} \PYG{o+ow}{in} \PYG{n}{results}\PYG{o}{.}\PYG{n}{values}\PYG{p}{())}
+    \PYG{n}{lines} \PYG{o}{=} \PYG{p}{[}\PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}  [}\PYG{l+s+si}{\PYGZob{}}\PYG{l+s+s1}{\PYGZsq{}PASS\PYGZsq{}}\PYG{+w}{ }\PYG{k}{if}\PYG{+w}{ }\PYG{n}{r}\PYG{o}{.}\PYG{n}{passed}\PYG{+w}{ }\PYG{k}{else}\PYG{+w}{ }\PYG{l+s+s1}{\PYGZsq{}FAIL\PYGZsq{}}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{] }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{n}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{: }\PYG{l+s+si}{\PYGZob{}}\PYG{n}{r}\PYG{o}{.}\PYG{n}{message}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}
+             \PYG{k}{for} \PYG{n}{n}\PYG{p}{,} \PYG{n}{r} \PYG{o+ow}{in} \PYG{n}{results}\PYG{o}{.}\PYG{n}{items}\PYG{p}{()]}
+    \PYG{k}{return} \PYG{n}{overall}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}}\PYG{l+s+se}{\PYGZbs{}n}\PYG{l+s+s2}{\PYGZdq{}}\PYG{o}{.}\PYG{n}{join}\PYG{p}{(}\PYG{n}{lines}\PYG{p}{)}
+\end{MintedVerbatim}

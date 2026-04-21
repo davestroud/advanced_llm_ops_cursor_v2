@@ -163,63 +163,79 @@ Fig.~\ref{fig:ch12_ishtar_architecture_ch12} depicts the end-to-end flows. The d
 \begin{figure}[tb]
 \centering
 \begin{llmfigbox}
-% Color definitions
+% Style contract (macros.tex):
+%   purple = external actors (sources, journalist)
+%   blue   = data-handling workers and stores (ingest, embed, retriever, LLM)
+%   green  = control / orchestration plane (gateway, orchestrator)
+%   orange = final callout (answer with citations + disclaimers)
+% Lanes use subtle palette tints (blue for background, green for interactive).
 \begin{tikzpicture}[
   font=\small,
-  box/.style={draw=none, rounded corners=5pt, align=center, minimum height=9mm, inner sep=4pt, font=\small\bfseries},
-  lane/.style={draw=none, rounded corners=6pt},
-  arrow/.style={-{Stealth[length=2.5mm,width=2mm]}, line width=1.2pt, color=black!70},
-  dashedarrow/.style={-{Stealth[length=2.5mm,width=2mm]}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=black!60},
-  note/.style={font=\small\bfseries, text=black!80, align=left}
+  ext/.style    ={llm/box/purple, font=\footnotesize\bfseries, minimum width=22mm},
+  data/.style   ={llm/box/blue,   font=\footnotesize\bfseries, minimum width=22mm},
+  ctrl/.style   ={llm/box/green,  font=\footnotesize\bfseries, minimum width=22mm},
+  callout/.style={llm/box/orange, font=\footnotesize\bfseries, minimum width=22mm},
+  bglane/.style ={draw=none, rounded corners=6pt, fill=#1!7,
+                  minimum width=0.95\linewidth},
+  flow/.style   ={llm/arrow},
+  loop/.style   ={llm/arrow/dashed},
+  note/.style   ={font=\footnotesize\bfseries, text=black!80, align=left},
 ]
 
-% Lanes
-\node[lane, fill=llmblue!8, minimum width=0.95\linewidth, minimum height=28mm] (inglane) {};
-\node[lane, fill=llmgreen!8, minimum width=0.95\linewidth, minimum height=32mm, below=9mm of inglane] (querylane) {};
-\node[note, anchor=west] at ([xshift=5mm]inglane.north west) {Continuous ingestion \& indexing (background)};
-\node[note, anchor=west] at ([xshift=5mm]querylane.north west) {Online query handling (interactive path)};
+% Lanes (background bands; semantics carried by node colors and shapes)
+\node[bglane=llmblue,  minimum height=28mm] (inglane) {};
+\node[bglane=llmgreen, minimum height=32mm, below=9mm of inglane] (querylane) {};
+\node[note, anchor=west] at ([xshift=5mm]inglane.north west)
+      {Continuous ingestion \& indexing (background)};
+\node[note, anchor=west] at ([xshift=5mm]querylane.north west)
+      {Online query handling (interactive path)};
 
-% Ingestion lane nodes
-\node[box, fill=llmorange!15, anchor=west] (sources) at ([xshift=7mm]inglane.west) {Sources\\\footnotesize (news, NGO,\\social, health)};
-\node[box, fill=llmpurple!15, right=7mm of sources] (ingest) {Ingestion\\\footnotesize parse \& normalize};
-\node[box, fill=llmpurple!15, right=7mm of ingest] (scrub) {Safety preprocessing\\\footnotesize PII/coord scrubbing};
-\node[box, fill=llmpurple!15, right=7mm of scrub] (chunkembed) {Chunk \& embed\\\footnotesize batch GPU/CPU};
-\node[box, fill=llmpurple!15, right=7mm of chunkembed] (docstore) {Doc store\\\footnotesize text + metadata};
-\node[box, fill=llmpurple!15, right=7mm of docstore] (vec) {Vector index\\\footnotesize FAISS/HNSW};
+% Ingestion lane (left to right)
+\node[ext,  anchor=west]                     (sources)    at ([xshift=7mm]inglane.west)
+                                                          {Sources\\\footnotesize (news, NGO,\\social, health)};
+\node[data, right=7mm of sources]            (ingest)     {Ingestion\\\footnotesize parse \& normalize};
+\node[data, right=7mm of ingest]             (scrub)      {Safety preprocessing\\\footnotesize PII/coord scrubbing};
+\node[data, right=7mm of scrub]              (chunkembed) {Chunk \& embed\\\footnotesize batch GPU/CPU};
+\node[data, right=7mm of chunkembed]         (docstore)   {Doc store\\\footnotesize text + metadata};
+\node[data, right=7mm of docstore]           (vec)        {Vector index\\\footnotesize FAISS/HNSW};
 
-\draw[arrow] (sources) -- (ingest);
-\draw[arrow] (ingest) -- (scrub);
-\draw[arrow] (scrub) -- (chunkembed);
-\draw[arrow] (chunkembed) -- (docstore);
-\draw[arrow] (chunkembed) -- (vec);
+\draw[flow] (sources)    -- (ingest);
+\draw[flow] (ingest)     -- (scrub);
+\draw[flow] (scrub)      -- (chunkembed);
+\draw[flow] (chunkembed) -- (docstore);
+\draw[flow] (chunkembed) -- (vec);
 
-% Query lane nodes
-\node[box, fill=llmgreen!15, anchor=west] (user) at ([xshift=7mm]querylane.west) {Journalist\\\footnotesize query/UI};
-\node[box, fill=llmgreen!15, right=7mm of user] (gateway) {API gateway\\\footnotesize auth \& rate limits};
-\node[box, fill=llmgreen!15, right=7mm of gateway] (controller) {Orchestrator\\\footnotesize agent controller};
-\node[box, fill=llmorange!15, right=7mm of controller] (retr) {Retriever\\\footnotesize ANN + filters};
-\node[box, fill=llmgreen!15, right=7mm of retr] (llm) {LLM serving\\\footnotesize vLLM/TGI};
-\node[box, fill=llmgreen!15, right=7mm of llm] (agents) {Post-processing\\\footnotesize verify \& safety};
-\node[box, fill=llmgreen!15, right=7mm of agents] (resp) {Answer\\\footnotesize citations + disclaimers};
+% Query lane (left to right)
+\node[ext,     anchor=west]                  (user)       at ([xshift=7mm]querylane.west)
+                                                          {Journalist\\\footnotesize query/UI};
+\node[ctrl,    right=7mm of user]            (gateway)    {API gateway\\\footnotesize auth \& rate limits};
+\node[ctrl,    right=7mm of gateway]         (controller) {Orchestrator\\\footnotesize agent controller};
+\node[data,    right=7mm of controller]      (retr)       {Retriever\\\footnotesize ANN + filters};
+\node[data,    right=7mm of retr]            (llm)        {LLM serving\\\footnotesize vLLM/TGI};
+\node[data,    right=7mm of llm]             (agents)     {Post-processing\\\footnotesize verify \& safety};
+\node[callout, right=7mm of agents]          (resp)       {Answer\\\footnotesize citations + disclaimers};
 
-\draw[arrow] (user) -- (gateway);
-\draw[arrow] (gateway) -- (controller);
-\draw[arrow] (controller) -- (retr);
-\draw[arrow] (retr) -- (llm);
-\draw[arrow] (llm) -- (agents);
-\draw[arrow] (agents) -- (resp);
+\draw[flow] (user)       -- (gateway);
+\draw[flow] (gateway)    -- (controller);
+\draw[flow] (controller) -- (retr);
+\draw[flow] (retr)       -- (llm);
+\draw[flow] (llm)        -- (agents);
+\draw[flow] (agents)     -- (resp);
 
-% Retrieval dependency
-\draw[dashedarrow] (retr.north) .. controls +(0,10mm) and +(0,10mm) .. (vec.north);
+% Retrieval dependency (dashed): route through the gap between lanes so it does
+% not visually cross llm / agents / resp on its way to the vector index.
+\coordinate (gap) at ($(inglane.south)!0.5!(querylane.north)$);
+\draw[loop] (retr.north) -- (retr.north |- gap)
+                         -- (vec.south |- gap)
+                         -- (vec.south);
 
-% Observability note
 \node[note, anchor=south east] at ([xshift=-2mm,yshift=2mm]querylane.south east)
 {Observability spans all components:\\
 OpenTelemetry traces + Prometheus metrics + audit logs.};
 
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{End-to-end \ishtar{} architecture demonstrates production-ready LLMOps integration. Background ingestion continuously updates a document store and vector index, ensuring freshness. Online query handling performs authenticated retrieval-augmented generation, followed by verification and safety post-processing, under end-to-end tracing and monitoring. This architecture illustrates how ingestion, retrieval, orchestration, and observability integrate into a complete production system.}
+\caption{Splitting \ishtar{} into a background ingestion lane and an interactive query lane lets each plane be scaled, monitored, and governed independently---the foundation of a production-ready LLMOps system. External actors (purple) feed data workers and stores (blue); the orchestration plane (green) authenticates and routes each query through retrieval, LLM serving, and post-processing before returning a citation-anchored answer (orange). The dashed link to the vector index marks the only cross-plane dependency, and observability (traces, metrics, audit logs) spans every component.}
 \label{fig:ch12_ishtar_architecture_ch12}
 \end{figure}
 
@@ -737,10 +753,13 @@ Fig.~\ref{fig:ch12_metrics_trend} shows how key metrics evolved as \ishtar{} pro
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
+% Style contract (macros.tex):
+%   llm/chart sets fonts, grid, tick, and axis-line weights book-wide.
+%   Per-series colors are pinned to llmblue (latency) and llmorange (accuracy)
+%   so the two axes remain distinguishable in grayscale via line style + marker.
 \begin{tikzpicture}
 \begin{axis}[
-    width=0.92\linewidth,
-    height=6.5cm,
+    llm/chart,
     xlabel={Deployment Phase},
     ylabel={Latency (ms)},
     axis y line*=left,
@@ -748,37 +767,36 @@ Fig.~\ref{fig:ch12_metrics_trend} shows how key metrics evolved as \ishtar{} pro
     xtick={1,2,3,4,5,6},
     xticklabels={Baseline,{+RAG},{+Eval\\Gates},{+Auto-\\scaling},{+Moni-\\toring},{Full\\Prod.}},
     xticklabel style={font=\footnotesize, align=center},
-    ylabel style={font=\small, color=blue!70!black},
-    tick label style={font=\footnotesize},
-    legend style={at={(0.5,-0.28)}, anchor=north, legend columns=2, font=\footnotesize},
-    grid=major,
-    grid style={gray!20},
-    every axis plot/.append style={thick, mark size=2.5pt},
+    ylabel style={font=\small\bfseries, color=llmblue},
+    legend style={at={(0.5,-0.28)}, anchor=north, legend columns=2,
+                  font=\footnotesize, draw=black!40, fill=white,
+                  cells={anchor=west}},
 ]
-\addplot[color=blue!70!black, mark=square*, mark options={fill=blue!50}]
+\addplot[color=llmblue, solid, mark=square*, mark size=1.8pt,
+         mark options={fill=llmblue!60}]
     coordinates {(1,3200) (2,2400) (3,2200) (4,1600) (5,1400) (6,1100)};
 \addlegendentry{p90 Latency (ms)}
 \end{axis}
 \begin{axis}[
-    width=0.92\linewidth,
-    height=6.5cm,
+    llm/chart,
     axis y line*=right,
     axis x line=none,
     ylabel={Accuracy (\%)},
     ymin=55, ymax=100,
     xtick={1,2,3,4,5,6},
-    ylabel style={font=\small, color=red!70!black},
-    tick label style={font=\footnotesize},
-    legend style={at={(0.5,-0.38)}, anchor=north, legend columns=2, font=\footnotesize},
-    every axis plot/.append style={thick, mark size=2.5pt},
+    ylabel style={font=\small\bfseries, color=llmorange},
+    legend style={at={(0.5,-0.38)}, anchor=north, legend columns=2,
+                  font=\footnotesize, draw=black!40, fill=white,
+                  cells={anchor=west}},
 ]
-\addplot[color=red!70!black, mark=triangle*, mark options={fill=red!50}]
+\addplot[color=llmorange, dashed, dash pattern=on 4pt off 2pt,
+         mark=triangle*, mark size=2pt, mark options={fill=llmorange!60, solid}]
     coordinates {(1,62) (2,78) (3,83) (4,85) (5,89) (6,93)};
 \addlegendentry{Accuracy (\%)}
 \end{axis}
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Latency fell and accuracy climbed monotonically across \ishtar{}'s four deployment phases, showing that systematic LLMOps practices compound rather than trade off. The left axis tracks latency (driven down by infrastructure optimizations and autoscaling) while the right axis tracks accuracy (driven up by RAG, evaluation gates, and monitoring)---each phase contributed measurable gains in both directions.}
+\caption{Latency fell and accuracy climbed monotonically across \ishtar{}'s deployment phases, showing that systematic LLMOps practices compound rather than trade off. The left axis tracks p90 latency (blue, solid; driven down by infrastructure optimizations and autoscaling) while the right axis tracks accuracy (orange, dashed; driven up by RAG, evaluation gates, and monitoring)---each phase contributed measurable gains in both directions.}
 \label{fig:ch12_metrics_trend}
 \end{figure}
 

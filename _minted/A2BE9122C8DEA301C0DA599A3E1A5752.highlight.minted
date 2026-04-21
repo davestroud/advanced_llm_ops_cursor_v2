@@ -1,4 +1,0 @@
-\begin{MintedVerbatim}[commandchars=\\\{\}]
-\PYG{n}{sim} \PYG{o}{=} \PYG{n}{embedding\PYGZus{}similarity}\PYG{p}{(}\PYG{n}{output\PYGZus{}q}\PYG{p}{,} \PYG{n}{output\PYGZus{}q\PYGZus{}prime}\PYG{p}{)}
-\PYG{k}{assert} \PYG{n}{sim} \PYG{o}{\PYGZgt{}=} \PYG{l+m+mf}{0.85}\PYG{p}{,} \PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}Paraphrase invariance violated: sim=}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{sim}\PYG{l+s+si}{:}\PYG{l+s+s2}{.2f}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}
-\end{MintedVerbatim}

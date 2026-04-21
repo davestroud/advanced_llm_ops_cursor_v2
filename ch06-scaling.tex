@@ -489,70 +489,56 @@ The final production architecture of \ishtar{} adopted a hybrid model. We mainta
 \begin{llmfigbox}
 \begin{tikzpicture}[
   every node/.style={font=\small},
-  box/.style={
-    rectangle,
-    draw=none,
-    minimum width=2.4cm,
-    minimum height=1cm,
-    align=center,
-    inner sep=4pt,
-    rounded corners=3pt
-  },
-  arrow/.style={->, >=Stealth, line width=0.8pt, draw=black!70},
+  vbox/.style ={llm/box/blue,   minimum width=2.4cm, minimum height=1cm},
+  hbox/.style ={llm/box/green,  minimum width=2.4cm, minimum height=1cm},
+  hybox/.style={llm/box/purple, minimum width=2.4cm, minimum height=1cm},
+  hybox2/.style={llm/box/orange, minimum width=2.4cm, minimum height=1cm},
+  hybox3/.style={llm/box/gray,   minimum width=2.4cm, minimum height=1cm},
   labelbox/.style={
-    rectangle,
-    draw=none,
-    fill=none,
-    align=left,
-    text width=3.2cm,
-    inner sep=2pt,
-    font=\footnotesize
+    llm/label, text width=3.2cm, inner sep=2pt
   }
 ]
 
 % --- Vertical scaling (left column) ---
-\node[box, fill=blue!15] (v1) at (0,3) {\textbf{A100-40GB}\\\small GPU Node};
-\node[box, fill=blue!25, below=8mm of v1] (v2) {\textbf{A100-80GB}\\\small GPU Node};
-\node[box, fill=blue!35, below=8mm of v2] (v3) {\textbf{H100-80GB}\\\small GPU Node};
+\node[vbox] (v1) at (0,3) {\textbf{A100-40GB}\\\footnotesize GPU Node};
+\node[vbox, below=8mm of v1] (v2) {\textbf{A100-80GB}\\\footnotesize GPU Node};
+\node[vbox, below=8mm of v2] (v3) {\textbf{H100-80GB}\\\footnotesize GPU Node};
 
 \node[labelbox, right=10mm of v2] (vlabel) {
   \textbf{Vertical Scaling}\\[1pt]
-  \small Upgrading a single node with more powerful GPUs and memory.
+  Upgrading a single node with more powerful GPUs and memory.
 };
 
-% Vertical progression arrows
-\draw[arrow] (v1.south) -- (v2.north);
-\draw[arrow] (v2.south) -- (v3.north);
+\draw[llm/arrow] (v1.south) -- (v2.north);
+\draw[llm/arrow] (v2.south) -- (v3.north);
 
 % --- Horizontal scaling (top right) ---
-\node[box, fill=green!20] (h1) at (7,3) {\small GPU Node};
-\node[box, fill=green!20, right=8mm of h1] (h2) {\small GPU Node};
-\node[box, fill=green!20, right=8mm of h2] (h3) {\small GPU Node};
+\node[hbox] (h1) at (7,3) {\footnotesize GPU Node};
+\node[hbox, right=8mm of h1] (h2) {\footnotesize GPU Node};
+\node[hbox, right=8mm of h2] (h3) {\footnotesize GPU Node};
 
 \node[labelbox, below=6mm of h2] (hlabel) {
   \textbf{Horizontal Scaling}\\[1pt]
-  \small Adding more nodes and distributing requests.
+  Adding more nodes and distributing requests.
 };
 
-% Horizontal expansion indicator
-\draw[arrow, dashed, draw=black!50] (h1.east) -- (h2.west);
-\draw[arrow, dashed, draw=black!50] (h2.east) -- (h3.west);
-\draw[arrow] (hlabel.north) -- (h2.south);
+\draw[llm/arrow/dashed] (h1.east) -- (h2.west);
+\draw[llm/arrow/dashed] (h2.east) -- (h3.west);
+\draw[llm/arrow] (hlabel.north) -- (h2.south);
 
 % --- Hybrid scaling (bottom right) ---
-\node[box, fill=purple!25] (hy1) at (7,0) {\small\textbf{H100}\\\small Node};
-\node[box, fill=orange!20, right=8mm of hy1] (hy2) {\small\textbf{A100}\\\small Node};
-\node[box, fill=yellow!20, right=8mm of hy2] (hy3) {\small\textbf{CPU}\\\small Pool};
+\node[hybox]  (hy1) at (7,0) {\footnotesize\textbf{H100}\\\footnotesize Node};
+\node[hybox2, right=8mm of hy1] (hy2) {\footnotesize\textbf{A100}\\\footnotesize Node};
+\node[hybox3, right=8mm of hy2] (hy3) {\footnotesize\textbf{CPU}\\\footnotesize Pool};
 
 \node[labelbox, below=6mm of hy2] (hylabel) {
   \textbf{Hybrid Scaling}\\[1pt]
-  \small Mixing high-end GPUs with cheaper GPUs/CPUs for different tiers.
+  Mixing high-end GPUs with cheaper GPUs/CPUs for different tiers.
 };
 
-% Hybrid connection indicator
-\draw[arrow, dashed, draw=black!50] (hy1.east) -- (hy2.west);
-\draw[arrow, dashed, draw=black!50] (hy2.east) -- (hy3.west);
-\draw[arrow] (hylabel.north) -- (hy2.south);
+\draw[llm/arrow/dashed] (hy1.east) -- (hy2.west);
+\draw[llm/arrow/dashed] (hy2.east) -- (hy3.west);
+\draw[llm/arrow] (hylabel.north) -- (hy2.south);
 
 \end{tikzpicture}
 \end{llmfigbox}
@@ -778,65 +764,64 @@ Fig.~\ref{fig:ch06_parallelism} provides a compact view of how model, tensor, an
 \begin{llmfigbox}
 \begin{tikzpicture}[
   font=\small,
-  gpu/.style={rectangle, rounded corners=3pt, draw=none, minimum width=18mm, minimum height=10mm, align=center, inner sep=3pt},
-  layer/.style={rectangle, rounded corners=2pt, draw=none, minimum width=14mm, minimum height=7mm, align=center, inner sep=2pt, font=\footnotesize},
-  arr/.style={-{Stealth[length=2mm]}, line width=0.8pt, draw=black!60},
-  comm/.style={<->, line width=0.6pt, draw=red!60, dashed},
+  gpu/.style={llm/box/blue,   minimum width=18mm, minimum height=10mm, font=\footnotesize},
+  gpug/.style={llm/box/green, minimum width=14mm, minimum height=7mm, font=\footnotesize},
+  gpuo/.style={llm/box/orange, minimum width=18mm, minimum height=10mm, font=\footnotesize},
   titlestyle/.style={font=\small\bfseries, align=center}
 ]
 
 % ============ (a) Data Parallelism ============
 \node[titlestyle] (dptitle) at (0, 3.2) {(a) Data Parallelism};
 
-\node[gpu, fill=blue!20] (dp1) at (-1.8, 1.8) {GPU 0\\Full Model};
-\node[gpu, fill=blue!20] (dp2) at (0, 1.8) {GPU 1\\Full Model};
-\node[gpu, fill=blue!20] (dp3) at (1.8, 1.8) {GPU 2\\Full Model};
+\node[gpu] (dp1) at (-1.8, 1.8) {GPU 0\\Full Model};
+\node[gpu] (dp2) at (0, 1.8) {GPU 1\\Full Model};
+\node[gpu] (dp3) at (1.8, 1.8) {GPU 2\\Full Model};
 
-\node[font=\footnotesize, text=black!60, align=center] at (0, 0.8) {Each GPU holds a\\complete model replica};
+\node[llm/label, align=center] at (0, 0.8) {Each GPU holds a\\complete model replica};
 
 % Request arrows
 \node[font=\footnotesize] (req) at (0, 2.8) {Requests};
-\draw[arr] (req.south) -- (dp1.north);
-\draw[arr] (req.south) -- (dp2.north);
-\draw[arr] (req.south) -- (dp3.north);
+\draw[llm/arrow] (req.south) -- (dp1.north);
+\draw[llm/arrow] (req.south) -- (dp2.north);
+\draw[llm/arrow] (req.south) -- (dp3.north);
 
 % ============ (b) Tensor Parallelism ============
 \node[titlestyle] (tptitle) at (6, 3.2) {(b) Tensor Parallelism};
 
 % Single layer split across GPUs
-\node[layer, fill=green!25] (tp1) at (4.5, 2.2) {Slice 0};
-\node[layer, fill=green!25] (tp2) at (6.0, 2.2) {Slice 1};
-\node[layer, fill=green!25] (tp3) at (7.5, 2.2) {Slice 2};
+\node[gpug] (tp1) at (4.5, 2.2) {Slice 0};
+\node[gpug] (tp2) at (6.0, 2.2) {Slice 1};
+\node[gpug] (tp3) at (7.5, 2.2) {Slice 2};
 
-\node[font=\footnotesize, text=black!60] at (6.0, 2.8) {Single Layer};
+\node[llm/label] at (6.0, 2.95) {Single Layer};
 
-% All-reduce arrows
-\draw[comm] (tp1.east) -- (tp2.west);
-\draw[comm] (tp2.east) -- (tp3.west);
+% All-reduce arrows (dashed = synchronization, not control flow)
+\draw[llm/arrow/dashed] (tp1.east) -- (tp2.west);
+\draw[llm/arrow/dashed] (tp2.east) -- (tp3.west);
 
-\node[layer, fill=green!15] (tpl2a) at (4.5, 1.2) {Slice 0};
-\node[layer, fill=green!15] (tpl2b) at (6.0, 1.2) {Slice 1};
-\node[layer, fill=green!15] (tpl2c) at (7.5, 1.2) {Slice 2};
+\node[gpug] (tpl2a) at (4.5, 1.2) {Slice 0};
+\node[gpug] (tpl2b) at (6.0, 1.2) {Slice 1};
+\node[gpug] (tpl2c) at (7.5, 1.2) {Slice 2};
 
-\draw[arr] (tp1.south) -- (tpl2a.north);
-\draw[arr] (tp2.south) -- (tpl2b.north);
-\draw[arr] (tp3.south) -- (tpl2c.north);
-\draw[comm] (tpl2a.east) -- (tpl2b.west);
-\draw[comm] (tpl2b.east) -- (tpl2c.west);
+\draw[llm/arrow] (tp1.south) -- (tpl2a.north);
+\draw[llm/arrow] (tp2.south) -- (tpl2b.north);
+\draw[llm/arrow] (tp3.south) -- (tpl2c.north);
+\draw[llm/arrow/dashed] (tpl2a.east) -- (tpl2b.west);
+\draw[llm/arrow/dashed] (tpl2b.east) -- (tpl2c.west);
 
-\node[font=\footnotesize, text=black!60, align=center] at (6.0, 0.5) {Matrix ops split across GPUs;\\all-reduce sync per layer};
+\node[llm/label, align=center] at (6.0, 0.4) {Matrix ops split across GPUs;\\all-reduce sync per layer};
 
 % ============ (c) Pipeline Parallelism ============
 \node[titlestyle] (pptitle) at (12, 3.2) {(c) Pipeline Parallelism};
 
-\node[gpu, fill=orange!20] (pp1) at (12, 2.4) {GPU 0\\Layers 0--7};
-\node[gpu, fill=orange!25] (pp2) at (12, 1.4) {GPU 1\\Layers 8--15};
-\node[gpu, fill=orange!30] (pp3) at (12, 0.4) {GPU 2\\Layers 16--23};
+\node[gpuo] (pp1) at (12, 2.4) {GPU 0\\Layers 0--7};
+\node[gpuo] (pp2) at (12, 1.4) {GPU 1\\Layers 8--15};
+\node[gpuo] (pp3) at (12, 0.4) {GPU 2\\Layers 16--23};
 
-\draw[arr] (pp1.south) -- (pp2.north);
-\draw[arr] (pp2.south) -- (pp3.north);
+\draw[llm/arrow] (pp1.south) -- (pp2.north);
+\draw[llm/arrow] (pp2.south) -- (pp3.north);
 
-\node[font=\footnotesize, text=black!60, align=center, right=8mm of pp2] {Sequential stages;\\microbatches\\in flight};
+\node[llm/label, align=center, right=8mm of pp2] {Sequential stages;\\microbatches\\in flight};
 
 \end{tikzpicture}
 \end{llmfigbox}
@@ -1129,125 +1114,67 @@ Serverless LLM platforms pay higher cold-start penalties; predictive pre-warming
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
 \begin{axis}[
+    llm/chart,
     width=0.95\linewidth,
     height=7cm,
     xlabel={Time},
     ylabel={Tokens/s},
     ymin=0, ymax=1200,
     xmin=0, xmax=100,
-    grid=major,
-    grid style={gray!25, line width=0.3pt},
-    minor grid style={gray!10, line width=0.2pt},
     minor tick num=4,
     legend style={
         at={(0.5,1.02)},
         anchor=south,
         draw=none,
         fill=none,
-        font=\small,
+        font=\footnotesize,
         cells={anchor=west},
         legend columns=2,
         column sep=12pt
-    },
-    tick align=outside,
-    tick pos=left,
-    xlabel style={font=\small\bfseries, yshift=2pt},
-    ylabel style={font=\small\bfseries, xshift=-2pt},
-    ticklabel style={font=\small},
-    axis line style={line width=0.8pt},
-    every axis plot/.append style={line width=1.5pt}
+    }
 ]
-% Demand (tokens/s) - solid blue line with circular markers
-\addplot+[
-    color=blue!75!black,
-    mark=*,
-    mark size=2.5pt,
-    mark options={fill=blue!75!black, draw=white, line width=0.4pt},
-    smooth
-] coordinates {
+% Demand
+\addplot+[color=llmblue, solid, mark=*, mark size=2pt,
+          mark options={fill=llmblue, draw=white, line width=0.4pt},
+          smooth] coordinates {
 (0,300) (10,320) (20,350) (30,600) (40,900) (50,950) (60,700) (70,500) (80,420) (90,350) (100,320)
 };
 \addlegendentry{Demand $D(t)$}
 
-% Capacity with headroom gamma=0.7 (N changes) - dashed red line with square markers
-\addplot+[
-    color=red!70!black,
-    dashed,
-    dash pattern=on 4pt off 2pt,
-    mark=square*,
-    mark size=2.5pt,
-    mark options={fill=red!70!black, draw=white, line width=0.4pt},
-    smooth
-] coordinates {
+% Provisioned capacity
+\addplot+[color=llmorange, dashed, dash pattern=on 4pt off 2pt,
+          mark=square*, mark size=2pt,
+          mark options={fill=llmorange, draw=white, line width=0.4pt},
+          smooth] coordinates {
 (0,430) (20,430) (30,430) (40,860) (55,860) (60,860) (70,600) (85,600) (100,430)
 };
 \addlegendentry{Provisioned capacity $(\gamma\,\hat{C})\cdot N(t)$}
 
-% Horizontal line for single-replica capacity at gamma*C_hat
-\addplot+[
-    domain=0:100,
-    samples=2,
-    color=gray!60!black,
-    dashdotted,
-    dash pattern=on 3pt off 2pt on 0.5pt off 2pt,
-    line width=1pt
-] {430};
-\node[
-    color=gray!60!black,
-    font=\footnotesize,
-    fill=white,
-    inner sep=2pt,
-    rounded corners=2pt
-] at (axis cs:8,470) {$\gamma\,\hat{C}$ per replica};
+% Horizontal reference line for single-replica capacity
+\addplot+[domain=0:100, samples=2, color=llmgray, dashdotted,
+          dash pattern=on 3pt off 2pt on 0.5pt off 2pt,
+          line width=1pt, mark=none] {430};
+\node[llm/label, fill=white, inner sep=2pt, rounded corners=2pt]
+    at (axis cs:8,470) {$\gamma\,\hat{C}$ per replica};
 
-% Annotations - improved styling with background boxes
-\node[
-    anchor=west,
-    font=\footnotesize,
-    text=blue!75!black,
-    fill=blue!10,
-    inner sep=3pt,
-    rounded corners=3pt
-] at (axis cs:33,700) {\textbf{Spike}};
-\draw[
-    ->,
-    >=stealth,
-    color=blue!75!black,
-    line width=1pt,
-    shorten >=2pt
-] (axis cs:30,670) -- (axis cs:32,600);
+% Annotations
+\node[llm/label, anchor=west, fill=llmblue!10,
+      inner sep=3pt, rounded corners=3pt, text=llmblue]
+    at (axis cs:33,700) {\textbf{Spike}};
+\draw[llm/arrow, color=llmblue]
+    (axis cs:30,670) -- (axis cs:32,600);
 
-\node[
-    anchor=west,
-    font=\footnotesize,
-    text=red!70!black,
-    fill=red!10,
-    inner sep=3pt,
-    rounded corners=3pt
-] at (axis cs:44,1000) {\textbf{$N\uparrow$} (scale out)};
-\draw[
-    ->,
-    >=stealth,
-    color=red!70!black,
-    line width=1pt,
-    shorten >=2pt
-] (axis cs:41,950) -- (axis cs:42,860);
+\node[llm/label, anchor=west, fill=llmorange!10,
+      inner sep=3pt, rounded corners=3pt, text=llmorange]
+    at (axis cs:44,1000) {\textbf{$N\uparrow$} (scale out)};
+\draw[llm/arrow, color=llmorange]
+    (axis cs:41,950) -- (axis cs:42,860);
 
-\node[
-    anchor=east,
-    font=\footnotesize,
-    text=red!70!black,
-    fill=red!10,
-    inner sep=3pt,
-    rounded corners=3pt
-] at (axis cs:86,660) {\textbf{$N\downarrow$} (scale in)};
-\draw[
-    ->,
-    >=stealth,
-    color=red!70!black,
-    line width=1pt,
-    shorten >=2pt
-] (axis cs:89,610) -- (axis cs:84,600);
+\node[llm/label, anchor=east, fill=llmorange!10,
+      inner sep=3pt, rounded corners=3pt, text=llmorange]
+    at (axis cs:86,660) {\textbf{$N\downarrow$} (scale in)};
+\draw[llm/arrow, color=llmorange]
+    (axis cs:89,610) -- (axis cs:84,600);
 
 \end{axis}
 \end{tikzpicture}
@@ -1261,142 +1188,77 @@ Serverless LLM platforms pay higher cold-start penalties; predictive pre-warming
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
 \begin{axis}[
+    llm/chart,
     width=0.95\linewidth,
     height=7cm,
     xlabel={Time},
     ylabel={Tokens/s},
     ymin=0, ymax=1200,
     xmin=0, xmax=100,
-    grid=major,
-    grid style={gray!25, line width=0.3pt},
-    minor grid style={gray!10, line width=0.2pt},
     minor tick num=4,
     legend style={
         at={(0.5,1.02)},
         anchor=south,
         draw=none,
         fill=none,
-        font=\small,
+        font=\footnotesize,
         cells={anchor=west},
         legend columns=3,
         column sep=8pt
-    },
-    tick align=outside,
-    tick pos=left,
-    xlabel style={font=\small\bfseries, yshift=2pt},
-    ylabel style={font=\small\bfseries, xshift=-2pt},
-    ticklabel style={font=\small},
-    axis line style={line width=0.8pt},
-    every axis plot/.append style={line width=1.5pt}
+    }
 ]
-% Demand (tokens/s) - solid blue line with circular markers
-\addplot+[
-    color=blue!75!black,
-    mark=*,
-    mark size=2.5pt,
-    mark options={fill=blue!75!black, draw=white, line width=0.4pt},
-    smooth
-] coordinates {
+% Demand
+\addplot+[color=llmblue, solid, mark=*, mark size=2pt,
+          mark options={fill=llmblue, draw=white, line width=0.4pt},
+          smooth] coordinates {
 (0,300) (10,320) (20,350) (30,600) (40,900) (50,950) (60,700) (70,500) (80,420) (90,350) (100,320)
 };
 \addlegendentry{Demand $D(t)$}
 
-% Event-based capacity: pre-warms BEFORE spike (proactive) - dashed green line with square markers
-\addplot+[
-    color=green!70!black,
-    dashed,
-    dash pattern=on 4pt off 2pt,
-    mark=square*,
-    mark size=2.5pt,
-    mark options={fill=green!70!black, draw=white, line width=0.4pt},
-    smooth
-] coordinates {
+% Event-based capacity (proactive)
+\addplot+[color=llmgreen, dashed, dash pattern=on 4pt off 2pt,
+          mark=square*, mark size=2pt,
+          mark options={fill=llmgreen, draw=white, line width=0.4pt},
+          smooth] coordinates {
 (0,430) (15,430) (20,600) (25,860) (30,860) (40,860) (55,860) (60,860) (70,600) (85,600) (100,430)
 };
 \addlegendentry{Event-based (pre-warmed)}
 
-% Metrics-based capacity (reactive, shown for comparison) - dotted red line with diamond markers
-\addplot+[
-    color=red!70!black,
-    dotted,
-    mark=diamond*,
-    mark size=2.5pt,
-    mark options={fill=red!70!black, draw=white, line width=0.4pt},
-    smooth
-] coordinates {
+% Metrics-based capacity (reactive reference)
+\addplot+[color=llmorange, dotted, mark=diamond*, mark size=2pt,
+          mark options={fill=llmorange, draw=white, line width=0.4pt},
+          smooth] coordinates {
 (0,430) (20,430) (30,430) (40,860) (55,860) (60,860) (70,600) (85,600) (100,430)
 };
 \addlegendentry{Metrics-based (reactive)}
 
-% Horizontal line for single-replica capacity
-\addplot+[
-    domain=0:100,
-    samples=2,
-    color=gray!60!black,
-    dashdotted,
-    dash pattern=on 3pt off 2pt on 0.5pt off 2pt,
-    line width=1pt
-] {430};
-\node[
-    color=gray!60!black,
-    font=\footnotesize,
-    fill=white,
-    inner sep=2pt,
-    rounded corners=2pt
-] at (axis cs:15,470) {$\gamma\,\hat{C}$ per replica};
+% Single-replica capacity reference
+\addplot+[domain=0:100, samples=2, color=llmgray, dashdotted,
+          dash pattern=on 3pt off 2pt on 0.5pt off 2pt,
+          line width=1pt, mark=none] {430};
+\node[llm/label, fill=white, inner sep=2pt, rounded corners=2pt]
+    at (axis cs:15,470) {$\gamma\,\hat{C}$ per replica};
 
-% Event trigger annotation - improved styling, moved further left and lower
-\node[
-    anchor=south west,
-    align=left,
-    font=\footnotesize,
-    text=green!70!black,
-    fill=green!10,
-    inner sep=3pt,
-    rounded corners=3pt
-] at (axis cs:1,720) {\textbf{Event trigger}\\(calendar/schedule)};
-\draw[
-    ->,
-    >=stealth,
-    color=green!70!black,
-    line width=1pt,
-    shorten >=2pt
-] (axis cs:1,700) -- (axis cs:20,600);
+% Event trigger annotation
+\node[llm/label, anchor=south west, align=left, fill=llmgreen!10,
+      inner sep=3pt, rounded corners=3pt, text=llmgreen]
+    at (axis cs:1,720) {\textbf{Event trigger}\\(calendar/schedule)};
+\draw[llm/arrow, color=llmgreen]
+    (axis cs:1,700) -- (axis cs:20,600);
 
-% Pre-warm annotation - improved styling, moved further right and higher
-\node[
-    anchor=east,
-    align=right,
-    font=\footnotesize,
-    text=green!70!black,
-    fill=green!10,
-    inner sep=3pt,
-    rounded corners=3pt
-] at (axis cs:32,1020) {\textbf{Pre-warm}\\ahead of spike};
-\draw[
-    ->,
-    >=stealth,
-    color=green!70!black,
-    line width=1pt,
-    shorten >=2pt
-] (axis cs:32,1000) -- (axis cs:25,860);
+% Pre-warm annotation
+\node[llm/label, anchor=east, align=right, fill=llmgreen!10,
+      inner sep=3pt, rounded corners=3pt, text=llmgreen]
+    at (axis cs:32,1020) {\textbf{Pre-warm}\\ahead of spike};
+\draw[llm/arrow, color=llmgreen]
+    (axis cs:32,1000) -- (axis cs:25,860);
 
-% Spike annotation - improved styling
-\node[
-    anchor=west,
-    font=\footnotesize,
-    text=blue!75!black,
-    fill=blue!10,
-    inner sep=3pt,
-    rounded corners=3pt
-] at (axis cs:37,800) {\textbf{Spike}};
-\draw[
-    ->,
-    >=stealth,
-    color=blue!75!black,
-    line width=1pt,
-    shorten >=2pt
-] (axis cs:35,780) -- (axis cs:32,600);
+% Spike annotation
+\node[llm/label, anchor=west, fill=llmblue!10,
+      inner sep=3pt, rounded corners=3pt, text=llmblue]
+    at (axis cs:37,800) {\textbf{Spike}};
+\draw[llm/arrow, color=llmblue]
+    (axis cs:35,780) -- (axis cs:32,600);
 
 \end{axis}
 \end{tikzpicture}
@@ -1659,16 +1521,15 @@ Fig.~\ref{fig:ch06_rag_two_tier} sketches a practical two-tier RAG serving layou
 \begin{tikzpicture}[
   node distance=10mm and 14mm,
   every node/.style={font=\small},
-  box/.style={draw=none, rounded corners=4pt, align=center, minimum width=28mm, minimum height=10mm, fill=blue!10, inner sep=4pt},
-  router/.style={draw=none, rounded corners=4pt, align=center, minimum width=32mm, minimum height=10mm, fill=orange!15, inner sep=4pt},
-  hot/.style={draw=none, rounded corners=4pt, align=center, minimum width=36mm, minimum height=12mm, fill=red!20, inner sep=5pt},
-  dist/.style={draw=none, rounded corners=4pt, align=center, minimum width=28mm, minimum height=10mm, fill=green!15, inner sep=4pt},
-  stor/.style={draw=none, rounded corners=4pt, align=center, minimum width=36mm, minimum height=10mm, fill=purple!15, inner sep=4pt},
-  merge/.style={draw=none, rounded corners=4pt, align=center, minimum width=32mm, minimum height=10mm, fill=cyan!15, inner sep=4pt},
-  gen/.style={draw=none, rounded corners=4pt, align=center, minimum width=32mm, minimum height=10mm, fill=yellow!20, inner sep=4pt},
-  arr/.style={-{Latex}, line width=1pt, draw=black!70},
-  arrhit/.style={-{Latex}, line width=1pt, draw=green!70!black},
-  arrmiss/.style={-{Latex}, line width=1pt, draw=red!70!black, dashed}
+  box/.style   ={llm/box/purple, minimum width=28mm, minimum height=10mm},
+  router/.style={llm/box/green,  minimum width=32mm, minimum height=10mm},
+  hot/.style   ={llm/box/orange, minimum width=36mm, minimum height=12mm},
+  dist/.style  ={llm/box/blue,   minimum width=28mm, minimum height=10mm},
+  stor/.style  ={llm/box/gray,   minimum width=36mm, minimum height=10mm},
+  merge/.style ={llm/box/green,  minimum width=32mm, minimum height=10mm},
+  gen/.style   ={llm/box/green,  minimum width=32mm, minimum height=10mm},
+  arrhit/.style ={llm/arrow, color=llmgreen},
+  arrmiss/.style={llm/arrow/dashed, color=llmorange}
 ]
 
 % Row 1: Query & Router
@@ -1676,7 +1537,6 @@ Fig.~\ref{fig:ch06_rag_two_tier} sketches a practical two-tier RAG serving layou
 \node[router, right=of q] (route) {RAG Router\\(Query parse + features)};
 
 % Row 2: Hot tier + cache
-% Hot Tier Index box - increased distance to fit label text
 \node[hot, below=20mm of route] (hotidx) {Hot Tier Index};
 \node[stor, right=of hotidx, xshift=10mm] (embcache) {Precomputed Embedding Cache\\(hash(content) $\to$ vector)};
 
@@ -1689,39 +1549,37 @@ Fig.~\ref{fig:ch06_rag_two_tier} sketches a practical two-tier RAG serving layou
 \node[merge, below=18mm of sh2] (merge) {Merge \& (Re)Rank\\(ANN results aggregate)};
 \node[gen, right=22mm of merge] (gen) {Generator (LLM)\\(assemble context + decode)};
 
-% Edges: query path
-\draw[arr] (q) -- (route);
+\draw[llm/arrow] (q) -- (route);
 
-% Hot tier lookup - labels positioned to the right of the arrow line
-\draw[arr] (route) -- (hotidx);
-% Labels positioned to the right of the arrow line
-\node[right=3mm of route, font=\footnotesize, text=black!70, anchor=west] (lookuplabel) {first lookup};
-\node[right=3mm of route, font=\footnotesize, text=black!70, anchor=west, below=6mm of lookuplabel] {(in-memory / GPU)};
+\draw[llm/arrow] (route) -- (hotidx);
+\node[llm/label, right=3mm of route, anchor=west] (lookuplabel) {first lookup};
+\node[llm/label, right=3mm of route, anchor=west, below=6mm of lookuplabel] {(in-memory / GPU)};
 
-% Hit path from hot to merge (green for success) - curve around Shard 2 to avoid going through it
+% Hit path: curves around Shard 2 to avoid passing through it
 \draw[arrhit] (hotidx) .. controls +(0,-8mm) and +(0,8mm) .. (merge);
-% "hit" label positioned below Shard 2, to the right of the arrow line
-\node[below=12mm of sh2, right=3mm, font=\footnotesize\bfseries, text=green!70!black] {hit};
+\node[below=12mm of sh2, right=3mm, font=\footnotesize\bfseries, text=llmgreen] {hit};
 
-% Miss path to shards (red dashed for miss)
-\draw[arrmiss] (hotidx.west) .. controls +(-2.5,0.0) and +(0.0,1.5) .. node[pos=0.3,above,font=\footnotesize\bfseries]{miss} (sh1.north);
+% Miss path to shards
+\draw[arrmiss] (hotidx.west) .. controls +(-2.5,0.0) and +(0.0,1.5) ..
+    node[pos=0.3,above,font=\footnotesize\bfseries]{miss} (sh1.north);
 \draw[arrmiss] (hotidx) -- (sh2.north);
 \draw[arrmiss] (hotidx.east) .. controls +(2.5,0.0) and +(0.0,1.5) .. (sh3.north);
 
-% Shards back to merge
-\draw[arr] (sh1) -- (merge);
-\draw[arr] (sh2) -- (merge);
-\draw[arr] (sh3) -- (merge);
+\draw[llm/arrow] (sh1) -- (merge);
+\draw[llm/arrow] (sh2) -- (merge);
+\draw[llm/arrow] (sh3) -- (merge);
 
-% Embedding cache notes/edges
-\node[align=left, font=\footnotesize, text=purple!70!black] (note) at ($(embcache.north)+(0,12mm)$) {reuse vectors on\\ identical chunks};
-\draw[-{Latex}, line width=0.8pt, draw=purple!70!black] (note.south) -- (embcache.north);
+\node[llm/label, align=left, text=llmpurple]
+    (note) at ($(embcache.north)+(0,12mm)$) {reuse vectors on\\ identical chunks};
+\draw[llm/arrow, color=llmpurple] (note.south) -- (embcache.north);
 
-% Merge to generator
-\draw[arr] (merge) -- (gen);
+\draw[llm/arrow] (merge) -- (gen);
 
-% Legend box - moved further right to avoid covering boxes
-\node[draw=black!40, rounded corners=4pt, thick, align=left, anchor=south east, fill=white!95, inner sep=4pt, text width=7cm] at ($(gen.south east)+(25mm,-2mm)$) (leg) {%
+% Legend box
+\node[draw=black!40, rounded corners=4pt, line width=0.6pt, align=left,
+      anchor=south east, fill=white, inner sep=4pt, text width=7cm,
+      font=\footnotesize]
+      at ($(gen.south east)+(25mm,-2mm)$) (leg) {%
 \textbf{Two-tier RAG}\\[2pt]
 \textbf{Hot tier:} recent/popular items in RAM/GPU\\
 \textbf{Fallback:} parallel ANN on sharded index\\
@@ -1784,37 +1642,37 @@ Fig.~\ref{fig:ch06_geo_scaling_inset} depicts a typical multi-region serving top
 \begin{tikzpicture}[
   node distance=8mm and 12mm,
   every node/.style={font=\small},
-  region/.style={draw=none, rounded corners=4pt, minimum width=25mm, minimum height=8mm, align=center, inner sep=3pt},
-  user/.style={draw=none, rounded corners=4pt, minimum width=19mm, minimum height=7mm, align=center, inner sep=3pt},
-  arr/.style={-{Latex}, line width=0.8pt},
-  fail/.style={-{Latex}, line width=0.8pt, dashed, color=black!50}
+  region/.style={llm/box, minimum width=25mm, minimum height=8mm},
+  region/blue/.style={region, fill=llmblue!12,   draw=llmblue!70},
+  region/green/.style={region, fill=llmgreen!12, draw=llmgreen!70},
+  region/orange/.style={region, fill=llmorange!12, draw=llmorange!70},
+  user/.style={llm/box/purple, minimum width=19mm, minimum height=7mm}
 ]
 % Schematic world frame (purely illustrative)
-\node[draw=none, rounded corners, minimum width=100mm, minimum height=45mm, fill=gray!2] (frame) {};
+\node[draw=none, rounded corners, minimum width=100mm, minimum height=45mm, fill=black!2] (frame) {};
 
-% Regions (left-to-right placement) - with colors, increased spacing for visibility
-\node[region, fill=blue!15, anchor=west] (na) at ($(frame.west)+(0.2,0)$) {North America\\(NA cluster)};
-\node[region, fill=green!15] (eu) at ($(frame.center)+(0,1.0)$) {Europe\\(EU cluster)};
-\node[region, fill=orange!15, anchor=east] (ap) at ($(frame.east)+(-0.2,0)$) {Asia-Pacific\\(APAC cluster)};
+\node[region/blue,   anchor=west] (na) at ($(frame.west)+(0.2,0)$) {North America\\(NA cluster)};
+\node[region/green]              (eu) at ($(frame.center)+(0,1.0)$) {Europe\\(EU cluster)};
+\node[region/orange, anchor=east] (ap) at ($(frame.east)+(-0.2,0)$) {Asia-Pacific\\(APAC cluster)};
 
-% Users (example clients) - matching region colors
-\node[user, fill=blue!8, above=of na] (userna) {Users (NA)};
-\node[user, fill=green!8, above=of eu] (usereu) {Users (EU)};
-\node[user, fill=orange!8, above=of ap] (userap) {Users (APAC)};
+\node[user, above=of na] (userna) {Users (NA)};
+\node[user, above=of eu] (usereu) {Users (EU)};
+\node[user, above=of ap] (userap) {Users (APAC)};
 
-% Primary routing (nearest region)
-\draw[arr] (userna) -- node[pos=0.5,right]{nearest} (na.north);
-\draw[arr] (usereu) -- node[pos=0.5,right]{nearest} (eu.north);
-\draw[arr] (userap) -- node[pos=0.5,right]{nearest} (ap.north);
+\draw[llm/arrow] (userna) -- node[llm/label,pos=0.5,right]{nearest} (na.north);
+\draw[llm/arrow] (usereu) -- node[llm/label,pos=0.5,right]{nearest} (eu.north);
+\draw[llm/arrow] (userap) -- node[llm/label,pos=0.5,right]{nearest} (ap.north);
 
-% Failover paths (between regional clusters) - increased spacing for better visibility
-\draw[fail] (na.east) .. controls +(2.0,0.8) and +(-2.0,0.8) .. (eu.west) node[pos=0.52,above,sloped,yshift=2pt] {\small failover};
-\draw[fail] (eu.east) .. controls +(2.0,-0.8) and +(-2.0,-0.8) .. (ap.west) node[pos=0.52,below,sloped,yshift=-2pt] {\small failover};
-\draw[fail] (na.south east) .. controls +(1.4,-1.2) and +(-1.4,-1.2) .. (ap.south west) node[pos=0.5,below,sloped] {\small overflow};
+\draw[llm/arrow/dashed] (na.east) .. controls +(2.0,0.8) and +(-2.0,0.8) ..
+    (eu.west) node[llm/label,pos=0.52,above,sloped,yshift=2pt] {failover};
+\draw[llm/arrow/dashed] (eu.east) .. controls +(2.0,-0.8) and +(-2.0,-0.8) ..
+    (ap.west) node[llm/label,pos=0.52,below,sloped,yshift=-2pt] {failover};
+\draw[llm/arrow/dashed] (na.south east) .. controls +(1.4,-1.2) and +(-1.4,-1.2) ..
+    (ap.south west) node[llm/label,pos=0.5,below,sloped] {overflow};
 
-% Compliance / geofencing note - centered below the frame
-\node[draw=black!40, rounded corners=4pt, align=left, anchor=north, fill=white!95, inner sep=4mm]
-at ($(frame.south)+(0,-0.5)$) {\small
+\node[draw=black!40, rounded corners=4pt, line width=0.6pt, align=left,
+      anchor=north, fill=white, inner sep=4mm, font=\footnotesize]
+      at ($(frame.south)+(0,-0.5)$) {%
 \textbf{Notes}\\[2pt]
 -- Geo-aware routing (latency)\\
 -- Regional data residency\\
@@ -1855,17 +1713,15 @@ Fig.~\ref{fig:ch06_ishtar_timeline} summarizes the evolution of \ishtar{} from a
 \centering
 \begin{llmfigbox}
 \begin{tikzpicture}[
-  >=Stealth,
-  milestone/.style={draw=none, rounded corners=4pt, align=left, inner sep=4pt},
-  initial/.style={milestone, fill=blue!15, minimum width=4.1cm, minimum height=1.1cm},
-  intermediate/.style={milestone, fill=green!15, minimum width=4.3cm, minimum height=1.2cm},
-  mature/.style={milestone, fill=orange!15, minimum width=4.5cm, minimum height=1.2cm},
-  label/.style={font=\small, align=left}
+  initial/.style     ={llm/box/blue,   align=left, minimum width=4.1cm, minimum height=1.1cm, font=\footnotesize},
+  intermediate/.style={llm/box/green,  align=left, minimum width=4.3cm, minimum height=1.2cm, font=\footnotesize},
+  mature/.style      ={llm/box/orange, align=left, minimum width=4.5cm, minimum height=1.2cm, font=\footnotesize}
 ]
 
 % Key milestones box - centered at top
-\node[draw=black!40, rounded corners=4pt, thick, align=left, fill=white!95, inner sep=3mm, anchor=north]
-at (7.5,2.2) {\small
+\node[draw=black!40, rounded corners=4pt, line width=0.6pt, align=left,
+      fill=white, inner sep=3mm, anchor=north, font=\footnotesize]
+    at (7.5,2.2) {%
 \textbf{Key milestones}\\[2pt]
 $\bullet$ Batching \& caching evolve with scale\\
 $\bullet$ Autoscaling: reactive $\to$ predictive\\
@@ -1873,13 +1729,11 @@ $\bullet$ Tiered models \& spot for cost-awareness
 };
 
 % Timeline axis
-\draw[thick] (0,0) -- (15,0);
+\draw[line width=0.7pt, color=black!75] (0,0) -- (15,0);
 
-% Ticks (without labels - labels will be on arrows)
 \foreach \x in {0, 7, 14}
-  \draw[thick] (\x,0.15) -- (\x,-0.15);
+  \draw[line width=0.7pt, color=black!75] (\x,0.15) -- (\x,-0.15);
 
-% Milestones (boxes) - with colors
 \node[initial, anchor=north west] (m0) at (-0.2,-1.8) {%
 \textbf{Initial Stage}\\
 -- Single GPU server (A100-40\,GB)\\
@@ -1901,10 +1755,9 @@ $\bullet$ Tiered models \& spot for cost-awareness
 -- Redis response cache \& vector DB embeddings\\
 -- Speculative decoding; predictive autoscaling};
 
-% Connectors (from ticks to boxes) - with labels to the right of arrows
-\draw[->, thick] (0,-0.2) -- (m0.north west) node[pos=0.5,right=2mm,font=\bfseries] {Initial Stage};
-\draw[->, thick] (7,-0.2) -- (m1.north) node[pos=0.5,right=2mm,font=\bfseries] {Intermediate};
-\draw[->, thick] (14,-0.2) -- (m2.north east) node[pos=0.5,right=2mm,font=\bfseries] {Mature};
+\draw[llm/arrow] (0,-0.2)  -- (m0.north west) node[pos=0.5,right=2mm,font=\footnotesize\bfseries] {Initial Stage};
+\draw[llm/arrow] (7,-0.2)  -- (m1.north)      node[pos=0.5,right=2mm,font=\footnotesize\bfseries] {Intermediate};
+\draw[llm/arrow] (14,-0.2) -- (m2.north east) node[pos=0.5,right=2mm,font=\footnotesize\bfseries] {Mature};
 
 \end{tikzpicture}
 \end{llmfigbox}

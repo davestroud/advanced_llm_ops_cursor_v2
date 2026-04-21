@@ -83,34 +83,28 @@ Finally, LLM observability has a governance dimension. Logs often contain user t
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
+% Three-layer telemetry stack. Color encodes the abstraction level:
+%   blue   = infra-level signals (system)
+%   green  = control / quality signals (model)
+%   orange = decision-relevant lineage (pipeline)
 \begin{tikzpicture}[
-  system/.style={rectangle, rounded corners=4pt, draw=none,
-                 minimum width=50mm, minimum height=14mm,
-                 align=center, fill=blue!15, inner sep=4pt},
-  model/.style={rectangle, rounded corners=4pt, draw=none,
-                minimum width=50mm, minimum height=14mm,
-                align=center, fill=green!15, inner sep=4pt},
-  pipeline/.style={rectangle, rounded corners=4pt, draw=none,
-                   minimum width=50mm, minimum height=14mm,
-                   align=center, fill=orange!15, inner sep=4pt},
-  arrow/.style={-{Stealth[length=3.5mm,width=2.5mm]}, very thick, draw=black!70},
-  note/.style={font=\footnotesize, align=left, text width=35mm}
+  layer/.style={minimum width=60mm, minimum height=16mm, font=\small, inner sep=4pt, align=center},
+  note/.style={llm/label, text width=40mm}
 ]
 
-% Layers with distinct colors
-\node[system] (system) {\textbf{System Telemetry}\\[3pt]\footnotesize GPU/CPU util., memory, latency, throughput};
-\node[model, below=of system, yshift=-8mm] (model) {\textbf{Model Telemetry}\\[3pt]\footnotesize Tokens/request, hallucination rate, factuality checks};
-\node[pipeline, below=of model, yshift=-8mm] (pipeline) {\textbf{Pipeline Telemetry}\\[3pt]\footnotesize Prompt traces, retrieval hits, multi-agent orchestration};
+\node[llm/box/blue,   layer]                                  (system)
+  {\textbf{System Telemetry}\\[3pt]\footnotesize GPU/CPU util., memory, latency, throughput};
+\node[llm/box/green,  layer, below=of system,  yshift=-4mm]   (model)
+  {\textbf{Model Telemetry}\\[3pt]\footnotesize Tokens/request, hallucination rate, factuality checks};
+\node[llm/box/orange, layer, below=of model,   yshift=-4mm]   (pipeline)
+  {\textbf{Pipeline Telemetry}\\[3pt]\footnotesize Prompt traces, retrieval hits, multi-agent orchestration};
 
-% Flow arrows
-\draw[arrow] (system.south) -- (model.north);
-\draw[arrow] (model.south) -- (pipeline.north);
+\draw[llm/arrow] (system.south) -- (model.north);
+\draw[llm/arrow] (model.south)  -- (pipeline.north);
 
-% Context annotations with better positioning
-\node[note, right=18mm of system.east, anchor=west] {Traditional infra metrics};
-\node[note, right=18mm of model.east, anchor=west] {LLM-specific quality \& cost signals};
+\node[note, right=18mm of system.east,   anchor=west] {Traditional infra metrics};
+\node[note, right=18mm of model.east,    anchor=west] {LLM-specific quality \& cost signals};
 \node[note, right=18mm of pipeline.east, anchor=west] {End-to-end lineage across agents};
-
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Three-layer observability enables systematic debugging and quality assurance. System health metrics detect infrastructure failures; model quality signals identify accuracy regressions; pipeline tracing explains root causes. This layered approach prevents observability debt and enables rapid incident response by providing complete visibility into LLM system behavior.}
@@ -234,52 +228,46 @@ Fig.~\ref{fig:ch05_otel_collector_hub} illustrates how the OTel Collector acts a
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
+% OTel Collector hub: blue = data sources (apps), orange = central control
+% (collector with internal processors), green/purple/gray = downstream backends
+% specialized by signal type. Dashed processor outline distinguishes them
+% as collector-internal stages rather than first-class services.
 \begin{tikzpicture}[
-  font=\small,
   node distance=10mm and 16mm,
-  >=Stealth,
-  source/.style={rectangle, rounded corners=4pt, draw=none, fill=blue!15, align=center, minimum width=30mm, minimum height=12mm, inner sep=4pt},
-  collector/.style={rectangle, rounded corners=6pt, draw=black!40, line width=1pt, fill=orange!12, align=center, minimum width=50mm, minimum height=22mm, inner sep=6pt},
-  processor/.style={rectangle, rounded corners=3pt, draw=none, fill=yellow!20, align=center, minimum width=22mm, minimum height=8mm, inner sep=3pt, font=\footnotesize},
-  backend/.style={rectangle, rounded corners=4pt, draw=none, align=center, minimum width=30mm, minimum height=12mm, inner sep=4pt},
-  arr/.style={-{Latex}, line width=1pt, draw=black!60}
+  source/.style   ={llm/box/blue,   minimum width=32mm, minimum height=13mm, font=\footnotesize, align=center},
+  collector/.style={llm/box/orange, minimum width=52mm, minimum height=24mm, font=\small,        align=center},
+  processor/.style={llm/box/gray,   minimum width=22mm, minimum height=8mm,  font=\footnotesize, inner sep=3pt, align=center},
+  backend/.style  ={minimum width=32mm, minimum height=13mm, font=\footnotesize, align=center},
+  signal/.style   ={llm/label, font=\footnotesize}
 ]
 
-% Application sources (left)
 \node[source] (app1) {LLM Inference\\Service};
 \node[source, below=8mm of app1] (app2) {Retrieval\\Service};
 \node[source, below=8mm of app2] (app3) {Tool / Agent\\Service};
 
-% Signal labels next to sources
-\node[font=\footnotesize, text=black!60, right=1mm of app1.east, anchor=west] (sig1) {traces, metrics, logs};
-\node[font=\footnotesize, text=black!60, right=1mm of app2.east, anchor=west] (sig2) {traces, metrics};
-\node[font=\footnotesize, text=black!60, right=1mm of app3.east, anchor=west] (sig3) {traces, logs};
+\node[signal, right=1mm of app1.east, anchor=west] (sig1) {traces, metrics, logs};
+\node[signal, right=1mm of app2.east, anchor=west] (sig2) {traces, metrics};
+\node[signal, right=1mm of app3.east, anchor=west] (sig3) {traces, logs};
 
-% OTel Collector (center)
 \node[collector, right=45mm of app2] (collector) {\textbf{OTel Collector}};
 
-% Processors inside collector (below label)
 \node[processor, below=2mm of collector.north] (p1) {Batching};
 \node[processor, right=4mm of p1] (p2) {Filtering};
 \node[processor, right=4mm of p2] (p3) {Sampling};
 
-% Backends (right)
-\node[backend, fill=green!15, right=40mm of collector, yshift=24mm] (prom) {\textbf{Prometheus}\\Metrics};
-\node[backend, fill=purple!15, right=40mm of collector, yshift=8mm] (jaeger) {\textbf{Jaeger}\\Traces};
-\node[backend, fill=cyan!15, right=40mm of collector, yshift=-8mm] (elastic) {\textbf{Elasticsearch}\\Logs};
-\node[backend, fill=red!12, right=40mm of collector, yshift=-24mm] (grafana) {\textbf{Grafana}\\Dashboards};
+\node[llm/box/green,  backend, right=40mm of collector, yshift=24mm]  (prom)    {\textbf{Prometheus}\\Metrics};
+\node[llm/box/purple, backend, right=40mm of collector, yshift=8mm]   (jaeger)  {\textbf{Jaeger}\\Traces};
+\node[llm/box/blue,   backend, right=40mm of collector, yshift=-8mm]  (elastic) {\textbf{Elasticsearch}\\Logs};
+\node[llm/box/orange, backend, right=40mm of collector, yshift=-24mm] (grafana) {\textbf{Grafana}\\Dashboards};
 
-% Arrows: sources -> collector
-\draw[arr] (sig1.east) -- (collector.west |- app1);
-\draw[arr] (sig2.east) -- (collector.west);
-\draw[arr] (sig3.east) -- (collector.west |- app3);
+\draw[llm/arrow] (sig1.east) -- (collector.west |- app1);
+\draw[llm/arrow] (sig2.east) -- (collector.west);
+\draw[llm/arrow] (sig3.east) -- (collector.west |- app3);
 
-% Arrows: collector -> backends
-\draw[arr] (collector.east |- prom) -- (prom.west);
-\draw[arr] (collector.east |- jaeger) -- (jaeger.west);
-\draw[arr] (collector.east |- elastic) -- (elastic.west);
-\draw[arr] (collector.east |- grafana) -- (grafana.west);
-
+\draw[llm/arrow] (collector.east |- prom)    -- (prom.west);
+\draw[llm/arrow] (collector.east |- jaeger)  -- (jaeger.west);
+\draw[llm/arrow] (collector.east |- elastic) -- (elastic.west);
+\draw[llm/arrow] (collector.east |- grafana) -- (grafana.west);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{The OpenTelemetry Collector serves as a centralized telemetry hub for LLM observability. Application services emit traces, metrics, and logs via OTel SDKs; the Collector processes them (batching, filtering, sampling) and routes each signal type to the appropriate backend. This architecture decouples instrumentation from storage, enabling teams to add or swap backends without modifying application code.}
@@ -640,74 +628,65 @@ High-fidelity traces require stable correlation across boundaries. Every request
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
+% Span taxonomy. Color carries the role of each span class:
+%   gray   = trace envelope (correlation context)
+%   blue   = data carrier (LLM call / retrieval)
+%   green  = retrieval (data acquisition)
+%   orange = control-relevant span (tools, guardrails)
+%   purple = parser / external structure
 \begin{tikzpicture}[
-  font=\small,
   node distance=12mm and 18mm,
-  >=Stealth,
   every node/.style={align=left},
   header/.style={font=\bfseries\ttfamily\small},
-  box/.style={rectangle, rounded corners=5pt, draw=none, inner sep=5mm, text width=48mm, minimum height=16mm},
-  boxwide/.style={rectangle, rounded corners=5pt, draw=none, inner sep=5mm, text width=0.28\linewidth, minimum height=20mm},
-  arrow/.style={->, very thick, line width=1.2pt, draw=black!60}
+  spanbox/.style ={inner sep=5mm, text width=48mm,           minimum height=16mm, font=\footnotesize},
+  spanwide/.style={inner sep=5mm, text width=0.28\linewidth, minimum height=20mm, font=\footnotesize},
 ]
 
-% --- Palette is defined globally in macros.tex (llmblue, llmgray, ...) ---
-
-% --- Central TRACE panel (defined first so other nodes can reference it) ---
-\node[boxwide, fill=llmgray!8] (trace) {%
+\node[llm/box/gray, spanwide] (trace) {%
   \textbf{Trace} (execution waterfall)\\[2mm]
-  \footnotesize
   \(\bullet\) \texttt{trace\_id}, \texttt{span\_id}, \texttt{conversation\_id}\\[1mm]
   \(\bullet\) \texttt{baggage}: tenant/user, privacy class\\[1mm]
   \(\bullet\) rollup fields for P50/P95 latency, tokens, cost
 };
 
-% --- Top row: llm.call and retriever.search (above trace) ---
-\node[box, fill=llmblue!12, above=22mm of trace.north, xshift=-24mm] (llm) {%
+\node[llm/box/blue,  spanbox, above=22mm of trace.north, xshift=-24mm] (llm) {%
   \header{\texttt{llm.call}}\\[2mm]
-  \footnotesize model/version; temperature, $p$; TTFT; tokens/s; token counts
+  model/version; temperature, $p$; TTFT; tokens/s; token counts
 };
-\node[box, fill=llmgreen!12, above=22mm of trace.north, xshift=24mm] (retr) {%
+\node[llm/box/green, spanbox, above=22mm of trace.north, xshift=24mm] (retr) {%
   \header{\texttt{retriever.search}}\\[2mm]
-  \footnotesize index/version; \texttt{topK}; latency; hit set (doc IDs); re-ranker scores
+  index/version; \texttt{topK}; latency; hit set (doc IDs); re-ranker scores
 };
 
-% --- Bottom row: tool, parser, guard ---
-\node[box, fill=llmorange!12, below=22mm of trace.south, xshift=-48mm] (tool) {%
+\node[llm/box/orange, spanbox, below=22mm of trace.south, xshift=-48mm] (tool) {%
   \header{\texttt{tool.invoke.<name>}}\\[2mm]
-  \footnotesize schema version; payload bytes; retries/backoff; downstream status
+  schema version; payload bytes; retries/backoff; downstream status
 };
-\node[box, fill=llmpurple!12, below=22mm of trace.south] (parser) {%
+\node[llm/box/purple, spanbox, below=22mm of trace.south] (parser) {%
   \header{\texttt{parser.jsonschema}}\\[2mm]
-  \footnotesize schema ID; failure class: \texttt{missing\_field}, \texttt{type\_mismatch}
+  schema ID; failure class: \texttt{missing\_field}, \texttt{type\_mismatch}
 };
-\node[box, fill=llmorange!12, below=22mm of trace.south, xshift=48mm] (guard) {%
+\node[llm/box/orange, spanbox, below=22mm of trace.south, xshift=48mm] (guard) {%
   \header{\texttt{guard.rail}}\\[2mm]
-  \footnotesize policy ID; triggers (jailbreak, toxicity); action (block/sanitize/route)
+  policy ID; triggers (jailbreak, toxicity); action (block/sanitize/route)
 };
 
-% --- Arrows from TRACE to spans (clean routing) ---
-\draw[arrow] (trace.north) .. controls +(0,8mm) and +(-8mm,0) .. (llm.south);
-\draw[arrow] (trace.north) .. controls +(0,8mm) and +(8mm,0) .. (retr.south);
-\draw[arrow] (trace.south) .. controls +(0,-8mm) and +(-8mm,0) .. (tool.north);
-\draw[arrow] (trace.south) .. controls +(0,-8mm) and +(0,0) .. (parser.north);
-\draw[arrow] (trace.south) .. controls +(0,-8mm) and +(8mm,0) .. (guard.north);
+\draw[llm/arrow] (trace.north) .. controls +(0,8mm)  and +(-8mm,0) .. (llm.south);
+\draw[llm/arrow] (trace.north) .. controls +(0,8mm)  and +(8mm,0)  .. (retr.south);
+\draw[llm/arrow] (trace.south) .. controls +(0,-8mm) and +(-8mm,0) .. (tool.north);
+\draw[llm/arrow] (trace.south) .. controls +(0,-8mm) and +(0,0)    .. (parser.north);
+\draw[llm/arrow] (trace.south) .. controls +(0,-8mm) and +(8mm,0)  .. (guard.north);
 
-% --- Legend / Notes panel ---
-\node[rectangle, rounded corners=5pt, draw=none, fill=llmgray!6,
-      below=20mm of tool.south, text width=0.92\linewidth, inner sep=5mm, anchor=north] (legend) {%
+\node[llm/box/gray, below=20mm of tool.south, text width=0.92\linewidth, inner sep=5mm, anchor=north, font=\footnotesize, align=left] (legend) {%
   \textbf{Naming \& rollups.}\;
   \texttt{llm.call}, \texttt{retriever.search}, \texttt{tool.invoke.<name>}, \texttt{parser.jsonschema}, \texttt{guard.rail}
   form a stable taxonomy for queryable traces.\\[1.5mm]
   \textit{Example rollup:} ``P95 latency attributable to \texttt{retriever.search} increased 30\% after build 2025-08-12.''
 };
 
-% --- Title badge (positioned at top) ---
-\node[rectangle, rounded corners=4pt, draw=none, fill=llmgray!10,
-      above=4mm of llm.north, anchor=south, inner sep=5mm] (title) {%
-  \bfseries\small Span Taxonomy \& Naming
+\node[llm/box/gray, above=4mm of llm.north, anchor=south, inner sep=5mm, font=\small\bfseries] (title) {%
+  Span Taxonomy \& Naming
 };
-
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Span naming taxonomy enables systematic observability and debugging in LLM applications. Stable, descriptive span names (\texttt{llm.call}, \texttt{retriever.search}, \texttt{tool.invoke.<name>}, \texttt{parser.jsonschema}, \texttt{guard.rail}) enable reliable querying, latency attribution, and change-impact analysis while remaining readable in tracing UIs. This taxonomy converts ad hoc instrumentation into a searchable, analyzable observability system that supports both debugging and optimization.}

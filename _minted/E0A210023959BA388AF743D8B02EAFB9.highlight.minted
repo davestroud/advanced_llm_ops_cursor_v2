@@ -1,0 +1,69 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{hashlib}\PYG{o}{,}\PYG{+w}{ }\PYG{n+nn}{time}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{typing}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{Dict}\PYG{p}{,} \PYG{n}{Any}\PYG{p}{,} \PYG{n}{Optional}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{opentelemetry}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{trace}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{opentelemetry.sdk.trace}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{TracerProvider}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{opentelemetry.sdk.trace.export}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{BatchSpanProcessor}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{opentelemetry.exporter.otlp.proto.grpc.trace\PYGZus{}exporter}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{OTLPSpanExporter}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{opentelemetry.sdk.resources}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{Resource}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{opentelemetry.baggage}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{set\PYGZus{}baggage}
+
+\PYG{c+c1}{\PYGZsh{} One\PYGZhy{}time setup: tag every span with service identity, then ship spans}
+\PYG{c+c1}{\PYGZsh{} to an OTel Collector over OTLP/gRPC in batched mode.}
+\PYG{n}{trace}\PYG{o}{.}\PYG{n}{set\PYGZus{}tracer\PYGZus{}provider}\PYG{p}{(}\PYG{n}{TracerProvider}\PYG{p}{(}\PYG{n}{resource}\PYG{o}{=}\PYG{n}{Resource}\PYG{o}{.}\PYG{n}{create}\PYG{p}{(\PYGZob{}}
+    \PYG{l+s+s2}{\PYGZdq{}service.name\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}ishtar\PYGZhy{}llm\PYGZhy{}inference\PYGZdq{}}\PYG{p}{,}
+    \PYG{l+s+s2}{\PYGZdq{}service.version\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}1.3.0\PYGZdq{}}\PYG{p}{,}
+    \PYG{l+s+s2}{\PYGZdq{}deployment.environment\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}production\PYGZdq{}}\PYG{p}{\PYGZcb{})))}
+\PYG{n}{trace}\PYG{o}{.}\PYG{n}{get\PYGZus{}tracer\PYGZus{}provider}\PYG{p}{()}\PYG{o}{.}\PYG{n}{add\PYGZus{}span\PYGZus{}processor}\PYG{p}{(}\PYG{n}{BatchSpanProcessor}\PYG{p}{(}
+    \PYG{n}{OTLPSpanExporter}\PYG{p}{(}\PYG{n}{endpoint}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}http://otel\PYGZhy{}collector:4317\PYGZdq{}}\PYG{p}{,} \PYG{n}{insecure}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{)))}
+\PYG{n}{tracer} \PYG{o}{=} \PYG{n}{trace}\PYG{o}{.}\PYG{n}{get\PYGZus{}tracer}\PYG{p}{(}\PYG{n+nv+vm}{\PYGZus{}\PYGZus{}name\PYGZus{}\PYGZus{}}\PYG{p}{)}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{instrument\PYGZus{}llm\PYGZus{}call}\PYG{p}{(}\PYG{n}{model\PYGZus{}name}\PYG{p}{,} \PYG{n}{prompt\PYGZus{}template\PYGZus{}id}\PYG{p}{,} \PYG{n}{prompt\PYGZus{}version}\PYG{p}{,}
+                        \PYG{n}{user\PYGZus{}query}\PYG{p}{,} \PYG{n}{decoding\PYGZus{}params}\PYG{p}{,}
+                        \PYG{n}{conversation\PYGZus{}id}\PYG{p}{:} \PYG{n}{Optional}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{]} \PYG{o}{=} \PYG{k+kc}{None}\PYG{p}{):}
+    \PYG{k}{with} \PYG{n}{tracer}\PYG{o}{.}\PYG{n}{start\PYGZus{}as\PYGZus{}current\PYGZus{}span}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}llm.call\PYGZdq{}}\PYG{p}{,} \PYG{n}{attributes}\PYG{o}{=}\PYG{p}{\PYGZob{}}
+        \PYG{l+s+s2}{\PYGZdq{}llm.model\PYGZdq{}}\PYG{p}{:}               \PYG{n}{model\PYGZus{}name}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}llm.prompt\PYGZus{}template\PYGZus{}id\PYGZdq{}}\PYG{p}{:}  \PYG{n}{prompt\PYGZus{}template\PYGZus{}id}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}llm.prompt\PYGZus{}version\PYGZdq{}}\PYG{p}{:}      \PYG{n}{prompt\PYGZus{}version}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}llm.temperature\PYGZdq{}}\PYG{p}{:}         \PYG{n}{decoding\PYGZus{}params}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}temperature\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mf}{0.0}\PYG{p}{),}
+        \PYG{l+s+s2}{\PYGZdq{}llm.top\PYGZus{}p\PYGZdq{}}\PYG{p}{:}               \PYG{n}{decoding\PYGZus{}params}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}top\PYGZus{}p\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mf}{1.0}\PYG{p}{),}
+        \PYG{l+s+s2}{\PYGZdq{}llm.max\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}          \PYG{n}{decoding\PYGZus{}params}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}max\PYGZus{}tokens\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{1000}\PYG{p}{),}
+    \PYG{p}{\PYGZcb{})} \PYG{k}{as} \PYG{n}{span}\PYG{p}{:}
+        \PYG{k}{if} \PYG{n}{conversation\PYGZus{}id}\PYG{p}{:}
+            \PYG{n}{set\PYGZus{}baggage}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}conversation\PYGZus{}id\PYGZdq{}}\PYG{p}{,} \PYG{n}{conversation\PYGZus{}id}\PYG{p}{)}
+        \PYG{c+c1}{\PYGZsh{} Hash the prompt instead of storing it raw (privacy by design).}
+        \PYG{n}{span}\PYG{o}{.}\PYG{n}{set\PYGZus{}attribute}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}llm.prompt\PYGZus{}hash\PYGZdq{}}\PYG{p}{,}
+            \PYG{n}{hashlib}\PYG{o}{.}\PYG{n}{sha256}\PYG{p}{(}\PYG{n}{user\PYGZus{}query}\PYG{o}{.}\PYG{n}{encode}\PYG{p}{())}\PYG{o}{.}\PYG{n}{hexdigest}\PYG{p}{()[:}\PYG{l+m+mi}{16}\PYG{p}{])}
+
+        \PYG{n}{t0} \PYG{o}{=} \PYG{n}{time}\PYG{o}{.}\PYG{n}{time}\PYG{p}{()}
+        \PYG{n}{response} \PYG{o}{=} \PYG{n}{call\PYGZus{}llm\PYGZus{}api}\PYG{p}{(}\PYG{n}{model\PYGZus{}name}\PYG{p}{,} \PYG{n}{user\PYGZus{}query}\PYG{p}{,} \PYG{n}{decoding\PYGZus{}params}\PYG{p}{)}
+        \PYG{n}{total\PYGZus{}latency\PYGZus{}ms} \PYG{o}{=} \PYG{p}{(}\PYG{n}{time}\PYG{o}{.}\PYG{n}{time}\PYG{p}{()} \PYG{o}{\PYGZhy{}} \PYG{n}{t0}\PYG{p}{)} \PYG{o}{*} \PYG{l+m+mi}{1000}
+
+        \PYG{c+c1}{\PYGZsh{} Token counts, latency breakdown (TTFT/TPOT/total), cost, and}
+        \PYG{c+c1}{\PYGZsh{} optional safety signals all become span attributes; an error}
+        \PYG{c+c1}{\PYGZsh{} response is recorded via record\PYGZus{}exception + ERROR status so the}
+        \PYG{c+c1}{\PYGZsh{} collector can route on it. (Full attribute set in companion repo.)}
+        \PYG{k}{for} \PYG{n}{k}\PYG{p}{,} \PYG{n}{v} \PYG{o+ow}{in} \PYG{p}{\PYGZob{}}
+            \PYG{l+s+s2}{\PYGZdq{}llm.input\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}     \PYG{n}{response}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}input\PYGZus{}tokens\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{),}
+            \PYG{l+s+s2}{\PYGZdq{}llm.output\PYGZus{}tokens\PYGZdq{}}\PYG{p}{:}    \PYG{n}{response}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}output\PYGZus{}tokens\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{),}
+            \PYG{l+s+s2}{\PYGZdq{}llm.ttft\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}          \PYG{n}{response}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}ttft\PYGZus{}ms\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{),}
+            \PYG{l+s+s2}{\PYGZdq{}llm.tpot\PYGZus{}ms\PYGZdq{}}\PYG{p}{:}          \PYG{n}{response}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}tpot\PYGZus{}ms\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{),}
+            \PYG{l+s+s2}{\PYGZdq{}llm.total\PYGZus{}latency\PYGZus{}ms\PYGZdq{}}\PYG{p}{:} \PYG{n}{total\PYGZus{}latency\PYGZus{}ms}\PYG{p}{,}
+            \PYG{l+s+s2}{\PYGZdq{}llm.cost\PYGZus{}usd\PYGZdq{}}\PYG{p}{:}         \PYG{n}{estimate\PYGZus{}cost}\PYG{p}{(}\PYG{n}{response}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}input\PYGZus{}tokens\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{),}
+                                                  \PYG{n}{response}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}output\PYGZus{}tokens\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{),}
+                                                  \PYG{n}{model\PYGZus{}name}\PYG{p}{),}
+        \PYG{p}{\PYGZcb{}}\PYG{o}{.}\PYG{n}{items}\PYG{p}{():}
+            \PYG{n}{span}\PYG{o}{.}\PYG{n}{set\PYGZus{}attribute}\PYG{p}{(}\PYG{n}{k}\PYG{p}{,} \PYG{n}{v}\PYG{p}{)}
+        \PYG{k}{if} \PYG{n}{response}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}error\PYGZdq{}}\PYG{p}{):}
+            \PYG{n}{span}\PYG{o}{.}\PYG{n}{record\PYGZus{}exception}\PYG{p}{(}\PYG{n+ne}{Exception}\PYG{p}{(}\PYG{n}{response}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}error\PYGZdq{}}\PYG{p}{]))}
+            \PYG{n}{span}\PYG{o}{.}\PYG{n}{set\PYGZus{}status}\PYG{p}{(}\PYG{n}{trace}\PYG{o}{.}\PYG{n}{Status}\PYG{p}{(}\PYG{n}{trace}\PYG{o}{.}\PYG{n}{StatusCode}\PYG{o}{.}\PYG{n}{ERROR}\PYG{p}{,}
+                                         \PYG{n}{response}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}error\PYGZdq{}}\PYG{p}{]))}
+        \PYG{k}{return} \PYG{n}{response}
+
+\PYG{c+c1}{\PYGZsh{} instrument\PYGZus{}retrieval(index\PYGZus{}version, query, top\PYGZus{}k) and}
+\PYG{c+c1}{\PYGZsh{} instrument\PYGZus{}tool\PYGZus{}call(tool\PYGZus{}name, tool\PYGZus{}version, arguments) follow the same}
+\PYG{c+c1}{\PYGZsh{} pattern: open a span (\PYGZdq{}retriever.search\PYGZdq{} / \PYGZdq{}tool.invoke.\PYGZlt{}name\PYGZgt{}\PYGZdq{}), record}
+\PYG{c+c1}{\PYGZsh{} inputs (hashed query / arg size), measure latency, attach result\PYGZhy{}derived}
+\PYG{c+c1}{\PYGZsh{} attributes (doc\PYGZus{}count, recall\PYGZus{}at\PYGZus{}k / success), and set ERROR status on}
+\PYG{c+c1}{\PYGZsh{} failure. See companion repo for the full implementation.}
+\end{MintedVerbatim}

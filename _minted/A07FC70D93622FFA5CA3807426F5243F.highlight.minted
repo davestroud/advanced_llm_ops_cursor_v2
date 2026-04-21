@@ -1,0 +1,82 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{dataclasses}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{dataclass}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{typing}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{Dict}
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{numpy}\PYG{+w}{ }\PYG{k}{as}\PYG{+w}{ }\PYG{n+nn}{np}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{SLO}\PYG{p}{:}
+    \PYG{n}{p95\PYGZus{}ttft\PYGZus{}ms}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{p95\PYGZus{}tbt\PYGZus{}ms}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{context\PYGZus{}class}\PYG{p}{:} \PYG{n+nb}{str}  \PYG{c+c1}{\PYGZsh{} \PYGZdq{}short\PYGZdq{} or \PYGZdq{}long\PYGZdq{}}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{WorkloadProfile}\PYG{p}{:}
+    \PYG{n}{arrival\PYGZus{}rate\PYGZus{}rps}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{avg\PYGZus{}prompt\PYGZus{}tokens}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{avg\PYGZus{}decode\PYGZus{}tokens}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{context\PYGZus{}class\PYGZus{}distribution}\PYG{p}{:} \PYG{n}{Dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n+nb}{float}\PYG{p}{]}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{GPUConfig}\PYG{p}{:}
+    \PYG{n}{name}\PYG{p}{:} \PYG{n+nb}{str}
+    \PYG{n}{throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{memory\PYGZus{}gb}\PYG{p}{:} \PYG{n+nb}{int}
+    \PYG{n}{cost\PYGZus{}per\PYGZus{}hour\PYGZus{}usd}\PYG{p}{:} \PYG{n+nb}{float}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{CapacityResult}\PYG{p}{:}
+    \PYG{n}{required\PYGZus{}replicas}\PYG{p}{:} \PYG{n+nb}{int}
+    \PYG{n}{estimated\PYGZus{}cost\PYGZus{}per\PYGZus{}hour\PYGZus{}usd}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{utilization\PYGZus{}percent}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{latency\PYGZus{}components}\PYG{p}{:} \PYG{n}{Dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n+nb}{float}\PYG{p}{]}
+    \PYG{n}{validation\PYGZus{}passed}\PYG{p}{:} \PYG{n+nb}{bool}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{estimate\PYGZus{}token\PYGZus{}demand}\PYG{p}{(}\PYG{n}{workload}\PYG{p}{:} \PYG{n}{WorkloadProfile}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n+nb}{float}\PYG{p}{:}
+    \PYG{n}{avg\PYGZus{}total\PYGZus{}tokens} \PYG{o}{=} \PYG{n}{workload}\PYG{o}{.}\PYG{n}{avg\PYGZus{}prompt\PYGZus{}tokens} \PYG{o}{+} \PYG{n}{workload}\PYG{o}{.}\PYG{n}{avg\PYGZus{}decode\PYGZus{}tokens}
+    \PYG{k}{return} \PYG{n}{workload}\PYG{o}{.}\PYG{n}{arrival\PYGZus{}rate\PYGZus{}rps} \PYG{o}{*} \PYG{n}{avg\PYGZus{}total\PYGZus{}tokens}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{calculate\PYGZus{}required\PYGZus{}replicas}\PYG{p}{(}\PYG{n}{token\PYGZus{}demand}\PYG{p}{,} \PYG{n}{gpu}\PYG{p}{:} \PYG{n}{GPUConfig}\PYG{p}{,} \PYG{n}{headroom}\PYG{o}{=}\PYG{l+m+mf}{0.7}\PYG{p}{):}
+    \PYG{n}{effective\PYGZus{}throughput} \PYG{o}{=} \PYG{n}{gpu}\PYG{o}{.}\PYG{n}{throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec} \PYG{o}{*} \PYG{n}{headroom}
+    \PYG{k}{return} \PYG{n+nb}{int}\PYG{p}{(}\PYG{n}{np}\PYG{o}{.}\PYG{n}{ceil}\PYG{p}{(}\PYG{n}{token\PYGZus{}demand} \PYG{o}{/} \PYG{n}{effective\PYGZus{}throughput}\PYG{p}{))}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{decompose\PYGZus{}latency}\PYG{p}{(}\PYG{n}{prompt\PYGZus{}tokens}\PYG{p}{,} \PYG{n}{decode\PYGZus{}tokens}\PYG{p}{,} \PYG{n}{gpu}\PYG{p}{,} \PYG{n}{batch\PYGZus{}size}\PYG{o}{=}\PYG{l+m+mi}{8}\PYG{p}{):}
+    \PYG{c+c1}{\PYGZsh{} Prefill scales with prompt length; decode benefits from batching;}
+    \PYG{c+c1}{\PYGZsh{} queueing is approximated from a fixed 70\PYGZpc{} utilization assumption.}
+    \PYG{n}{prefill\PYGZus{}ms} \PYG{o}{=} \PYG{p}{(}\PYG{n}{prompt\PYGZus{}tokens} \PYG{o}{/} \PYG{n}{gpu}\PYG{o}{.}\PYG{n}{throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec}\PYG{p}{)} \PYG{o}{*} \PYG{l+m+mi}{1000}
+    \PYG{n}{decode\PYGZus{}ms} \PYG{o}{=} \PYG{p}{(}\PYG{n}{decode\PYGZus{}tokens} \PYG{o}{/} \PYG{p}{(}\PYG{n}{gpu}\PYG{o}{.}\PYG{n}{throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec} \PYG{o}{*} \PYG{n}{batch\PYGZus{}size}\PYG{p}{))} \PYG{o}{*} \PYG{l+m+mi}{1000}
+    \PYG{n}{queueing\PYGZus{}ms} \PYG{o}{=} \PYG{l+m+mi}{50} \PYG{o}{*} \PYG{l+m+mf}{0.7}
+    \PYG{k}{return} \PYG{p}{\PYGZob{}}
+        \PYG{l+s+s2}{\PYGZdq{}prefill\PYGZus{}ms\PYGZdq{}}\PYG{p}{:} \PYG{n}{prefill\PYGZus{}ms}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}decode\PYGZus{}ms\PYGZdq{}}\PYG{p}{:} \PYG{n}{decode\PYGZus{}ms}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}queueing\PYGZus{}ms\PYGZdq{}}\PYG{p}{:} \PYG{n}{queueing\PYGZus{}ms}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}total\PYGZus{}ms\PYGZdq{}}\PYG{p}{:} \PYG{n}{prefill\PYGZus{}ms} \PYG{o}{+} \PYG{n}{decode\PYGZus{}ms} \PYG{o}{+} \PYG{n}{queueing\PYGZus{}ms}\PYG{p}{,}
+    \PYG{p}{\PYGZcb{}}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{validate\PYGZus{}capacity}\PYG{p}{(}\PYG{n}{result}\PYG{p}{:} \PYG{n}{CapacityResult}\PYG{p}{,} \PYG{n}{slo}\PYG{p}{:} \PYG{n}{SLO}\PYG{p}{,} \PYG{n}{lat}\PYG{p}{:} \PYG{n}{Dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n+nb}{float}\PYG{p}{])} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n+nb}{bool}\PYG{p}{:}
+    \PYG{n}{ttft\PYGZus{}ms} \PYG{o}{=} \PYG{n}{lat}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}prefill\PYGZus{}ms\PYGZdq{}}\PYG{p}{]} \PYG{o}{+} \PYG{n}{lat}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}queueing\PYGZus{}ms\PYGZdq{}}\PYG{p}{]}
+    \PYG{k}{return} \PYG{p}{(}\PYG{n}{ttft\PYGZus{}ms} \PYG{o}{\PYGZlt{}=} \PYG{n}{slo}\PYG{o}{.}\PYG{n}{p95\PYGZus{}ttft\PYGZus{}ms}
+            \PYG{o+ow}{and} \PYG{n}{lat}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}decode\PYGZus{}ms\PYGZdq{}}\PYG{p}{]} \PYG{o}{\PYGZlt{}=} \PYG{n}{slo}\PYG{o}{.}\PYG{n}{p95\PYGZus{}tbt\PYGZus{}ms}
+            \PYG{o+ow}{and} \PYG{n}{result}\PYG{o}{.}\PYG{n}{utilization\PYGZus{}percent} \PYG{o}{\PYGZlt{}=} \PYG{l+m+mf}{0.85}\PYG{p}{)}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{plan\PYGZus{}capacity}\PYG{p}{(}\PYG{n}{workload}\PYG{p}{,} \PYG{n}{gpu}\PYG{p}{,} \PYG{n}{slo}\PYG{p}{,} \PYG{n}{headroom}\PYG{o}{=}\PYG{l+m+mf}{0.7}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{CapacityResult}\PYG{p}{:}
+    \PYG{n}{token\PYGZus{}demand} \PYG{o}{=} \PYG{n}{estimate\PYGZus{}token\PYGZus{}demand}\PYG{p}{(}\PYG{n}{workload}\PYG{p}{)}
+    \PYG{n}{replicas} \PYG{o}{=} \PYG{n}{calculate\PYGZus{}required\PYGZus{}replicas}\PYG{p}{(}\PYG{n}{token\PYGZus{}demand}\PYG{p}{,} \PYG{n}{gpu}\PYG{p}{,} \PYG{n}{headroom}\PYG{p}{)}
+    \PYG{n}{lat} \PYG{o}{=} \PYG{n}{decompose\PYGZus{}latency}\PYG{p}{(}\PYG{n}{workload}\PYG{o}{.}\PYG{n}{avg\PYGZus{}prompt\PYGZus{}tokens}\PYG{p}{,}
+                            \PYG{n}{workload}\PYG{o}{.}\PYG{n}{avg\PYGZus{}decode\PYGZus{}tokens}\PYG{p}{,} \PYG{n}{gpu}\PYG{p}{)}
+    \PYG{n}{eff\PYGZus{}throughput} \PYG{o}{=} \PYG{n}{gpu}\PYG{o}{.}\PYG{n}{throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec} \PYG{o}{*} \PYG{n}{headroom}
+    \PYG{n}{utilization} \PYG{o}{=} \PYG{n}{token\PYGZus{}demand} \PYG{o}{/} \PYG{p}{(}\PYG{n}{replicas} \PYG{o}{*} \PYG{n}{eff\PYGZus{}throughput}\PYG{p}{)}
+    \PYG{n}{result} \PYG{o}{=} \PYG{n}{CapacityResult}\PYG{p}{(}
+        \PYG{n}{required\PYGZus{}replicas}\PYG{o}{=}\PYG{n}{replicas}\PYG{p}{,}
+        \PYG{n}{estimated\PYGZus{}cost\PYGZus{}per\PYGZus{}hour\PYGZus{}usd}\PYG{o}{=}\PYG{n}{replicas} \PYG{o}{*} \PYG{n}{gpu}\PYG{o}{.}\PYG{n}{cost\PYGZus{}per\PYGZus{}hour\PYGZus{}usd}\PYG{p}{,}
+        \PYG{n}{utilization\PYGZus{}percent}\PYG{o}{=}\PYG{n}{utilization} \PYG{o}{*} \PYG{l+m+mi}{100}\PYG{p}{,}
+        \PYG{n}{latency\PYGZus{}components}\PYG{o}{=}\PYG{n}{lat}\PYG{p}{,}
+        \PYG{n}{validation\PYGZus{}passed}\PYG{o}{=}\PYG{k+kc}{False}\PYG{p}{,}
+    \PYG{p}{)}
+    \PYG{n}{result}\PYG{o}{.}\PYG{n}{validation\PYGZus{}passed} \PYG{o}{=} \PYG{n}{validate\PYGZus{}capacity}\PYG{p}{(}\PYG{n}{result}\PYG{p}{,} \PYG{n}{slo}\PYG{p}{,} \PYG{n}{lat}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{result}
+
+\PYG{c+c1}{\PYGZsh{} ... (driver block: defines SLO(p95\PYGZus{}ttft=300ms, p95\PYGZus{}tbt=50ms),}
+\PYG{c+c1}{\PYGZsh{}      WorkloadProfile(50 rps, 500 prompt, 200 decode), and compares}
+\PYG{c+c1}{\PYGZsh{}      A100\PYGZhy{}80GB vs H100\PYGZhy{}80GB by calling plan\PYGZus{}capacity for each.}
+\PYG{c+c1}{\PYGZsh{}      Full source in companion repo.) ...}
+\end{MintedVerbatim}

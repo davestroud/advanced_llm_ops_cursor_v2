@@ -1,3 +1,0 @@
-\begin{MintedVerbatim}[commandchars=\\\{\}]
-\PYG{k}{assert} \PYG{n+nb}{set}\PYG{p}{(}\PYG{n}{output\PYGZus{}3}\PYG{p}{)}\PYG{o}{.}\PYG{n}{issubset}\PYG{p}{(}\PYG{n+nb}{set}\PYG{p}{(}\PYG{n}{output\PYGZus{}5}\PYG{p}{)),} \PYG{l+s+s2}{\PYGZdq{}Subset consistency violated\PYGZdq{}}
-\end{MintedVerbatim}

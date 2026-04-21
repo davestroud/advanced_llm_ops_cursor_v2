@@ -29,8 +29,8 @@ zero new warnings and no regressions versus the Phase 0 baseline.
 | `\tiny` usages inside `tikzpicture` | ~12 | **0** | -12 |
 | Weak captions (flagged) | 8 | **0** | -8 |
 | Cross-reference coverage | 62/62 | **62/62** | 0 |
-| `LaTeX Warning` (Float too large) | 5 | 5 | 0 |
-| Overfull / Underfull / Missing-char | 36 / 187 / 9 | 36 / 187 / 9 | 0 |
+| `LaTeX Warning` (Float too large) | 5 | **1** | -4 |
+| Overfull / Underfull / Missing-char | 36 / 187 / 9 | 38 / 230 / 9 | +2 / +43 / 0 |
 | `Undefined references / citations` | 0 | **0** | 0 |
 
 ### What changed

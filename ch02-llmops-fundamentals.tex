@@ -182,37 +182,40 @@ The equations above define memory and compute requirements, but visual represent
 \begin{figure}[t]
     \centering
     \begin{llmfigbox}
-    % --- Transformer Block Schematic (TikZ) ---
-    % Color definitions
+    % Transformer block schematic. Semantic color mapping per book contract:
+    %   blue   = data carrier (input/output token stream)
+    %   orange = compute hotspot / decision-relevant block (attention)
+    %   green  = control/normalization step (residual + LayerNorm)
+    %   purple = external/auxiliary computation (FFN)
     \begin{tikzpicture}[
-      font=\small,
-      >=Stealth,
       node distance=10mm,
-      box/.style={draw=none, rounded corners=5pt, minimum width=36mm, minimum height=10mm, align=center, inner sep=5pt, font=\small\bfseries}
+      tfblock/.style={minimum width=42mm, font=\footnotesize\bfseries},
+      tflabel/.style={llm/label}
     ]
-        % Nodes with color coding
-        \node[box, fill=llmblue!15] (input) {Input (tokens)};
-        \node[box, fill=llmorange!15, below=of input] (mha) {Multi-Head Attention};
-        \node[box, fill=llmgreen!15, below=10mm of mha] (addnorm1) {Add \& Norm};
-        \node[box, fill=llmpurple!15, below=10mm of addnorm1] (ffn) {Feed-Forward Network};
-        \node[box, fill=llmgreen!15, below=10mm of ffn] (addnorm2) {Add \& Norm};
-        \node[box, fill=llmblue!15, below=12mm of addnorm2] (output) {Hidden States / Next Block};
+        \node[llm/box/blue, tfblock]                          (input)    {Input (tokens)};
+        \node[llm/box/orange, tfblock, below=of input]        (mha)      {Multi-Head Attention};
+        \node[llm/box/green, tfblock, below=10mm of mha]      (addnorm1) {Add \& Norm};
+        \node[llm/box/purple, tfblock, below=10mm of addnorm1](ffn)      {Feed-Forward Network};
+        \node[llm/box/green, tfblock, below=10mm of ffn]      (addnorm2) {Add \& Norm};
+        \node[llm/box/blue, tfblock, below=12mm of addnorm2]  (output)   {Hidden States / Next Block};
 
-        % Arrows - enhanced
-        \draw[-{Latex}, line width=1.2pt, color=black!70] (input) -- (mha);
-        \draw[-{Latex}, line width=1.2pt, color=black!70] (mha) -- (addnorm1);
-        \draw[-{Latex}, line width=1.2pt, color=black!70] (addnorm1) -- (ffn);
-        \draw[-{Latex}, line width=1.2pt, color=black!70] (ffn) -- (addnorm2);
-        \draw[-{Latex}, line width=1.2pt, color=black!70] (addnorm2) -- (output);
+        \draw[llm/arrow] (input)    -- (mha);
+        \draw[llm/arrow] (mha)      -- (addnorm1);
+        \draw[llm/arrow] (addnorm1) -- (ffn);
+        \draw[llm/arrow] (ffn)      -- (addnorm2);
+        \draw[llm/arrow] (addnorm2) -- (output);
 
-        % Residual connections (dashed for distinction)
-        \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=black!60] ($(input.south west)+(1mm,-1mm)$) -- ++(0,-22mm) -| (addnorm1.west);
-        \draw[-{Latex}, dashed, dash pattern=on 3pt off 2pt, line width=1pt, color=black!60] ($(addnorm1.south west)+(1mm,-1mm)$) -- ++(0,-17mm) -| (addnorm2.west);
+        \draw[llm/arrow/dashed] ($(input.south west)+(1mm,-1mm)$)
+              -- ++(0,-22mm) -| (addnorm1.west);
+        \draw[llm/arrow/dashed] ($(addnorm1.south west)+(1mm,-1mm)$)
+              -- ++(0,-17mm) -| (addnorm2.west);
 
-        % Labels
-        \node[align=left, anchor=west] at ($(mha.east)+(1.2,0)$) {Self-attention\\(KV cache affects memory)};
-        \node[align=left, anchor=west] at ($(ffn.east)+(1.2,0)$) {$d \rightarrow d_{ff} \rightarrow d$};
-        \node[align=left, anchor=west] at ($(addnorm2.east)+(1.2,0)$) {Residual + LayerNorm};
+        \node[tflabel, anchor=west] at ($(mha.east)+(1.2,0)$)
+              {Self-attention\\(KV cache affects memory)};
+        \node[tflabel, anchor=west] at ($(ffn.east)+(1.2,0)$)
+              {$d \rightarrow d_{ff} \rightarrow d$};
+        \node[tflabel, anchor=west] at ($(addnorm2.east)+(1.2,0)$)
+              {Residual + LayerNorm};
     \end{tikzpicture}
     \end{llmfigbox}
     \caption{Transformer architecture\index{Transformer!architecture} determines inference memory and compute requirements. The attention mechanism\index{attention!mechanism}, FFN layers\index{FFN}, and residual paths\index{residual connection} each contribute to memory (dominated by parameters and KV cache, Eq.~\ref{eq:param-mem}, \ref{eq:kv-cache}) and compute cost (scales with Eq.~\ref{eq:flops-layer}). Understanding these components enables capacity planning and optimization decisions.}
@@ -222,36 +225,25 @@ The equations above define memory and compute requirements, but visual represent
 \begin{figure}[t]
     \centering
     \begin{llmfigbox}
-    % --- Quadratic Attention Complexity Plot (pgfplots) ---
-    \begin{tikzpicture}[font=\small]
-        \begin{axis}[
-            width=0.95\linewidth,
-            height=7cm,
+    % Quadratic attention complexity. Uses llm/chart + llm/cycle for
+    % book-wide chart styling and grayscale-safe line/mark distinction.
+    \begin{tikzpicture}
+        \begin{axis}[llm/chart, llm/cycle,
             xlabel={Sequence length $T$ (tokens)},
             ylabel={Relative cost (arb. units)},
-            xlabel style={font=\bfseries},
-            ylabel style={font=\bfseries},
             xmin=0, xmax=4096,
             ymin=0, ymax=1.1,
             xtick={0,1024,2048,3072,4096},
             ytick={0,0.25,0.5,0.75,1.0},
-            tick align=outside,
-            ticklabel style={font=\footnotesize},
-            grid=major,
-            grid style={gray!30, line width=0.4pt},
-            minor grid style={gray!15, line width=0.25pt},
-            legend style={at={(0.03,0.97)},anchor=north west, draw=none, fill=none, font=\footnotesize, column sep=15pt},
-            axis line style={line width=1pt},
+            height=7cm,
         ]
-            % Normalize to max at 4096
-            \addplot+[smooth, very thick, line width=1.8pt, mark=none, domain=0:4096, samples=200, color=red!70!black]
+            \addplot+[mark=none, smooth, domain=0:4096, samples=200]
                 {(x^2)/(4096^2)};
             \addlegendentry{$\Theta(T^2)$ attention (Eq.~\ref{eq:attn-complexity})};
 
-            \addplot+[smooth, dashed, dash pattern=on 4pt off 2pt, very thick, line width=1.8pt, mark=none, domain=0:4096, samples=200, color=blue!70!black]
+            \addplot+[mark=none, smooth, domain=0:4096, samples=200]
                 {x/4096};
             \addlegendentry{Linear reference};
-
         \end{axis}
     \end{tikzpicture}
     \end{llmfigbox}
@@ -262,30 +254,22 @@ The equations above define memory and compute requirements, but visual represent
 \begin{figure}[t]
     \centering
     \begin{llmfigbox}
-    % --- Parameter scaling over time (pgfplots) ---
-    \begin{tikzpicture}[font=\small]
-      \begin{axis}[
-        width=0.95\linewidth, height=7cm,
+    % Parameter scaling over time (single series, log-y).
+    \begin{tikzpicture}
+      \begin{axis}[llm/chart, llm/cycle,
         ymode=log, log basis y=10,
         xlabel={Year}, ylabel={Parameters},
-        xlabel style={font=\bfseries},
-        ylabel style={font=\bfseries},
         xmin=2017, xmax=2022,
         ymin=1e7, ymax=1e12,
         xtick={2017,2018,2020,2022},
         xticklabels={2017, 2018, 2020, 2022},
-        tick align=outside,
-        ticklabel style={font=\footnotesize},
-        grid=major,
-        grid style={gray!30, line width=0.4pt},
-        minor grid style={gray!15, line width=0.25pt},
-        axis line style={line width=1pt},
+        height=7cm,
       ]
-        \addplot+[smooth, very thick, line width=1.8pt, mark=*, mark size=3.5pt, mark options={fill=white, draw=red!70!black, line width=1.2pt}, color=red!70!black] coordinates {
-          (2017,6.5e7)   % Transformer (~65M)
-          (2018,3.4e8)   % BERT Large (~340M)
-          (2020,1.75e11) % GPT-3 (175B)
-          (2022,5.4e11)  % PaLM (540B)
+        \addplot+[smooth] coordinates {
+          (2017,6.5e7)
+          (2018,3.4e8)
+          (2020,1.75e11)
+          (2022,5.4e11)
         };
       \end{axis}
     \end{tikzpicture}
@@ -369,35 +353,26 @@ The trade-off between time-to-first-token (TTFT) and overall throughput is centr
 \begin{figure}[t]
     \centering
     \begin{llmfigbox}
-    \begin{tikzpicture}[font=\small]
-        \begin{axis}[
-            width=0.95\linewidth,
-            height=7cm,
+    % Throughput-vs-TTFT family. Constants: N = 120 tokens, tau1 = 0.02 s/token.
+    \begin{tikzpicture}
+        \begin{axis}[llm/chart, llm/cycle,
             xlabel={TTFT $\tau_0$ (s)},
             ylabel={Throughput (tokens/s/GPU)},
-            xlabel style={font=\bfseries},
-            ylabel style={font=\bfseries},
             xmin=0, xmax=2.0,
             ymin=0, ymax=900,
-            tick align=outside,
-            ticklabel style={font=\footnotesize},
-            grid=major,
-            grid style={gray!30, line width=0.4pt},
-            minor grid style={gray!15, line width=0.25pt},
-            legend style={at={(0.97,0.97)},anchor=north east, draw=none, fill=none, font=\footnotesize, column sep=15pt},
-            axis line style={line width=1pt},
+            height=7cm,
+            legend style={at={(0.97,0.97)}, anchor=north east},
         ]
-            % Constants: N = 120 tokens, tau1 = 0.02 s/token
-            \addplot+[smooth, very thick, line width=1.8pt, domain=0:2.0, samples=200, color=blue!70!black] {(1*120) / (x + 120*0.02)};
+            \addplot+[mark=none, smooth, domain=0:2.0, samples=200] {(1*120) / (x + 120*0.02)};
             \addlegendentry{$B{=}1$};
 
-            \addplot+[smooth, dashed, dash pattern=on 4pt off 2pt, very thick, line width=1.8pt, domain=0:2.0, samples=200, color=green!70!black] {(4*120) / (x + 120*0.02)};
+            \addplot+[mark=none, smooth, domain=0:2.0, samples=200] {(4*120) / (x + 120*0.02)};
             \addlegendentry{$B{=}4$};
 
-            \addplot+[smooth, dotted, very thick, line width=1.8pt, domain=0:2.0, samples=200, color=orange!70!black] {(8*120) / (x + 120*0.02)};
+            \addplot+[mark=none, smooth, domain=0:2.0, samples=200] {(8*120) / (x + 120*0.02)};
             \addlegendentry{$B{=}8$};
 
-            \addplot+[smooth, dashdotted, very thick, line width=1.8pt, domain=0:2.0, samples=200, color=violet!70!black] {(16*120) / (x + 120*0.02)};
+            \addplot+[mark=none, smooth, domain=0:2.0, samples=200] {(16*120) / (x + 120*0.02)};
             \addlegendentry{$B{=}16$};
         \end{axis}
     \end{tikzpicture}

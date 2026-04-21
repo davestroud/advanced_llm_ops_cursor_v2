@@ -135,45 +135,32 @@ A production RAG system\index{RAG!system} consists of \emph{offline} components 
 \begin{figure}[tb]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[
-    node distance=16mm and 12mm,
-    auto,
-    >=Stealth,
-    block/.style={
-        rectangle,
-        draw=none,
-        rounded corners=5pt,
-        minimum height=12mm,
-        minimum width=28mm,
-        align=center,
-        inner sep=5pt,
-        font=\small
-    },
-    arrow/.style={
-        ->,
-        very thick,
-        line width=1.2pt,
-        draw=black!60
-    }
-]
-% Color definitions
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Color carries the role: blue = user/data, green = controller/answer,
+% orange = retrieval/generation steps, purple = ranking/packing.
+\tikzset{
+  stage/.style ={llm/box, minimum width=26mm, font=\footnotesize\bfseries},
+  data/.style  ={llm/box/blue,   minimum width=26mm, font=\footnotesize\bfseries},
+  ctrl/.style  ={llm/box/green,  minimum width=26mm, font=\footnotesize\bfseries},
+  proc/.style  ={llm/box/orange, minimum width=26mm, font=\footnotesize\bfseries},
+  pack/.style  ={llm/box/purple, minimum width=26mm, font=\footnotesize\bfseries},
+  flow/.style  ={llm/arrow},
+}
+\begin{tikzpicture}[node distance=6mm and 5mm]
+  \node[data]                         (q)    {User query};
+  \node[ctrl, right=of q]             (qp)   {Query processing\\[1pt]\footnotesize rewrite, filters};
+  \node[proc, right=of qp]            (ret)  {Retrieval\\[1pt]\footnotesize dense/sparse/hybrid};
+  \node[pack, right=of ret]           (rr)   {Rerank \& filter\\[1pt]\footnotesize cross-encoder, RRF};
+  \node[pack, right=of rr]            (cp)   {Context packer\\[1pt]\footnotesize dedupe, trim, cite};
+  \node[proc, right=of cp]            (gen)  {LLM generation};
+  \node[ctrl, below=8mm of gen]       (ans)  {Answer + citations};
 
-% Pipeline stages
-\node[block, fill=llmblue!15] (q) {\textbf{User query}};
-\node[block, fill=llmgreen!15, right=of q] (qp) {\textbf{Query processing}\\[2pt]\footnotesize rewrite, filters};
-\node[block, fill=llmorange!15, right=of qp] (ret) {\textbf{Retrieval}\\[2pt]\footnotesize dense/sparse/hybrid};
-\node[block, fill=llmpurple!15, right=of ret] (rr) {\textbf{Rerank \& filter}\\[2pt]\footnotesize cross-encoder, RRF};
-\node[block, fill=llmpurple!15, right=of rr] (pack) {\textbf{Context packer}\\[2pt]\footnotesize dedupe, trim, cite};
-\node[block, fill=llmorange!15, right=of pack] (gen) {\textbf{LLM generation}};
-\node[block, fill=llmgreen!15, below=of gen, node distance=18mm] (ans) {\textbf{Answer + citations}};
-
-% Flow arrows
-\draw[arrow] (q) -- (qp);
-\draw[arrow] (qp) -- (ret);
-\draw[arrow] (ret) -- (rr);
-\draw[arrow] (rr) -- (pack);
-\draw[arrow] (pack) -- (gen);
-\draw[arrow] (gen) -- (ans);
+  \draw[flow] (q)   -- (qp);
+  \draw[flow] (qp)  -- (ret);
+  \draw[flow] (ret) -- (rr);
+  \draw[flow] (rr)  -- (cp);
+  \draw[flow] (cp)  -- (gen);
+  \draw[flow] (gen) -- (ans);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Query-time RAG pipeline design determines answer quality and citation fidelity. Retrieval supplies evidence; reranking and filtering improve top-$k$ quality; the context packer constructs a token-budgeted prompt with source identifiers; the generator produces an answer that can cite the retrieved chunks. This pipeline structure enables grounded, verifiable responses by preserving source attribution throughout the generation process.}
@@ -182,19 +169,29 @@ A production RAG system\index{RAG!system} consists of \emph{offline} components 
 
 The remainder of this section walks through the main building blocks and the operational concerns attached to each. Table~\ref{tab:ch08_rag_components} summarizes the key components and their operational concerns.
 
-\begin{table}[tb]
-\centering
-\small
-\caption{RAG system components span offline ingestion and online query processing. Understanding component responsibilities and operational concerns enables teams to design robust, scalable RAG pipelines. Each component introduces specific failure modes and optimization opportunities that must be addressed in production deployments.}
-\label{tab:ch08_rag_components}
-\setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.2}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
 \rowcolors{2}{gray!8}{white}
-\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\begin{xltabular}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\caption{RAG system components span offline ingestion and online query processing. Understanding component responsibilities and operational concerns enables teams to design robust, scalable RAG pipelines. Each component introduces specific failure modes and optimization opportunities that must be addressed in production deployments.}
+\label{tab:ch08_rag_components}\\
 \toprule
 \rowcolor{gray!15}
 \textbf{Component} & \textbf{Offline/Online} & \textbf{Key Responsibilities} & \textbf{Operational Concerns} \\
 \midrule
+\endfirsthead
+\multicolumn{4}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+\toprule
+\rowcolor{gray!15}
+\textbf{Component} & \textbf{Offline/Online} & \textbf{Key Responsibilities} & \textbf{Operational Concerns} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+\endfoot
+\bottomrule
+\endlastfoot
 \textbf{Document Ingestion} & Offline & Acquisition (file sync, crawlers, APIs); normalization (HTML/PDF extraction); quality gates (deduplication, spam filtering); metadata enrichment (timestamps, ACL tags, reliability scores) & Freshness SLOs; parsing failures; ingestion lag; source reliability tracking \\
 \addlinespace[1pt]
 \textbf{Chunking} & Offline & Preserve semantic coherence; construct passages with sufficient context; structural vs.\ token-window strategies & Chunk size/overlap tuning; versioning alongside embedding model; retrieval quality impact \\
@@ -212,9 +209,8 @@ The remainder of this section walks through the main building blocks and the ope
 \textbf{Context Packing} & Online & Order passages; deduplicate; add separators and source identifiers; fit token budget & Token efficiency; passage ordering impact on quality; citation link preservation \\
 \addlinespace[1pt]
 \textbf{Generation} & Online & Produce answer conditioned on retrieved context; prioritize faithfulness; cite sources; abstain when evidence missing & Generation latency; faithfulness to retrieved passages; citation accuracy; abstention rate monitoring \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\end{xltabular}
+}
 
 \subsection{Document Ingestion}
 Document ingestion\index{ingestion!document} collects, normalizes, and enriches knowledge sources to populate the retrieval corpus\index{corpus}. In production, ingestion is not a one-time job: it is a continuously running subsystem responsible for freshness\index{freshness}, quality\index{quality}, and provenance\index{provenance} \cite{Pryon2023}. Typical steps include:
@@ -250,25 +246,24 @@ Figure~\ref{fig:ch08_vector_index_callout} summarizes a production vector index 
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[font=\small]
-\node[
-    draw=none,
-    rounded corners=6pt,
-    fill=gray!8,
-    align=left,
-    inner sep=6mm,
-    text width=0.95\linewidth,
-    minimum height=1cm
-] (container) {
-\textbf{\large Production vector-index configuration surface}\\[4mm]
-\begin{minipage}[t]{0.95\linewidth}
-\colorbox{llmblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmblue!90!black}{Embedding space:}} \texttt{dimension}\,=\,384 (matches the embedding model, e.g.\ MiniLM-L6-v2); \texttt{metric}\,=\,\texttt{cosine} for normalized embeddings (alternatives: \texttt{euclidean}, \texttt{dotproduct}); changes here force a full reindex \cite{Thakur2021BEIR}.\vspace{2mm}}}\\[2mm]
-\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{Provider \& topology:}} \texttt{pinecone} (or \texttt{weaviate}, \texttt{qdrant}, \texttt{faiss\_on\_disk}); 2 replicas, 1 shard, region-pinned to the inference fleet; \texttt{p1.x1} pod for the article corpus.\vspace{2mm}}}\\[2mm]
-\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Indexing strategy:}} hourly upserts in batches of 100; rebuild the index when the metadata schema changes; treat backfills and news surges as a separate operational regime from steady-state writes.\vspace{2mm}}}\\[2mm]
-\colorbox{llmorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmorange!90!black}{Filterable metadata schema:}} indexed columns for \texttt{document\_id}, \texttt{published\_date}, \texttt{source\_outlet}, \texttt{category}, and \texttt{security\_clearance} (integer, default 0\,=\,public); filters are part of the query plan, not a post-processing step.\vspace{2mm}}}\\[2mm]
-\colorbox{llmgray!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgray!90!black}{Access control on retrieval:}} default clearance 0; map the calling user's \texttt{user.security\_clearance} attribute onto the metadata predicate so that ANN search only returns documents the requester is permitted to see.\vspace{2mm}}}
-\end{minipage}
-};
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Color carries the role: blue = embedding, purple = topology, green = ops,
+% orange = filter schema, gray = neutral access control.
+\tikzset{
+  card/.style={text width=0.90\linewidth, align=left, font=\footnotesize},
+}
+\begin{tikzpicture}[node distance=2mm]
+  \node[font=\bfseries\large] (title) {Production vector-index configuration surface};
+  \node[llm/box/blue,   card, below=4mm of title.south, anchor=north] (r1)
+       {\textbf{Embedding space:} \texttt{dimension}\,=\,384 (matches the embedding model, e.g.\ MiniLM-L6-v2); \texttt{metric}\,=\,\texttt{cosine} for normalized embeddings (alternatives: \texttt{euclidean}, \texttt{dotproduct}); changes here force a full reindex \cite{Thakur2021BEIR}.};
+  \node[llm/box/purple, card, below=of r1] (r2)
+       {\textbf{Provider \& topology:} \texttt{pinecone} (or \texttt{weaviate}, \texttt{qdrant}, \texttt{faiss\_on\_disk}); 2 replicas, 1 shard, region-pinned to the inference fleet; \texttt{p1.x1} pod for the article corpus.};
+  \node[llm/box/green,  card, below=of r2] (r3)
+       {\textbf{Indexing strategy:} hourly upserts in batches of 100; rebuild the index when the metadata schema changes; treat backfills and news surges as a separate operational regime from steady-state writes.};
+  \node[llm/box/orange, card, below=of r3] (r4)
+       {\textbf{Filterable metadata schema:} indexed columns for \texttt{document\_id}, \texttt{published\_date}, \texttt{source\_outlet}, \texttt{category}, and \texttt{security\_clearance} (integer, default 0\,=\,public); filters are part of the query plan, not a post-processing step.};
+  \node[llm/box/gray,   card, below=of r4] (r5)
+       {\textbf{Access control on retrieval:} default clearance 0; map the calling user's \texttt{user.security\_clearance} attribute onto the metadata predicate so that ANN search only returns documents the requester is permitted to see.};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Production vector-index configuration as five coupled surfaces. Embedding-space choices (dimension and metric) bind the index to the embedding model; topology (provider, replicas, shards) governs availability and tail latency; indexing strategy controls update behavior; metadata schema determines which filters are cheap; access control turns the metadata schema into a security boundary by pushing clearance into the query predicate rather than filtering after the fact.}
@@ -304,25 +299,26 @@ Figure~\ref{fig:ch08_rag_pipeline_callout} summarizes the end-to-end RAG pipelin
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[font=\small]
-\node[
-    draw=none,
-    rounded corners=6pt,
-    fill=gray!8,
-    align=left,
-    inner sep=6mm,
-    text width=0.95\linewidth,
-    minimum height=1cm
-] (container) {
-\textbf{\large End-to-end RAG pipeline contracts}\\[4mm]
-\begin{minipage}[t]{0.95\linewidth}
-\colorbox{llmblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmblue!90!black}{Ingestion \& preprocessing:}} two connectors (news API every 15\,min, internal-reports filesystem nightly); preprocess with BeautifulSoup HTML-to-text, Presidio PII redaction (\texttt{PERSON}, \texttt{LOCATION}, \texttt{PHONE\_NUMBER}), and FastText language detection.\vspace{2mm}}}\\[2mm]
-\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Indexing path (chunk $\rightarrow$ embed $\rightarrow$ store):}} chunking per Figure~\ref{fig:ch08_chunking_callout}; embeddings from \texttt{all-MiniLM-L6-v2} on CUDA in batches of 64 with the embedding cache enabled; vector store per Figure~\ref{fig:ch08_vector_index_callout}.\vspace{2mm}}}\\[2mm]
-\colorbox{llmorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmorange!90!black}{Retrieval \& generation:}} retrieval per Figure~\ref{fig:ch08_retrieval_callout}; \texttt{llama-3.1-8b-instruct} via internal HTTP endpoint; \texttt{temperature\,=\,0.7}, \texttt{top\_p\,=\,0.9}, \texttt{max\_new\_tokens\,=\,512}; \texttt{news\_summary\_with\_citations\_v1} prompt; truncate-oldest context strategy; markdown-link citations.\vspace{2mm}}}\\[2mm]
-\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{Safety \& post-processing:}} hallucination detector flags low-faithfulness outputs for human review; Perspective-API toxicity filter refuses to ship responses above threshold (a hard gate, not an advisory).\vspace{2mm}}}\\[2mm]
-\colorbox{llmgray!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgray!90!black}{Monitoring \& evaluation hooks:}} emit telemetry against the Chapter~\ref{ch:monitoring} schema; trigger the Chapter~\ref{ch:cicd} evaluation harness on every release; route alerts through the rules in Section~\ref{sec:alerts-incident-response-and-resilience}.\vspace{2mm}}}
-\end{minipage}
-};
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Each row is an llm/box/<color> tile so the contract palette and stroke
+% weights match the rest of the book; color carries the role
+% (blue = ingestion, green = indexing, orange = retrieval/generation,
+% purple = safety, gray = neutral observability).
+\tikzset{
+  card/.style={text width=0.90\linewidth, align=left, font=\footnotesize},
+}
+\begin{tikzpicture}[node distance=2mm]
+  \node[font=\bfseries\large] (title) {End-to-end RAG pipeline contracts};
+  \node[llm/box/blue,   card, below=4mm of title.south, anchor=north] (r1)
+       {\textbf{Ingestion \& preprocessing:} two connectors (news API every 15\,min, internal-reports filesystem nightly); preprocess with BeautifulSoup HTML-to-text, Presidio PII redaction (\texttt{PERSON}, \texttt{LOCATION}, \texttt{PHONE\_NUMBER}), and FastText language detection.};
+  \node[llm/box/green,  card, below=of r1] (r2)
+       {\textbf{Indexing path (chunk $\rightarrow$ embed $\rightarrow$ store):} chunking per Figure~\ref{fig:ch08_chunking_callout}; embeddings from \texttt{all-MiniLM-L6-v2} on CUDA in batches of 64 with the embedding cache enabled; vector store per Figure~\ref{fig:ch08_vector_index_callout}.};
+  \node[llm/box/orange, card, below=of r2] (r3)
+       {\textbf{Retrieval \& generation:} retrieval per Figure~\ref{fig:ch08_retrieval_callout}; \texttt{llama-3.1-8b-instruct} via internal HTTP endpoint; \texttt{temperature\,=\,0.7}, \texttt{top\_p\,=\,0.9}, \texttt{max\_new\_tokens\,=\,512}; \texttt{news\_summary\_with\_citations\_v1} prompt; truncate-oldest context strategy; markdown-link citations.};
+  \node[llm/box/purple, card, below=of r3] (r4)
+       {\textbf{Safety \& post-processing:} hallucination detector flags low-faithfulness outputs for human review; Perspective-API toxicity filter refuses to ship responses above threshold (a hard gate, not an advisory).};
+  \node[llm/box/gray,   card, below=of r4] (r5)
+       {\textbf{Monitoring \& evaluation hooks:} emit telemetry against the Chapter~\ref{ch:monitoring} schema; trigger the Chapter~\ref{ch:cicd} evaluation harness on every release; route alerts through the rules in Section~\ref{sec:alerts-incident-response-and-resilience}.};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{End-to-end RAG pipeline expressed as five contracts: ingestion, indexing path, retrieval and generation, safety, and observability. Each contract is the smallest interface that the next stage downstream needs in order to do its job; the indexing path and the retrieval-and-generation contract delegate to component-level figures (Figures~\ref{fig:ch08_chunking_callout}, \ref{fig:ch08_vector_index_callout}, and \ref{fig:ch08_retrieval_callout}) so the pipeline view stays focused on flow and policy rather than implementation detail.}
@@ -400,44 +396,32 @@ Fig.~\ref{fig:ch08_ingestion_pipeline} illustrates the ingestion pipeline stages
 \begin{figure}[tb]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[
-    node distance=16mm,
-    auto,
-    >=Stealth,
-    block/.style={
-        rectangle,
-        draw=none,
-        rounded corners=5pt,
-        minimum height=14mm,
-        minimum width=32mm,
-        align=center,
-        inner sep=5pt,
-        font=\small
-    },
-    arrow/.style={
-        ->,
-        very thick,
-        line width=1.2pt,
-        draw=black!60
-    }
-]
-% Color definitions
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Compact vertical pipeline: each stage uses llm/box defaults (9mm minimum
+% height, small font), with 5mm node distance to keep the figure within the
+% Springer textblock without scaling.
+% Color carries the role: blue = inbound data, green = preprocessing,
+% orange = chunking/storage, purple = quality/governance.
+\tikzset{
+  data/.style ={llm/box/blue,   minimum width=42mm, font=\footnotesize\bfseries},
+  prep/.style ={llm/box/green,  minimum width=42mm, font=\footnotesize\bfseries},
+  proc/.style ={llm/box/orange, minimum width=42mm, font=\footnotesize\bfseries},
+  qual/.style ={llm/box/purple, minimum width=42mm, font=\footnotesize\bfseries},
+  flow/.style ={llm/arrow},
+}
+\begin{tikzpicture}[node distance=5mm]
+  \node[data]                          (sources)    {Data sources\\[1pt]\footnotesize databases, APIs, RSS, social};
+  \node[prep, below=of sources]        (preprocess) {Preprocessing \& cleaning\\[1pt]\footnotesize format, noise removal, translate};
+  \node[proc, below=of preprocess]     (chunk)      {Chunking strategy\\[1pt]\footnotesize paragraphs, sections, token windows};
+  \node[qual, below=of chunk]          (dedup)      {Deduplication \& filtering\\[1pt]\footnotesize drop duplicates and noise};
+  \node[qual, below=of dedup]          (metadata)   {Metadata enrichment\\[1pt]\footnotesize timestamps, geotags, reliability};
+  \node[proc, below=of metadata]       (vector)     {Vector store\\[1pt]\footnotesize FAISS, Pinecone, Weaviate, Milvus};
 
-% Nodes
-\node[block, fill=llmblue!15] (sources) {\textbf{Data Sources}\\[2pt]\footnotesize Databases, APIs, Websites,\\RSS, Social Media};
-\node[block, fill=llmgreen!15, below=of sources] (preprocess) {\textbf{Preprocessing \& Cleaning}\\[2pt]\footnotesize Format conversion, noise removal,\\translation};
-\node[block, fill=llmorange!15, below=of preprocess] (chunk) {\textbf{Chunking Strategy}\\[2pt]\footnotesize Paragraphs, sections,\\token windows};
-\node[block, fill=llmpurple!15, below=of chunk] (dedup) {\textbf{Deduplication \& Filtering}\\[2pt]\footnotesize Remove duplicates,\\drop irrelevant data};
-\node[block, fill=llmpurple!15, below=of dedup] (metadata) {\textbf{Metadata Enrichment}\\[2pt]\footnotesize Timestamps, geotags,\\source reliability};
-\node[block, fill=llmorange!15, below=of metadata] (vector) {\textbf{Vector Store}\\[2pt]\footnotesize FAISS, Pinecone,\\Weaviate, Milvus};
-
-% Arrows
-\draw[arrow] (sources) -- (preprocess);
-\draw[arrow] (preprocess) -- (chunk);
-\draw[arrow] (chunk) -- (dedup);
-\draw[arrow] (dedup) -- (metadata);
-\draw[arrow] (metadata) -- (vector);
-
+  \draw[flow] (sources)    -- (preprocess);
+  \draw[flow] (preprocess) -- (chunk);
+  \draw[flow] (chunk)      -- (dedup);
+  \draw[flow] (dedup)      -- (metadata);
+  \draw[flow] (metadata)   -- (vector);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Ingestion pipeline design determines RAG freshness and retrieval quality. Proper preprocessing, chunking, and deduplication prevent stale data and duplicate evidence, while metadata enrichment enables filtering and provenance tracking. This pipeline structure enables reliable, auditable RAG systems.}
@@ -551,25 +535,24 @@ Figure~\ref{fig:ch08_chunking_callout} summarizes a production chunking configur
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[font=\small]
-\node[
-    draw=none,
-    rounded corners=6pt,
-    fill=gray!8,
-    align=left,
-    inner sep=6mm,
-    text width=0.95\linewidth,
-    minimum height=1cm
-] (container) {
-\textbf{\large Type-aware chunking strategy}\\[4mm]
-\begin{minipage}[t]{0.95\linewidth}
-\colorbox{llmblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmblue!90!black}{Default (recursive text splitter):}} 512-token chunks with 128-token overlap; prioritized separators (paragraph $\rightarrow$ line $\rightarrow$ sentence $\rightarrow$ word) so splits land on natural boundaries before falling back to fixed size.\vspace{2mm}}}\\[2mm]
-\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Reports (structural splitter):}} split on Markdown headings (\texttt{\#}, \texttt{\#\#}, \texttt{\#\#\#}); 100--1024 token bounds; preserves section semantics for navigational queries.\vspace{2mm}}}\\[2mm]
-\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{Legal documents (sentence splitter):}} 5 sentences per chunk with 1-sentence overlap; carry \texttt{case\_id} and \texttt{paragraph\_id} metadata so citations resolve to the exact paragraph.\vspace{2mm}}}\\[2mm]
-\colorbox{llmorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmorange!90!black}{Social posts (fixed-size):}} 128-token chunks with no overlap; tag \texttt{source\,=\,social\_media}, \texttt{platform\,=\,twitter} so retrieval can downweight or filter at query time.\vspace{2mm}}}\\[2mm]
-\colorbox{llmgray!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgray!90!black}{Global metadata \& post-filters:}} stamp every chunk with \texttt{source\_system}, \texttt{processing\_date}, and \texttt{embedding\_model\_version}; drop chunks under 50 tokens; strip boilerplate (advertisements, copyright lines) via regex.\vspace{2mm}}}
-\end{minipage}
-};
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Color carries the role: blue = default policy, green = structural,
+% purple = sentence-aware, orange = social/fixed, gray = neutral global.
+\tikzset{
+  card/.style={text width=0.90\linewidth, align=left, font=\footnotesize},
+}
+\begin{tikzpicture}[node distance=2mm]
+  \node[font=\bfseries\large] (title) {Type-aware chunking strategy};
+  \node[llm/box/blue,   card, below=4mm of title.south, anchor=north] (r1)
+       {\textbf{Default (recursive text splitter):} 512-token chunks with 128-token overlap; prioritized separators (paragraph $\rightarrow$ line $\rightarrow$ sentence $\rightarrow$ word) so splits land on natural boundaries before falling back to fixed size.};
+  \node[llm/box/green,  card, below=of r1] (r2)
+       {\textbf{Reports (structural splitter):} split on Markdown headings (\texttt{\#}, \texttt{\#\#}, \texttt{\#\#\#}); 100--1024 token bounds; preserves section semantics for navigational queries.};
+  \node[llm/box/purple, card, below=of r2] (r3)
+       {\textbf{Legal documents (sentence splitter):} 5 sentences per chunk with 1-sentence overlap; carry \texttt{case\_id} and \texttt{paragraph\_id} metadata so citations resolve to the exact paragraph.};
+  \node[llm/box/orange, card, below=of r3] (r4)
+       {\textbf{Social posts (fixed-size):} 128-token chunks with no overlap; tag \texttt{source\,=\,social\_media}, \texttt{platform\,=\,twitter} so retrieval can downweight or filter at query time.};
+  \node[llm/box/gray,   card, below=of r4] (r5)
+       {\textbf{Global metadata \& post-filters:} stamp every chunk with \texttt{source\_system}, \texttt{processing\_date}, and \texttt{embedding\_model\_version}; drop chunks under 50 tokens; strip boilerplate (advertisements, copyright lines) via regex.};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Type-aware chunking strategy: a recursive default for unstructured prose, structural splitting for reports, sentence splitting for legal text, and fixed-size chunks for short social posts. Global metadata and post-filters apply uniformly across types so that downstream retrieval has a consistent surface to filter on (model version, source system, length floor) regardless of which strategy produced the chunk.}
@@ -624,27 +607,36 @@ The best choice depends on corpus size, memory constraints, and latency SLOs. Al
 
 Table~\ref{tab:ch08_vector_index_comparison_landscape} provides a detailed comparison of index types.
 
-\begin{table}[tb]
-\centering
-\small
-\caption{Vector index selection drives RAG latency and cost. Different index types trade off query speed (HNSW fastest), memory footprint (IVF-PQ most compact), and update overhead (flat index simplest but slowest). Choose based on query volume, update frequency, and memory constraints.}
-\label{tab:ch08_vector_index_comparison_landscape}
-\begin{threeparttable}
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.3}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
 \rowcolors{2}{gray!8}{white}
-\begin{tabularx}{\linewidth}{%
-  >{\raggedright\arraybackslash}p{1.4cm}  % Index Type
-  >{\raggedright\arraybackslash}p{1.2cm}  % Recall
-  >{\raggedright\arraybackslash}p{1.6cm}  % Latency
-  >{\raggedright\arraybackslash}p{1.6cm}  % Memory
-  >{\raggedright\arraybackslash}p{1.6cm}  % Scale
-  >{\raggedright\arraybackslash}X  % Notes
+\begin{xltabular}{\linewidth}{%
+  >{\raggedright\arraybackslash}p{1.3cm}
+  >{\raggedright\arraybackslash}p{1.2cm}
+  >{\raggedright\arraybackslash}p{1.5cm}
+  >{\raggedright\arraybackslash}p{1.4cm}
+  >{\raggedright\arraybackslash}p{1.6cm}
+  >{\raggedright\arraybackslash}X
 }
+\caption{Vector index selection drives RAG latency and cost. Different index types trade off query speed (HNSW fastest), memory footprint (IVF-PQ most compact), and update overhead (flat index simplest but slowest). Choose based on query volume, update frequency, and memory constraints.}
+\label{tab:ch08_vector_index_comparison_landscape}\\
 \toprule
 \rowcolor{gray!15}
 \textbf{Index Type} & \textbf{Recall} & \textbf{Latency} & \textbf{Memory} & \textbf{Scale} & \textbf{Notes / Tunables \& Use Cases} \\
 \midrule
+\endfirsthead
+\multicolumn{6}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+\toprule
+\rowcolor{gray!15}
+\textbf{Index Type} & \textbf{Recall} & \textbf{Latency} & \textbf{Memory} & \textbf{Scale} & \textbf{Notes / Tunables \& Use Cases} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{6}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+\endfoot
+\bottomrule
+\endlastfoot
 \textbf{Flat (Exact)} &
 100\% &
 Highest (linear scan); GPU helps &
@@ -683,15 +675,10 @@ Low; tuned per layer &
 Moderate–high &
 Very large; flexible &
 Compose strengths: e.g., IVF narrows candidates; PQ compresses; HNSW refines. Use when you need sub-100\,ms on 100M–1B vectors with manageable RAM. \cite{Johnson2019FAISS,Malkov2018HNSW,Jegou2011PQ} \\
-\bottomrule
-\end{tabularx}
+\end{xltabular}
+}
 
-\begin{tablenotes}[flushleft]\scriptsize
-\item \textbf{Guidance:} For $\leq$ a few million vectors, HNSW or Flat+GPU often suffice; at tens of millions, IVF (optionally with reranking) is a strong choice; for 100M–1B+, consider IVF+PQ or hybrid schemes and/or distributed shards. Always validate on your data distribution and latency SLOs. \cite{Johnson2019FAISS,Malkov2018HNSW,Jegou2011PQ}
-\end{tablenotes}
-
-\end{threeparttable}
-\end{table}
+\noindent\textbf{Guidance.} For $\leq$\,a few million vectors, HNSW or Flat+GPU often suffice; at tens of millions, IVF (optionally with reranking) is a strong choice; for 100M–1B+, consider IVF+PQ or hybrid schemes and/or distributed shards. Always validate on your data distribution and latency SLOs.
 
 \subsection{Sharding and Logical Partitioning}
 Sharding distributes vectors across nodes so that index memory and query throughput can scale horizontally. In most deployments, it is helpful to separate two decisions: \emph{physical sharding} (how embeddings are placed across machines) and \emph{logical partitioning} (how queries are routed to a subset of those machines). Physical sharding aims for balanced load and predictable capacity, while logical partitioning aims to reduce the candidate search space and to enforce governance boundaries such as tenancy, security domains, and data residency \cite{Kleppmann2017DDIA}.
@@ -841,25 +828,24 @@ Figure~\ref{fig:ch08_retrieval_callout} summarizes a production hybrid retrieval
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[font=\small]
-\node[
-    draw=none,
-    rounded corners=6pt,
-    fill=gray!8,
-    align=left,
-    inner sep=6mm,
-    text width=0.95\linewidth,
-    minimum height=1cm
-] (container) {
-\textbf{\large Hybrid retrieval pipeline stages}\\[4mm]
-\begin{minipage}[t]{0.95\linewidth}
-\colorbox{llmblue!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmblue!90!black}{Query processing:}} LLM-rewrite query expansion produces 3 variants via \texttt{llama-3.1-8b-query-rewriter}; HyDE (hypothetical document embedding) compression available but off by default to keep latency low on initial retrieval.\vspace{2mm}}}\\[2mm]
-\colorbox{llmgreen!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgreen!90!black}{Dense retriever (weight 0.7):}} top-10 from \texttt{ishtar-news-vector-index} with metadata filters (\texttt{published\_date $\geq$ now-30d}, \texttt{category $\in$ \{politics, conflict\}}); pushes the filter into the query plan, not after the fact \cite{Lin2021SPLADE}.\vspace{2mm}}}\\[2mm]
-\colorbox{llmpurple!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmpurple!90!black}{Sparse retriever (weight 0.3):}} top-20 from Elasticsearch on \texttt{ishtar-news-keywords}; complements the dense path on rare named entities and numeric tokens that embeddings tend to blur \cite{Thakur2021BEIR}.\vspace{2mm}}}\\[2mm]
-\colorbox{llmorange!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmorange!90!black}{Cross-encoder reranker:}} \texttt{cross-encoder/ms-marco-MiniLM-L-6-v2} reranks the merged candidate pool to a final top-5 in batches of 32; the precision step that converts a recall-heavy candidate list into a context-window-ready set \cite{khattab2020colbert,Zhan2021ColBERTv2,cormack2009rrf}.\vspace{2mm}}}\\[2mm]
-\colorbox{llmgray!10}{\parbox{0.98\linewidth}{\vspace{2mm}\textbf{\textcolor{llmgray!90!black}{Post-retrieval filters \& observability:}} embedding-similarity dedup at threshold 0.95; access control through OPA (\texttt{document\_access\_policy\_v1}); log full retrieved-document content (post-redaction) for offline evaluation and incident triage.\vspace{2mm}}}
-\end{minipage}
-};
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Color carries the role: blue = query processing, green = dense retriever,
+% purple = sparse retriever, orange = reranker, gray = neutral filters/obs.
+\tikzset{
+  card/.style={text width=0.90\linewidth, align=left, font=\footnotesize},
+}
+\begin{tikzpicture}[node distance=2mm]
+  \node[font=\bfseries\large] (title) {Hybrid retrieval pipeline stages};
+  \node[llm/box/blue,   card, below=4mm of title.south, anchor=north] (r1)
+       {\textbf{Query processing:} LLM-rewrite query expansion produces 3 variants via \texttt{llama-3.1-8b-query-rewriter}; HyDE (hypothetical document embedding) compression available but off by default to keep latency low on initial retrieval.};
+  \node[llm/box/green,  card, below=of r1] (r2)
+       {\textbf{Dense retriever (weight 0.7):} top-10 from \texttt{ishtar-news-vector-index} with metadata filters (\texttt{published\_date $\geq$ now-30d}, \texttt{category $\in$ \{politics, conflict\}}); pushes the filter into the query plan, not after the fact \cite{Lin2021SPLADE}.};
+  \node[llm/box/purple, card, below=of r2] (r3)
+       {\textbf{Sparse retriever (weight 0.3):} top-20 from Elasticsearch on \texttt{ishtar-news-keywords}; complements the dense path on rare named entities and numeric tokens that embeddings tend to blur \cite{Thakur2021BEIR}.};
+  \node[llm/box/orange, card, below=of r3] (r4)
+       {\textbf{Cross-encoder reranker:} \texttt{cross-encoder/ms-marco-MiniLM-L-6-v2} reranks the merged candidate pool to a final top-5 in batches of 32; the precision step that converts a recall-heavy candidate list into a context-window-ready set \cite{khattab2020colbert,Zhan2021ColBERTv2,cormack2009rrf}.};
+  \node[llm/box/gray,   card, below=of r4] (r5)
+       {\textbf{Post-retrieval filters \& observability:} embedding-similarity dedup at threshold 0.95; access control through OPA (\texttt{document\_access\_policy\_v1}); log full retrieved-document content (post-redaction) for offline evaluation and incident triage.};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Hybrid retrieval pipeline expressed as five stages. Query processing widens the search; dense and sparse retrievers run in parallel with a 0.7/0.3 weighted fusion so each path keeps its strengths (semantic match for paraphrase, exact match for rare entities); the cross-encoder reranker turns a recall-heavy candidate pool into a precision-oriented top-5; post-retrieval filters enforce deduplication and access policy before any chunk reaches the prompt builder.}
@@ -1250,22 +1236,27 @@ Fig.~\ref{fig:ch08_ishtar_rag} illustrates the complete \ishtar{} RAG pipeline a
 \begin{figure}[tb]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[
-    node distance=14mm,
-    auto,
-    block/.style={rectangle, draw=none, fill=gray!6, rounded corners, minimum height=8mm, minimum width=27mm, align=center, inner sep=3pt, font=\small},
-    arrow/.style={-{Latex}, line width=0.8pt}
-]
-\node[block] (src) {Trusted sources\\ \footnotesize (news, NGOs, bulletins)};
-\node[block, below of=src] (ing) {Ingestion \& chunking\\ \footnotesize normalize + metadata};
-\node[block, below of=ing] (idx) {Embed + index\\ \footnotesize vector store};
-\node[block, below of=idx] (ret) {Retrieve + rerank\\ \footnotesize hybrid + filtering};
-\node[block, below of=ret] (gen) {Generate answer\\ \footnotesize with citations};
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Color carries the role: blue = sources/data, green = ingestion stage,
+% orange = retrieval/generation, purple = indexing.
+\tikzset{
+  data/.style ={llm/box/blue,   minimum width=42mm, font=\footnotesize\bfseries},
+  ing/.style  ={llm/box/green,  minimum width=42mm, font=\footnotesize\bfseries},
+  idx/.style  ={llm/box/purple, minimum width=42mm, font=\footnotesize\bfseries},
+  proc/.style ={llm/box/orange, minimum width=42mm, font=\footnotesize\bfseries},
+  flow/.style ={llm/arrow},
+}
+\begin{tikzpicture}[node distance=5mm]
+  \node[data]                    (src) {Trusted sources\\[1pt]\footnotesize news, NGOs, bulletins};
+  \node[ing,  below=of src]      (ing) {Ingestion \& chunking\\[1pt]\footnotesize normalize + metadata};
+  \node[idx,  below=of ing]      (idx) {Embed + index\\[1pt]\footnotesize vector store};
+  \node[proc, below=of idx]      (ret) {Retrieve + rerank\\[1pt]\footnotesize hybrid + filtering};
+  \node[proc, below=of ret]      (gen) {Generate answer\\[1pt]\footnotesize with citations};
 
-\draw[arrow] (src) -- (ing);
-\draw[arrow] (ing) -- (idx);
-\draw[arrow] (idx) -- (ret);
-\draw[arrow] (ret) -- (gen);
+  \draw[flow] (src) -- (ing);
+  \draw[flow] (ing) -- (idx);
+  \draw[flow] (idx) -- (ret);
+  \draw[flow] (ret) -- (gen);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{\ishtar{} RAG pipeline demonstrates production-ready observability and versioning practices. Each stage is observable and versioned: changes to ingestion, embeddings, retrieval, or prompting are evaluated via regression tests before release. This approach enables reliable iteration by ensuring that modifications are validated before affecting production users.}

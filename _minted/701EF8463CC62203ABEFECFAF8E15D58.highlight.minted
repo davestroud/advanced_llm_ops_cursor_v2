@@ -1,0 +1,73 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} modules/gpu\PYGZhy{}node\PYGZhy{}group/main.tf \PYGZhy{}\PYGZhy{} reusable GPU EKS node group.}
+
+\PYG{k+kr}{variable}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}cluster\PYGZus{}name\PYGZdq{}}\PYG{+w}{    }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{type}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{string}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{k+kr}{variable}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}node\PYGZus{}group\PYGZus{}name\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{type}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{string}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{k+kr}{variable}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}instance\PYGZus{}type\PYGZdq{}}\PYG{+w}{   }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{type}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{string}\PYG{+w}{  }\PYG{n+na}{default}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}g5.2xlarge\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{k+kr}{variable}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}min\PYGZus{}size\PYGZdq{}}\PYG{+w}{        }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{type}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{number}\PYG{+w}{  }\PYG{n+na}{default}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m}{1}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{k+kr}{variable}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}max\PYGZus{}size\PYGZdq{}}\PYG{+w}{        }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{type}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{number}\PYG{+w}{  }\PYG{n+na}{default}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m}{10}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{k+kr}{variable}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}desired\PYGZus{}size\PYGZdq{}}\PYG{+w}{    }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{type}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{number}\PYG{+w}{  }\PYG{n+na}{default}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m}{2}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+
+\PYG{c+c1}{\PYGZsh{} Taint defaults isolate GPU workloads; labels target llm\PYGZhy{}inference pods.}
+\PYG{k+kr}{variable}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}taints\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+na}{type}\PYG{+w}{    }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nf}{list}\PYG{p}{(}\PYG{k+kt}{object}\PYG{p}{(\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{key}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{string}\PYG{p}{,}\PYG{+w}{ }\PYG{n+na}{value}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{string}\PYG{p}{,}\PYG{+w}{ }\PYG{n+na}{effect}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k+kt}{string}\PYG{+w}{ }\PYG{p}{\PYGZcb{}))}
+\PYG{+w}{  }\PYG{n+na}{default}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{[\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{key}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}gpu\PYGZdq{}, value = \PYGZdq{}true\PYGZdq{}, effect = \PYGZdq{}NO\PYGZus{}SCHEDULE\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZcb{}]}
+\PYG{p}{\PYGZcb{}}
+\PYG{k+kr}{variable}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}labels\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+na}{type}\PYG{+w}{    }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nf}{map}\PYG{p}{(}\PYG{k+kt}{string}\PYG{p}{)}
+\PYG{+w}{  }\PYG{n+nb}{default}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{nodeType}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}gpu\PYGZdq{}, workload = \PYGZdq{}llm\PYGZhy{}inference\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kr}{resource}\PYG{+w}{ }\PYG{n+nc}{\PYGZdq{}aws\PYGZus{}eks\PYGZus{}node\PYGZus{}group\PYGZdq{}}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}gpu\PYGZus{}nodes\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+na}{cluster\PYGZus{}name}\PYG{+w}{    }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.cluster\PYGZus{}name}
+\PYG{+w}{  }\PYG{n+na}{node\PYGZus{}group\PYGZus{}name}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.node\PYGZus{}group\PYGZus{}name}
+\PYG{+w}{  }\PYG{n+na}{node\PYGZus{}role\PYGZus{}arn}\PYG{+w}{   }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{aws\PYGZus{}iam\PYGZus{}role.node\PYGZus{}group.arn}
+\PYG{+w}{  }\PYG{n+na}{subnet\PYGZus{}ids}\PYG{+w}{      }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.subnet\PYGZus{}ids}
+\PYG{+w}{  }\PYG{n+na}{instance\PYGZus{}types}\PYG{+w}{  }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{[}\PYG{n+nv}{var.instance\PYGZus{}type}\PYG{p}{]}
+\PYG{+w}{  }\PYG{n+na}{capacity\PYGZus{}type}\PYG{+w}{   }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}ON\PYGZus{}DEMAND\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+na}{ami\PYGZus{}type}\PYG{+w}{        }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}AL2\PYGZus{}x86\PYGZus{}64\PYGZus{}GPU\PYGZdq{}}\PYG{c+c1}{   \PYGZsh{} ships NVIDIA drivers}
+\PYG{+w}{  }\PYG{n+na}{disk\PYGZus{}size}\PYG{+w}{       }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m}{100}
+
+\PYG{+w}{  }\PYG{n+nb}{scaling\PYGZus{}config}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+na}{desired\PYGZus{}size}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.desired\PYGZus{}size}
+\PYG{+w}{    }\PYG{n+na}{min\PYGZus{}size}\PYG{+w}{     }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.min\PYGZus{}size}
+\PYG{+w}{    }\PYG{n+na}{max\PYGZus{}size}\PYG{+w}{     }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.max\PYGZus{}size}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n+na}{labels}\PYG{+w}{          }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.labels}
+\PYG{+w}{  }\PYG{n+nb}{update\PYGZus{}config}\PYG{+w}{   }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{max\PYGZus{}unavailable}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m}{1}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{n+nb}{remote\PYGZus{}access}\PYG{+w}{   }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{ec2\PYGZus{}ssh\PYGZus{}key}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.ssh\PYGZus{}key\PYGZus{}name}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{err}{dynamic}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}taint\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n+na}{for\PYGZus{}each}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.taints}
+\PYG{+w}{    }\PYG{n+nb}{content}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{key}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{taint.value.key}\PYG{err}{;}\PYG{+w}{ }\PYG{n+na}{value}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{taint.value.value}
+\PYG{+w}{              }\PYG{n+na}{effect}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{taint.value.effect}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n+nb}{tags}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{Environment}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{var.environment}\PYG{p}{,}\PYG{+w}{ }\PYG{n+na}{ManagedBy}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}Terraform\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{           }\PYG{n+na}{Purpose}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}LLM\PYGZhy{}Inference\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{c+c1}{\PYGZsh{} Least\PYGZhy{}privilege node role: assumed by EC2; attaches the three EKS\PYGZhy{}managed}
+\PYG{c+c1}{\PYGZsh{} policies required for worker registration, CNI, and ECR pulls.}
+\PYG{k+kr}{resource}\PYG{+w}{ }\PYG{n+nc}{\PYGZdq{}aws\PYGZus{}iam\PYGZus{}role\PYGZdq{}}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}node\PYGZus{}group\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+na}{name}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}\PYGZdl{}\PYGZob{}var.node\PYGZus{}group\PYGZus{}name\PYGZcb{}\PYGZhy{}node\PYGZhy{}role\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+na}{assume\PYGZus{}role\PYGZus{}policy}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nf}{jsonencode}\PYG{p}{(\PYGZob{}}
+\PYG{+w}{    }\PYG{n+na}{Version}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}2012\PYGZhy{}10\PYGZhy{}17\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+na}{Statement}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{[\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{Action}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}sts:AssumeRole\PYGZdq{}, Effect = \PYGZdq{}Allow\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{                   }\PYG{n+nb}{Principal}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{Service}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}ec2.amazonaws.com\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}\PYG{+w}{ }\PYG{p}{\PYGZcb{}]}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{})}
+\PYG{p}{\PYGZcb{}}
+\PYG{k+kr}{resource}\PYG{+w}{ }\PYG{n+nc}{\PYGZdq{}aws\PYGZus{}iam\PYGZus{}role\PYGZus{}policy\PYGZus{}attachment\PYGZdq{}}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}node\PYGZus{}group\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{n+na}{for\PYGZus{}each}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nf}{toset}\PYG{p}{([}
+\PYG{+w}{    }\PYG{l+s+s2}{\PYGZdq{}arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{l+s+s2}{\PYGZdq{}arn:aws:iam::aws:policy/AmazonEKS\PYGZus{}CNI\PYGZus{}Policy\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{    }\PYG{l+s+s2}{\PYGZdq{}arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly\PYGZdq{}}\PYG{p}{,}
+\PYG{+w}{  }\PYG{p}{])}
+\PYG{+w}{  }\PYG{n+na}{role}\PYG{+w}{       }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{aws\PYGZus{}iam\PYGZus{}role.node\PYGZus{}group.name}
+\PYG{+w}{  }\PYG{n+na}{policy\PYGZus{}arn}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{each.value}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kr}{output}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}node\PYGZus{}group\PYGZus{}arn\PYGZdq{}}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{value}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{aws\PYGZus{}eks\PYGZus{}node\PYGZus{}group.gpu\PYGZus{}nodes.arn}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{k+kr}{output}\PYG{+w}{ }\PYG{n+nv}{\PYGZdq{}node\PYGZus{}group\PYGZus{}id\PYGZdq{}}\PYG{+w}{  }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{value}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n+nv}{aws\PYGZus{}eks\PYGZus{}node\PYGZus{}group.gpu\PYGZus{}nodes.id}\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

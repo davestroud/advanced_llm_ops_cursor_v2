@@ -1,0 +1,69 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{n+nt}{routing\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ishtar\PYGZus{}hierarchical\PYGZus{}routing\PYGZdq{}}
+\PYG{n+nt}{routing\PYGZus{}version}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1.2.0\PYGZdq{}}
+
+\PYG{c+c1}{\PYGZsh{} Three model tiers: cheap/fast \PYGZhy{}\PYGZgt{} standard \PYGZhy{}\PYGZgt{} high\PYGZhy{}accuracy.}
+\PYG{c+c1}{\PYGZsh{} (cost\PYGZus{}per\PYGZus{}1k\PYGZus{}tokens\PYGZus{}usd in USD; latency\PYGZus{}p95\PYGZus{}ms is steady\PYGZhy{}state.)}
+\PYG{n+nt}{model\PYGZus{}tiers}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{tier\PYGZus{}1\PYGZus{}lightweight}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{model\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llama\PYGZhy{}3.1\PYGZhy{}8b\PYGZhy{}chat\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{cost\PYGZus{}per\PYGZus{}1k\PYGZus{}tokens\PYGZus{}usd}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.010}
+\PYG{+w}{    }\PYG{n+nt}{latency\PYGZus{}p95\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{150}
+\PYG{+w}{    }\PYG{n+nt}{max\PYGZus{}context\PYGZus{}tokens}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8192}
+\PYG{+w}{    }\PYG{n+nt}{use\PYGZus{}cases}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}simple\PYGZus{}classification\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}basic\PYGZus{}summarization\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}short\PYGZus{}qa\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{  }\PYG{n+nt}{tier\PYGZus{}2\PYGZus{}standard}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{model\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llama\PYGZhy{}3.1\PYGZhy{}13b\PYGZhy{}chat\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{cost\PYGZus{}per\PYGZus{}1k\PYGZus{}tokens\PYGZus{}usd}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.015}
+\PYG{+w}{    }\PYG{n+nt}{latency\PYGZus{}p95\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{250}
+\PYG{+w}{    }\PYG{n+nt}{max\PYGZus{}context\PYGZus{}tokens}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{16384}
+\PYG{+w}{    }\PYG{n+nt}{use\PYGZus{}cases}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}complex\PYGZus{}qa\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}multi\PYGZus{}step\PYGZus{}reasoning\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}content\PYGZus{}generation\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{  }\PYG{n+nt}{tier\PYGZus{}3\PYGZus{}premium}\PYG{p}{:}
+\PYG{+w}{    }\PYG{n+nt}{model\PYGZus{}id}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llama\PYGZhy{}3.1\PYGZhy{}70b\PYGZhy{}chat\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{cost\PYGZus{}per\PYGZus{}1k\PYGZus{}tokens\PYGZus{}usd}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.050}
+\PYG{+w}{    }\PYG{n+nt}{latency\PYGZus{}p95\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{600}
+\PYG{+w}{    }\PYG{n+nt}{max\PYGZus{}context\PYGZus{}tokens}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{32768}
+\PYG{+w}{    }\PYG{n+nt}{use\PYGZus{}cases}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}critical\PYGZus{}fact\PYGZus{}checking\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}complex\PYGZus{}analysis\PYGZdq{}}\PYG{p+pIndicator}{]}
+
+\PYG{c+c1}{\PYGZsh{} Four ordered routing rules; the first applicable rule wins.}
+\PYG{n+nt}{routing\PYGZus{}rules}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{complexity\PYGZus{}based}\PYG{p}{:}\PYG{+w}{                        }\PYG{c+c1}{\PYGZsh{} 1. Score \PYGZhy{}\PYGZgt{} tier}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{classifier\PYGZus{}model}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}complexity\PYGZus{}classifier\PYGZus{}v1.0\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{routing\PYGZus{}logic}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ condition}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}complexity\PYGZus{}score}\PYG{n+nv}{ }\PYG{l+s}{\PYGZlt{}}\PYG{n+nv}{ }\PYG{l+s}{0.3\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          route\PYGZus{}to}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}1\PYGZus{}lightweight\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ fallback}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}2\PYGZus{}standard\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ condition}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}0.3}\PYG{n+nv}{ }\PYG{l+s}{\PYGZlt{}=}\PYG{n+nv}{ }\PYG{l+s}{complexity\PYGZus{}score}\PYG{n+nv}{ }\PYG{l+s}{\PYGZlt{}}\PYG{n+nv}{ }\PYG{l+s}{0.7\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          route\PYGZus{}to}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}2\PYGZus{}standard\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{   fallback}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}3\PYGZus{}premium\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ condition}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}complexity\PYGZus{}score}\PYG{n+nv}{ }\PYG{l+s}{\PYGZgt{}=}\PYG{n+nv}{ }\PYG{l+s}{0.7\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          route\PYGZus{}to}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}3\PYGZus{}premium\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{    fallback}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{null}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n+nt}{cost\PYGZus{}budget}\PYG{p}{:}\PYG{+w}{                             }\PYG{c+c1}{\PYGZsh{} 2. Downgrade to fit budget}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{per\PYGZus{}request\PYGZus{}budget\PYGZus{}usd}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{0.10}
+\PYG{+w}{    }\PYG{n+nt}{per\PYGZus{}tenant\PYGZus{}daily\PYGZus{}budget\PYGZus{}usd}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{100.0}
+\PYG{+w}{    }\PYG{n+nt}{routing\PYGZus{}logic}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ condition}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}estimated\PYGZus{}cost}\PYG{n+nv}{ }\PYG{l+s}{\PYGZgt{}}\PYG{n+nv}{ }\PYG{l+s}{per\PYGZus{}request\PYGZus{}budget\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          action}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}downgrade\PYGZus{}tier\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ max\PYGZus{}downgrades}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{2}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n+nt}{latency\PYGZus{}slo}\PYG{p}{:}\PYG{+w}{                             }\PYG{c+c1}{\PYGZsh{} 3. Pick a faster tier if needed}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{max\PYGZus{}latency\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{500}
+\PYG{+w}{    }\PYG{n+nt}{routing\PYGZus{}logic}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ condition}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}estimated\PYGZus{}latency}\PYG{n+nv}{ }\PYG{l+s}{\PYGZgt{}}\PYG{n+nv}{ }\PYG{l+s}{max\PYGZus{}latency\PYGZus{}ms\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          action}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}upgrade\PYGZus{}tier\PYGZus{}if\PYGZus{}faster\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          check\PYGZus{}tiers}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}tier\PYGZus{}1\PYGZus{}lightweight\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}2\PYGZus{}standard\PYGZdq{}}\PYG{p+pIndicator}{]}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{n+nt}{explicit\PYGZus{}hints}\PYG{p}{:}\PYG{+w}{                          }\PYG{c+c1}{\PYGZsh{} 4. Caller\PYGZhy{}provided override}
+\PYG{+w}{    }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{    }\PYG{n+nt}{hint\PYGZus{}field}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}routing\PYGZus{}hint\PYGZdq{}}
+\PYG{+w}{    }\PYG{n+nt}{routing\PYGZus{}map}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ critical}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}3\PYGZus{}premium\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ standard}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}2\PYGZus{}standard\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{                   fast}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}1\PYGZus{}lightweight\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ cost\PYGZus{}optimized}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}1\PYGZus{}lightweight\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{n+nt}{fallback}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{strategy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}cascade\PYGZdq{}}\PYG{+w}{                      }\PYG{c+c1}{\PYGZsh{} cascade \PYGZhy{}\PYGZgt{} failover \PYGZhy{}\PYGZgt{} reject}
+\PYG{+w}{  }\PYG{n+nt}{cascade\PYGZus{}order}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}tier\PYGZus{}3\PYGZus{}premium\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}2\PYGZus{}standard\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}tier\PYGZus{}1\PYGZus{}lightweight\PYGZdq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}retries}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{2}
+\PYG{+w}{  }\PYG{n+nt}{retry\PYGZus{}on\PYGZus{}errors}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZdq{}timeout\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}rate\PYGZus{}limit\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}model\PYGZus{}error\PYGZdq{}}\PYG{p+pIndicator}{]}
+
+\PYG{c+c1}{\PYGZsh{} (Cost\PYGZhy{}tracking and per\PYGZhy{}tier monitoring sections elided; see companion repo.)}
+\end{MintedVerbatim}

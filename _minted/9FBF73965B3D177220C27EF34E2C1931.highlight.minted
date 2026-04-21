@@ -1,0 +1,76 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} alerting\PYGZus{}rules.yml \PYGZhy{}\PYGZhy{} LLM SLO alerts. One representative rule per group;}
+\PYG{c+c1}{\PYGZsh{} the rest follow the same shape (alert / expr / for / labels / annotations}
+\PYG{c+c1}{\PYGZsh{} with summary, description, runbook\PYGZus{}url, mitigation). Full set in repo.}
+
+\PYG{n+nt}{groups}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{llm\PYGZus{}latency\PYGZus{}alerts}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{30s}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{alert}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{LLMLatencySpike}
+\PYG{+w}{        }\PYG{n+nt}{expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}histogram\PYGZus{}quantile(0.99,}
+\PYG{+w}{                 }\PYG{l+s}{sum(rate(ishtar\PYGZus{}ttft\PYGZus{}seconds\PYGZus{}bucket[5m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(le,}\PYG{n+nv}{ }\PYG{l+s}{service)}
+\PYG{+w}{               }\PYG{l+s}{)}\PYG{n+nv}{ }\PYG{l+s}{*}\PYG{n+nv}{ }\PYG{l+s}{1000}\PYG{n+nv}{ }\PYG{l+s}{\PYGZgt{}}\PYG{n+nv}{ }\PYG{l+s}{1000\PYGZsq{}}
+\PYG{+w}{        }\PYG{n+nt}{for}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5m}
+\PYG{+w}{        }\PYG{n+nt}{labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ severity}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{critical}\PYG{p+pIndicator}{,}\PYG{n+nt}{ component}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{latency}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{        }\PYG{n+nt}{annotations}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{summary}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}P99}\PYG{n+nv}{ }\PYG{l+s}{TTFT}\PYG{n+nv}{ }\PYG{l+s}{exceeds}\PYG{n+nv}{ }\PYG{l+s}{1000ms\PYGZdq{}}
+\PYG{+w}{          }\PYG{n+nt}{description}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}P99}\PYG{n+nv}{ }\PYG{l+s}{TTFT}\PYG{n+nv}{ }\PYG{l+s}{is}\PYG{n+nv}{ }\PYG{l+s}{\PYGZob{}\PYGZob{}}\PYG{n+nv}{ }\PYG{l+s}{\PYGZdl{}value}\PYG{n+nv}{ }\PYG{l+s}{\PYGZcb{}\PYGZcb{}ms}\PYG{n+nv}{ }\PYG{l+s}{for}\PYG{n+nv}{ }\PYG{l+s}{\PYGZob{}\PYGZob{}}\PYG{n+nv}{ }\PYG{l+s}{\PYGZdl{}labels.service}\PYG{n+nv}{ }\PYG{l+s}{\PYGZcb{}\PYGZcb{}.}
+\PYG{+w}{            }\PYG{l+s}{Check}\PYG{n+nv}{ }\PYG{l+s}{retrieval}\PYG{n+nv}{ }\PYG{l+s}{latency}\PYG{n+nv}{ }\PYG{l+s}{and}\PYG{n+nv}{ }\PYG{l+s}{inference}\PYG{n+nv}{ }\PYG{l+s}{performance.\PYGZdq{}}
+\PYG{+w}{          }\PYG{n+nt}{runbook\PYGZus{}url}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}https://runbooks.ishtar.ai/latency\PYGZhy{}spike\PYGZdq{}}
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} + LLMThroughputDegradation: tokens/req \PYGZlt{} 10 for 10m (warning).}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{llm\PYGZus{}quality\PYGZus{}alerts}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1m}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{alert}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{LLMHallucinationSpike}\PYG{+w}{    }\PYG{c+c1}{\PYGZsh{} critical: hallucinations / requests \PYGZgt{} 5\PYGZpc{}}
+\PYG{+w}{        }\PYG{n+nt}{expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}sum(rate(ishtar\PYGZus{}hallucination\PYGZus{}flags\PYGZus{}total[30m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)}
+\PYG{+w}{               }\PYG{l+s}{/}\PYG{n+nv}{ }\PYG{l+s}{sum(rate(ishtar\PYGZus{}requests\PYGZus{}total[30m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)}\PYG{n+nv}{ }\PYG{l+s}{\PYGZgt{}}\PYG{n+nv}{ }\PYG{l+s}{0.05\PYGZsq{}}
+\PYG{+w}{        }\PYG{n+nt}{for}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{15m}
+\PYG{+w}{        }\PYG{n+nt}{labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ severity}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{critical}\PYG{p+pIndicator}{,}\PYG{n+nt}{ component}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{safety}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{        }\PYG{n+nt}{annotations}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{summary}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Hallucination}\PYG{n+nv}{ }\PYG{l+s}{rate}\PYG{n+nv}{ }\PYG{l+s}{exceeds}\PYG{n+nv}{ }\PYG{l+s}{5\PYGZpc{}\PYGZdq{}}
+\PYG{+w}{          }\PYG{n+nt}{mitigation}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{|}
+\PYG{+w}{            }\PYG{n+no}{1. Enable constrained decoding}
+\PYG{+w}{            }\PYG{n+no}{2. Reduce context window}
+\PYG{+w}{            }\PYG{n+no}{3. Switch to safer model route}
+\PYG{+w}{            }\PYG{n+no}{4. Rollback prompt version}
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} + LLMGroundednessDegradation: avg(groundedness) \PYGZlt{} 0.80 for 30m.}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{llm\PYGZus{}cost\PYGZus{}alerts}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{5m}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{alert}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{LLMCostAnomaly}\PYG{+w}{           }\PYG{c+c1}{\PYGZsh{} warning: cost ratio vs 24h ago \PYGZgt{} 2x}
+\PYG{+w}{        }\PYG{n+nt}{expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}(sum(rate(ishtar\PYGZus{}cost\PYGZus{}usd\PYGZus{}total[1h]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)}
+\PYG{+w}{               }\PYG{l+s}{/}\PYG{n+nv}{ }\PYG{l+s}{sum(rate(ishtar\PYGZus{}cost\PYGZus{}usd\PYGZus{}total[1h]}\PYG{n+nv}{ }\PYG{l+s}{offset}\PYG{n+nv}{ }\PYG{l+s}{24h))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service))}
+\PYG{+w}{               }\PYG{l+s}{\PYGZgt{}}\PYG{n+nv}{ }\PYG{l+s}{2.0\PYGZsq{}}
+\PYG{+w}{        }\PYG{n+nt}{for}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1h}
+\PYG{+w}{        }\PYG{n+nt}{labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ severity}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{warning}\PYG{p+pIndicator}{,}\PYG{n+nt}{ component}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{cost}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{        }\PYG{n+nt}{annotations}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ summary}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Cost}\PYG{n+nv}{ }\PYG{l+s}{per}\PYG{n+nv}{ }\PYG{l+s}{hour}\PYG{n+nv}{ }\PYG{l+s}{increased}\PYG{n+nv}{ }\PYG{l+s}{2x\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          mitigation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}throttle}\PYG{n+nv}{ }\PYG{l+s}{long}\PYG{n+nv}{ }\PYG{l+s}{prompts;}\PYG{n+nv}{ }\PYG{l+s}{enable}\PYG{n+nv}{ }\PYG{l+s}{caching;}\PYG{n+nv}{ }\PYG{l+s}{review}\PYG{n+nv}{ }\PYG{l+s}{routing\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{retrieval\PYGZus{}quality\PYGZus{}alerts}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1m}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{alert}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{RetrievalRecallDegradation}
+\PYG{+w}{        }\PYG{n+nt}{expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}avg(ishtar\PYGZus{}recall\PYGZus{}at\PYGZus{}k\PYGZob{}k=\PYGZdq{}10\PYGZdq{}\PYGZcb{})}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(index\PYGZus{}version)}\PYG{n+nv}{ }\PYG{l+s}{\PYGZlt{}}\PYG{n+nv}{ }\PYG{l+s}{0.75\PYGZsq{}}
+\PYG{+w}{        }\PYG{n+nt}{for}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1h}
+\PYG{+w}{        }\PYG{n+nt}{labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ severity}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{critical}\PYG{p+pIndicator}{,}\PYG{n+nt}{ component}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{retrieval}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{        }\PYG{n+nt}{annotations}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ summary}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Recall@10}\PYG{n+nv}{ }\PYG{l+s}{below}\PYG{n+nv}{ }\PYG{l+s}{0.75}\PYG{n+nv}{ }\PYG{l+s}{\PYGZhy{}\PYGZhy{}}\PYG{n+nv}{ }\PYG{l+s}{rebuild}\PYG{n+nv}{ }\PYG{l+s}{index}\PYG{n+nv}{ }\PYG{l+s}{or}
+\PYG{+w}{          }\PYG{l+s}{re\PYGZhy{}evaluate}\PYG{n+nv}{ }\PYG{l+s}{embedding}\PYG{n+nv}{ }\PYG{l+s}{model\PYGZdq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} + RetrievalLatencySpike: p95 retrieval latency \PYGZgt{} 250ms for 10m.}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{safety\PYGZus{}alerts}\PYG{+w}{                  }\PYG{c+c1}{\PYGZsh{} toxicity + refusal\PYGZhy{}rate anomalies}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1m}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{alert}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{LLMToxicitySpike}\PYG{+w}{         }\PYG{c+c1}{\PYGZsh{} critical: toxicity / requests \PYGZgt{} 10\PYGZpc{}}
+\PYG{+w}{        }\PYG{n+nt}{expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}sum(rate(ishtar\PYGZus{}toxicity\PYGZus{}flags\PYGZus{}total[1h]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)}
+\PYG{+w}{               }\PYG{l+s}{/}\PYG{n+nv}{ }\PYG{l+s}{sum(rate(ishtar\PYGZus{}requests\PYGZus{}total[1h]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)}\PYG{n+nv}{ }\PYG{l+s}{\PYGZgt{}}\PYG{n+nv}{ }\PYG{l+s}{0.10\PYGZsq{}}
+\PYG{+w}{        }\PYG{n+nt}{for}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{15m}
+\PYG{+w}{        }\PYG{n+nt}{labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ severity}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{critical}\PYG{p+pIndicator}{,}\PYG{n+nt}{ component}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{safety}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{        }\PYG{n+nt}{annotations}\PYG{p}{:}
+\PYG{+w}{          }\PYG{n+nt}{summary}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}Toxicity}\PYG{n+nv}{ }\PYG{l+s}{rate}\PYG{n+nv}{ }\PYG{l+s}{exceeds}\PYG{n+nv}{ }\PYG{l+s}{10\PYGZpc{}\PYGZdq{}}
+\PYG{+w}{          }\PYG{n+nt}{mitigation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}enable}\PYG{n+nv}{ }\PYG{l+s}{strict}\PYG{n+nv}{ }\PYG{l+s}{filters;}\PYG{n+nv}{ }\PYG{l+s}{rollback}\PYG{n+nv}{ }\PYG{l+s}{prompt/model;}
+\PYG{+w}{                       }\PYG{l+s}{disable}\PYG{n+nv}{ }\PYG{l+s}{risky}\PYG{n+nv}{ }\PYG{l+s}{tools;}\PYG{n+nv}{ }\PYG{l+s}{route}\PYG{n+nv}{ }\PYG{l+s}{to}\PYG{n+nv}{ }\PYG{l+s}{safe\PYGZhy{}mode\PYGZdq{}}
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} + LLMRefusalRateAnomaly: refusals / requests \PYGZgt{} 15\PYGZpc{} for 30m (warning).}
+\end{MintedVerbatim}

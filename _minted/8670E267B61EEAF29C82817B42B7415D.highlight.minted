@@ -1,0 +1,44 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Hybrid TP+PP for LLaMA\PYGZhy{}3.1\PYGZhy{}70B on 32 GPUs (TP=8 x PP=4)}
+\PYG{n+nt}{model\PYGZus{}config}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}llama\PYGZhy{}3.1\PYGZhy{}70b\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ num\PYGZus{}layers}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{80}\PYG{p+pIndicator}{,}\PYG{n+nt}{ hidden\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{8192}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{n+nt}{tensor\PYGZus{}parallelism}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{tp\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8}\PYG{+w}{                          }\PYG{c+c1}{\PYGZsh{} Split attn/FFN within an NVLink domain}
+\PYG{+w}{  }\PYG{n+nt}{partition\PYGZus{}strategy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}column\PYGZus{}parallel\PYGZdq{}}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} column for attn, row for FFN}
+\PYG{+w}{  }\PYG{n+nt}{communication}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ backend}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}nccl\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ collective\PYGZus{}type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}ring\PYGZus{}allreduce\PYGZdq{}}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{                   enable\PYGZus{}async}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{true}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{n+nt}{pipeline\PYGZus{}parallelism}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{enabled}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{pp\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{4}\PYG{+w}{                          }\PYG{c+c1}{\PYGZsh{} 4 stages of 20 contiguous layers each}
+\PYG{+w}{  }\PYG{n+nt}{pp\PYGZus{}stages}\PYG{p}{:}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ stage}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{0}\PYG{p+pIndicator}{,}\PYG{n+nt}{ layers}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{0}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{19}\PYG{p+pIndicator}{],}\PYG{n+nt}{   gpus}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{0}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{1}\PYG{p+pIndicator}{]}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ stage}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{1}\PYG{p+pIndicator}{,}\PYG{n+nt}{ layers}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{20}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{39}\PYG{p+pIndicator}{],}\PYG{n+nt}{  gpus}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{2}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{3}\PYG{p+pIndicator}{]}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ stage}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{2}\PYG{p+pIndicator}{,}\PYG{n+nt}{ layers}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{40}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{59}\PYG{p+pIndicator}{],}\PYG{n+nt}{  gpus}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{4}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{5}\PYG{p+pIndicator}{]}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{    }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ stage}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{3}\PYG{p+pIndicator}{,}\PYG{n+nt}{ layers}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{60}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{79}\PYG{p+pIndicator}{],}\PYG{n+nt}{  gpus}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{n+nv}{6}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{7}\PYG{p+pIndicator}{]}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{n+nt}{microbatch\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{4}
+\PYG{+w}{  }\PYG{n+nt}{num\PYGZus{}microbatches}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{8}
+\PYG{+w}{  }\PYG{n+nt}{schedule}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}1F1B\PYGZdq{}}\PYG{+w}{                    }\PYG{c+c1}{\PYGZsh{} inference variants: gpipe, interleaved}
+
+\PYG{n+nt}{parallelism\PYGZus{}strategy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}hybrid\PYGZdq{}}\PYG{+w}{        }\PYG{c+c1}{\PYGZsh{} 8 TP * 4 PP = 32 GPUs total}
+\PYG{n+nt}{total\PYGZus{}gpus}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{32}
+
+\PYG{n+nt}{memory}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{kv\PYGZus{}cache\PYGZus{}strategy}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}paged\PYGZus{}attention\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}context\PYGZus{}length}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{32768}
+\PYG{+w}{  }\PYG{n+nt}{kv\PYGZus{}cache\PYGZus{}memory\PYGZus{}gb\PYGZus{}per\PYGZus{}gpu}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{20}
+
+\PYG{n+nt}{topology}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{nvlink\PYGZus{}groups}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[[}\PYG{n+nv}{0}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{1}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{2}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{3}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{4}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{5}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{6}\PYG{p+pIndicator}{,}\PYG{+w}{ }\PYG{n+nv}{7}\PYG{p+pIndicator}{]]}\PYG{+w}{  }\PYG{c+c1}{\PYGZsh{} full mesh via NVSwitch}
+\PYG{+w}{  }\PYG{n+nt}{stage\PYGZus{}communication}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ type}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}p2p\PYGZdq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ overlap}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{true}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{n+nt}{performance}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{max\PYGZus{}batch\PYGZus{}size}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{32}
+\PYG{+w}{  }\PYG{n+nt}{dynamic\PYGZus{}batching}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+\PYG{+w}{  }\PYG{n+nt}{batching\PYGZus{}timeout\PYGZus{}ms}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{50}
+\PYG{+w}{  }\PYG{n+nt}{attention\PYGZus{}implementation}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZdq{}flash\PYGZus{}attention\PYGZus{}v2\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{enable\PYGZus{}torch\PYGZus{}compile}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{true}
+
+\PYG{c+c1}{\PYGZsh{} (Monitoring + quantization knobs elided; see companion repo.)}
+\end{MintedVerbatim}

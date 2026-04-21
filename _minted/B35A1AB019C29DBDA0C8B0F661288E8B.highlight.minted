@@ -1,0 +1,82 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{subprocess}\PYG{o}{,}\PYG{+w}{ }\PYG{n+nn}{json}\PYG{o}{,}\PYG{+w}{ }\PYG{n+nn}{time}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{pathlib}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{Path}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{typing}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{Dict}\PYG{p}{,} \PYG{n}{List}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{dataclasses}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{dataclass}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{ProfilingResult}\PYG{p}{:}
+    \PYG{n}{kernel\PYGZus{}time\PYGZus{}ms}\PYG{p}{:} \PYG{n}{Dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n+nb}{float}\PYG{p}{]}
+    \PYG{n}{memory\PYGZus{}bandwidth\PYGZus{}gb\PYGZus{}s}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{gpu\PYGZus{}utilization\PYGZus{}percent}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{bottleneck\PYGZus{}kernels}\PYG{p}{:} \PYG{n}{List}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{]}
+    \PYG{n}{optimization\PYGZus{}suggestions}\PYG{p}{:} \PYG{n}{List}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{]}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{run\PYGZus{}nsight\PYGZus{}systems}\PYG{p}{(}\PYG{n}{command}\PYG{p}{,} \PYG{n}{output\PYGZus{}file}\PYG{p}{,} \PYG{n}{duration\PYGZus{}seconds}\PYG{o}{=}\PYG{l+m+mi}{30}\PYG{p}{):}
+    \PYG{n}{nsys\PYGZus{}cmd} \PYG{o}{=} \PYG{p}{[}
+        \PYG{l+s+s2}{\PYGZdq{}nsys\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}profile\PYGZdq{}}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}\PYGZhy{}trace=cuda,nvtx,osrt\PYGZdq{}}\PYG{p}{,}
+        \PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}\PYGZhy{}output=}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{output\PYGZus{}file}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+        \PYG{l+s+sa}{f}\PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}\PYGZhy{}duration=}\PYG{l+s+si}{\PYGZob{}}\PYG{n}{duration\PYGZus{}seconds}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+s2}{\PYGZdq{}}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}\PYGZhy{}force\PYGZhy{}overwrite=true\PYGZdq{}}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}\PYGZhy{}stats=true\PYGZdq{}}\PYG{p}{,}
+    \PYG{p}{]} \PYG{o}{+} \PYG{n}{command}
+    \PYG{n}{subprocess}\PYG{o}{.}\PYG{n}{run}\PYG{p}{(}\PYG{n}{nsys\PYGZus{}cmd}\PYG{p}{,} \PYG{n}{capture\PYGZus{}output}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{,} \PYG{n}{text}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{,} \PYG{n}{check}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{output\PYGZus{}file}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{analyze\PYGZus{}nsys\PYGZus{}report}\PYG{p}{(}\PYG{n}{report\PYGZus{}file}\PYG{p}{:} \PYG{n+nb}{str}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{ProfilingResult}\PYG{p}{:}
+    \PYG{n}{stats} \PYG{o}{=} \PYG{n}{json}\PYG{o}{.}\PYG{n}{loads}\PYG{p}{(}\PYG{n}{subprocess}\PYG{o}{.}\PYG{n}{run}\PYG{p}{(}
+        \PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}nsys\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}stats\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}\PYGZhy{}report\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}gputrace\PYGZdq{}}\PYG{p}{,}
+         \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}\PYGZhy{}format\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}json\PYGZdq{}}\PYG{p}{,} \PYG{n}{report\PYGZus{}file}\PYG{p}{],}
+        \PYG{n}{capture\PYGZus{}output}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{,} \PYG{n}{text}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{,} \PYG{n}{check}\PYG{o}{=}\PYG{k+kc}{True}
+    \PYG{p}{)}\PYG{o}{.}\PYG{n}{stdout}\PYG{p}{)}
+
+    \PYG{n}{kernel\PYGZus{}times}\PYG{p}{,} \PYG{n}{bottleneck\PYGZus{}kernels} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{},} \PYG{p}{[]}
+    \PYG{k}{for} \PYG{n}{kernel} \PYG{o+ow}{in} \PYG{n}{stats}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}GPU Trace\PYGZdq{}}\PYG{p}{,} \PYG{p}{\PYGZob{}\PYGZcb{})}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Kernels\PYGZdq{}}\PYG{p}{,} \PYG{p}{[]):}
+        \PYG{n}{name} \PYG{o}{=} \PYG{n}{kernel}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Name\PYGZdq{}}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}unknown\PYGZdq{}}\PYG{p}{)}
+        \PYG{n}{duration\PYGZus{}ms} \PYG{o}{=} \PYG{n}{kernel}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Duration\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)} \PYG{o}{/} \PYG{l+m+mf}{1e6}
+        \PYG{n}{kernel\PYGZus{}times}\PYG{p}{[}\PYG{n}{name}\PYG{p}{]} \PYG{o}{=} \PYG{n}{duration\PYGZus{}ms}
+        \PYG{k}{if} \PYG{n}{duration\PYGZus{}ms} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{100}\PYG{p}{:}  \PYG{c+c1}{\PYGZsh{} \PYGZgt{}10\PYGZpc{} of total time threshold}
+            \PYG{n}{bottleneck\PYGZus{}kernels}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{name}\PYG{p}{)}
+
+    \PYG{n}{memory\PYGZus{}bandwidth} \PYG{o}{=} \PYG{n}{stats}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Memory Bandwidth\PYGZdq{}}\PYG{p}{,} \PYG{p}{\PYGZob{}\PYGZcb{})}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Average\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)}
+    \PYG{n}{gpu\PYGZus{}utilization} \PYG{o}{=} \PYG{n}{stats}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}GPU Utilization\PYGZdq{}}\PYG{p}{,} \PYG{p}{\PYGZob{}\PYGZcb{})}\PYG{o}{.}\PYG{n}{get}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Average\PYGZdq{}}\PYG{p}{,} \PYG{l+m+mi}{0}\PYG{p}{)}
+
+    \PYG{n}{suggestions} \PYG{o}{=} \PYG{p}{[]}
+    \PYG{k}{if} \PYG{l+s+s2}{\PYGZdq{}attention\PYGZdq{}} \PYG{o+ow}{in} \PYG{n+nb}{str}\PYG{p}{(}\PYG{n}{bottleneck\PYGZus{}kernels}\PYG{p}{)}\PYG{o}{.}\PYG{n}{lower}\PYG{p}{():}
+        \PYG{n}{suggestions}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Consider using FlashAttention or FlashAttention\PYGZhy{}2\PYGZdq{}}\PYG{p}{)}
+    \PYG{k}{if} \PYG{n}{gpu\PYGZus{}utilization} \PYG{o}{\PYGZlt{}} \PYG{l+m+mf}{0.70}\PYG{p}{:}
+        \PYG{n}{suggestions}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}GPU underutilized \PYGZhy{} increase batch size or concurrency\PYGZdq{}}\PYG{p}{)}
+    \PYG{k}{if} \PYG{n}{memory\PYGZus{}bandwidth} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{800}\PYG{p}{:}
+        \PYG{n}{suggestions}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Memory bandwidth saturated \PYGZhy{} consider quantization\PYGZdq{}}\PYG{p}{)}
+
+    \PYG{k}{return} \PYG{n}{ProfilingResult}\PYG{p}{(}
+        \PYG{n}{kernel\PYGZus{}time\PYGZus{}ms}\PYG{o}{=}\PYG{n}{kernel\PYGZus{}times}\PYG{p}{,}
+        \PYG{n}{memory\PYGZus{}bandwidth\PYGZus{}gb\PYGZus{}s}\PYG{o}{=}\PYG{n}{memory\PYGZus{}bandwidth}\PYG{p}{,}
+        \PYG{n}{gpu\PYGZus{}utilization\PYGZus{}percent}\PYG{o}{=}\PYG{n}{gpu\PYGZus{}utilization} \PYG{o}{*} \PYG{l+m+mi}{100}\PYG{p}{,}
+        \PYG{n}{bottleneck\PYGZus{}kernels}\PYG{o}{=}\PYG{n}{bottleneck\PYGZus{}kernels}\PYG{p}{,}
+        \PYG{n}{optimization\PYGZus{}suggestions}\PYG{o}{=}\PYG{n}{suggestions}\PYG{p}{,}
+    \PYG{p}{)}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{profile\PYGZus{}inference\PYGZus{}workload}\PYG{p}{(}\PYG{n}{model\PYGZus{}path}\PYG{p}{,} \PYG{n}{test\PYGZus{}prompts}\PYG{p}{,} \PYG{n}{output\PYGZus{}dir}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}./prof\PYGZdq{}}\PYG{p}{):}
+    \PYG{c+c1}{\PYGZsh{} ... (writes a small driver that loads model\PYGZus{}path with transformers}
+    \PYG{c+c1}{\PYGZsh{}      and generates each test\PYGZus{}prompt, then invokes run\PYGZus{}nsight\PYGZus{}systems}
+    \PYG{c+c1}{\PYGZsh{}      and returns analyze\PYGZus{}nsys\PYGZus{}report on the .nsys\PYGZhy{}rep file. Full}
+    \PYG{c+c1}{\PYGZsh{}      source in companion repo.) ...}
+    \PYG{o}{...}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{compare\PYGZus{}profiles}\PYG{p}{(}\PYG{n}{baseline\PYGZus{}report}\PYG{p}{:} \PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{optimized\PYGZus{}report}\PYG{p}{:} \PYG{n+nb}{str}\PYG{p}{):}
+    \PYG{n}{base} \PYG{o}{=} \PYG{n}{analyze\PYGZus{}nsys\PYGZus{}report}\PYG{p}{(}\PYG{n}{baseline\PYGZus{}report}\PYG{p}{)}
+    \PYG{n}{opt}  \PYG{o}{=} \PYG{n}{analyze\PYGZus{}nsys\PYGZus{}report}\PYG{p}{(}\PYG{n}{optimized\PYGZus{}report}\PYG{p}{)}
+    \PYG{n}{base\PYGZus{}total} \PYG{o}{=} \PYG{n+nb}{sum}\PYG{p}{(}\PYG{n}{base}\PYG{o}{.}\PYG{n}{kernel\PYGZus{}time\PYGZus{}ms}\PYG{o}{.}\PYG{n}{values}\PYG{p}{())}
+    \PYG{n}{opt\PYGZus{}total}  \PYG{o}{=} \PYG{n+nb}{sum}\PYG{p}{(}\PYG{n}{opt}\PYG{o}{.}\PYG{n}{kernel\PYGZus{}time\PYGZus{}ms}\PYG{o}{.}\PYG{n}{values}\PYG{p}{())}
+    \PYG{k}{return} \PYG{p}{\PYGZob{}}
+        \PYG{l+s+s2}{\PYGZdq{}speedup\PYGZdq{}}\PYG{p}{:} \PYG{n}{base\PYGZus{}total} \PYG{o}{/} \PYG{n}{opt\PYGZus{}total} \PYG{k}{if} \PYG{n}{opt\PYGZus{}total} \PYG{o}{\PYGZgt{}} \PYG{l+m+mi}{0} \PYG{k}{else} \PYG{l+m+mf}{1.0}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}baseline\PYGZus{}total\PYGZus{}ms\PYGZdq{}}\PYG{p}{:} \PYG{n}{base\PYGZus{}total}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}optimized\PYGZus{}total\PYGZus{}ms\PYGZdq{}}\PYG{p}{:} \PYG{n}{opt\PYGZus{}total}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}gpu\PYGZus{}utilization\PYGZus{}improvement\PYGZdq{}}\PYG{p}{:}
+            \PYG{n}{opt}\PYG{o}{.}\PYG{n}{gpu\PYGZus{}utilization\PYGZus{}percent} \PYG{o}{\PYGZhy{}} \PYG{n}{base}\PYG{o}{.}\PYG{n}{gpu\PYGZus{}utilization\PYGZus{}percent}\PYG{p}{,}
+        \PYG{l+s+s2}{\PYGZdq{}memory\PYGZus{}bandwidth\PYGZus{}improvement\PYGZdq{}}\PYG{p}{:}
+            \PYG{n}{opt}\PYG{o}{.}\PYG{n}{memory\PYGZus{}bandwidth\PYGZus{}gb\PYGZus{}s} \PYG{o}{\PYGZhy{}} \PYG{n}{base}\PYG{o}{.}\PYG{n}{memory\PYGZus{}bandwidth\PYGZus{}gb\PYGZus{}s}\PYG{p}{,}
+    \PYG{p}{\PYGZcb{}}
+\end{MintedVerbatim}

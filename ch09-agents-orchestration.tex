@@ -228,38 +228,44 @@ graph.add_conditional_edge(
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[
-  node distance=12mm and 16mm,
-  every node/.style={font=\small},
-  box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries},
-  arrow/.style={-{Latex}, line width=1.2pt, color=black!70}
-]
-\node[box, fill=llmblue!15, minimum width=30mm, minimum height=11mm] (ui) {User /\\Client};
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Semantic mapping: purple = external actors (user, tools);
+% green = controller / shared substrate (orchestrator, memory);
+% blue = worker agents (retrieval, synthesis, verification);
+% orange = policy gate (safety).
+\tikzset{
+  ext/.style    ={llm/box/purple, minimum width=30mm, font=\footnotesize\bfseries},
+  ctrl/.style   ={llm/box/green,  minimum width=36mm, font=\footnotesize\bfseries},
+  agent/.style  ={llm/box/blue,   minimum width=30mm, font=\footnotesize\bfseries},
+  gate/.style   ={llm/box/orange, minimum width=30mm, font=\footnotesize\bfseries},
+  store/.style  ={llm/box/gray,   minimum width=36mm, font=\footnotesize\bfseries},
+  flow/.style   ={llm/arrow},
+  bus/.style    ={llm/arrow/dashed},
+}
+\begin{tikzpicture}[node distance=8mm and 12mm]
+  \node[ext]                                       (ui)    {User /\\Client};
+  \node[ctrl, below=of ui]                         (orch)  {Orchestrator\\(routing, budgets, policy)};
+  \node[agent, left=of orch]                       (retr)  {Retrieval\\Agent};
+  \node[agent, right=of orch]                      (synth) {Synthesis\\Agent};
+  \node[agent, below=of retr]                      (ver)   {Verification\\Agent};
+  \node[gate,  below=of synth]                     (safe)  {Safety\\Agent};
+  \node[store, below=of orch, yshift=-10mm]        (mem)   {Shared Memory\\(episodic + semantic)};
+  \node[ext,   below=of mem]                       (tools) {External Tools\\(search, DBs, APIs)};
 
-\node[box, fill=llmgreen!15, minimum width=34mm, minimum height=13mm, below=of ui] (orch) {Orchestrator\\(routing, budgets, policy)};
-
-\node[box, fill=llmorange!15, minimum width=30mm, minimum height=11mm, left=of orch] (retr) {Retrieval\\Agent};
-\node[box, fill=llmpurple!15, minimum width=30mm, minimum height=11mm, right=of orch] (synth) {Synthesis\\Agent};
-
-\node[box, fill=llmpurple!15, minimum width=30mm, minimum height=11mm, below=of retr] (ver) {Verification\\Agent};
-\node[box, fill=llmorange!15, minimum width=30mm, minimum height=11mm, below=of synth] (safe) {Safety\\Agent};
-
-\node[box, fill=llmgreen!15, minimum width=34mm, minimum height=11mm, below=of orch, yshift=-14mm] (mem) {Shared Memory\\(episodic + semantic)};
-
-\node[box, fill=llmgreen!15, minimum width=34mm, minimum height=11mm, below=of mem] (tools) {External Tools\\(search, DBs, APIs)};
-
-\draw[arrow] (ui) -- (orch);
-\draw[arrow] (orch) -- (retr);
-\draw[arrow] (orch) -- (synth);
-\draw[arrow] (retr) -- (ver);
-\draw[arrow] (synth) -- (safe);
-\draw[arrow] (orch) -- (mem);
-\draw[arrow] (retr) -- (mem);
-\draw[arrow] (synth) -- (mem);
-\draw[arrow] (ver) -- (mem);
-\draw[arrow] (safe) -- (mem);
-\draw[arrow] (mem) -- (tools);
+  \draw[flow] (ui)    -- (orch);
+  \draw[flow] (orch)  -- (retr);
+  \draw[flow] (orch)  -- (synth);
+  \draw[flow] (retr)  -- (ver);
+  \draw[flow] (synth) -- (safe);
+  % Memory is a shared data plane: dashed bus edges keep it visually
+  % distinct from control flow and prevent the diagram from reading as
+  % a strict pipeline.
+  \draw[bus]  (orch)  -- (mem);
+  \draw[bus]  (retr)  -- (mem);
+  \draw[bus]  (synth) -- (mem);
+  \draw[bus]  (ver)   -- (mem);
+  \draw[bus]  (safe)  -- (mem);
+  \draw[flow] (mem)   -- (tools);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Control-plane and data-plane separation enables reliable multi-agent orchestration. The orchestrator enforces routing decisions, budgets, and policies (control plane), while agents implement scoped capabilities and shared memory provides a consistent state substrate (data plane). This separation allows policy changes without modifying agent logic, enabling auditable, testable multi-agent systems. External tools provide grounded capabilities that extend agent functionality.}
@@ -740,102 +746,139 @@ The next section will discuss error handling and exception management in orchest
 
 \begin{figure}[t]
 \centering
-\begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[
-  node distance=11mm and 16mm,
-  every node/.style={font=\small},
-  box/.style={draw=none, rounded corners=5pt, minimum width=26mm, minimum height=9mm, align=center, inner sep=4pt, font=\small\bfseries},
-  agent/.style={box, fill=llmblue!15},
-  ctrl/.style={box, fill=llmgreen!15},
-  decision/.style={diamond, draw=none, fill=llmorange!15, aspect=2.8, inner sep=4pt, align=center, font=\small\bfseries},
-  arrow/.style={-{Latex}, line width=1.2pt, color=black!70},
-  title/.style={font=\bfseries\small}
-]
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Shape carries semantics so the figure remains legible in grayscale:
+%   rectangle = agent or controller; diamond = decision; trapezium = merge.
+% Line style carries flow semantics: solid = control flow, dashed = feedback.
+\tikzset{
+  ctrl/.style    ={llm/box/green,  minimum width=24mm, font=\footnotesize\bfseries},
+  agent/.style   ={llm/box/blue,   minimum width=20mm, font=\footnotesize\bfseries},
+  worker/.style  ={llm/box/blue,   minimum width=18mm, font=\footnotesize\bfseries},
+  decide/.style  ={diamond, aspect=2.2, draw=llmorange!75, line width=0.6pt,
+                   fill=llmorange!12, align=center, inner sep=2pt,
+                   font=\scriptsize\bfseries},
+  merge/.style   ={trapezium, trapezium left angle=70, trapezium right angle=70,
+                   shape border rotate=180, draw=llmorange!75, line width=0.6pt,
+                   fill=llmorange!12, align=center, inner sep=3pt,
+                   font=\footnotesize\bfseries, minimum width=26mm},
+  flow/.style    ={llm/arrow},
+  loop/.style    ={llm/arrow/dashed},
+  edgelbl/.style ={font=\scriptsize, fill=white, inner sep=1pt},
+}
 
-% --- Panel A: Rule-Based Orchestration ----------------------------------------
-\node[draw=none, rounded corners, inner sep=6mm, minimum width=5.0cm, minimum height=5.2cm] (panelA) {};
-\node[title, anchor=west] at ([yshift=-3mm]panelA.north west) {(a) Rule-Based Orchestration};
+% ----------------------------------------------------------------------------
+% Top row: Panels A and B side-by-side (both are tall, narrow vertical flows).
+% Panel C goes below, spanning full width (it is wider than tall).
+% ----------------------------------------------------------------------------
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\begin{tikzpicture}[node distance=4mm]
+  \node[ctrl]                       (a_ctrl) {Orchestrator\\(Fixed Rules)};
+  \node[agent, below=of a_ctrl]     (a_r)    {Retrieval\\Agent};
+  \node[agent, below=of a_r]        (a_s)    {Synthesis\\Agent};
+  \node[agent, below=of a_s]        (a_v)    {Verification\\Agent};
+  \node[decide, below=3mm of a_v]   (a_d)    {Result\\OK?};
+  \node[agent, below=3mm of a_d]    (a_safe) {Safety\\Agent};
 
-% Rule-Based flow (vertical layout for clarity)
-\node[ctrl] (rb_ctrl) at ([xshift=10mm, yshift=10mm]panelA.west) {Orchestrator\\(Fixed Rules)};
-\node[agent, below=12mm of rb_ctrl] (rb_r) {Retrieval\\Agent};
-\node[agent, below=10mm of rb_r] (rb_s) {Synthesis\\Agent};
-\node[agent, below=10mm of rb_s] (rb_v) {Verification\\Agent};
-\node[agent, below=10mm of rb_v] (rb_safe) {Safety\\Agent};
+  \draw[flow] (a_ctrl) -- (a_r);
+  \draw[flow] (a_r)    -- (a_s);
+  \draw[flow] (a_s)    -- (a_v);
+  \draw[flow] (a_v)    -- (a_d);
+  \draw[flow] (a_d)    -- node[edgelbl, right]{yes} (a_safe);
 
-\draw[arrow] (rb_ctrl) -- (rb_r);
-\draw[arrow] (rb_r) -- (rb_s);
-\draw[arrow] (rb_s) -- (rb_v);
-\draw[arrow] (rb_v) -- (rb_safe);
+  \draw[loop] (a_d.east) -- ++(10mm,0)
+              node[edgelbl, midway, above]{no}
+              |- (a_s.east);
+\end{tikzpicture}\\[2mm]
+{\small\textbf{(a)} Rule-Based Orchestration}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\begin{tikzpicture}[node distance=6mm and 3mm]
+  \node[ctrl]                                       (b_ctrl) {LLM Orchestrator\\(Planner/Router)};
+  \node[worker, below left=7mm and 1mm of b_ctrl]   (b_s1)   {Synthesis\\Agent A};
+  \node[worker, below right=7mm and 1mm of b_ctrl]  (b_s2)   {Synthesis\\Agent B};
+  \node[agent, below=11mm of b_ctrl]                (b_v)    {Verification\\Agent};
+  \node[decide, below=3mm of b_v]                   (b_d)    {Discrepancy?};
+  \node[agent, below=3mm of b_d]                    (b_safe) {Safety\\Agent};
 
-% Decision branch
-\node[decision, right=20mm of rb_v] (rb_cond) {Result\\OK?};
-\draw[arrow] (rb_v) -- (rb_cond);
-\draw[arrow] (rb_cond) |- node[pos=0.4, above, font=\small]{yes} (rb_safe);
-\draw[arrow] (rb_cond) |- node[pos=0.6, below, font=\small]{no} (rb_s);
+  \draw[flow] (b_ctrl) -- (b_s1);
+  \draw[flow] (b_ctrl) -- (b_s2);
+  \draw[flow] (b_s1)   -- (b_v);
+  \draw[flow] (b_s2)   -- (b_v);
+  \draw[flow] (b_v)    -- (b_d);
+  \draw[flow] (b_d)    -- node[edgelbl, right]{no} (b_safe);
 
-% --- Panel B: Dynamic (LLM-driven) Orchestration -----------------------------
-\node[draw=none, rounded corners, inner sep=6mm, minimum width=5.0cm, minimum height=5.2cm, right=7mm of panelA.east, anchor=west] (panelB) {};
-\node[title, anchor=west] at ([yshift=-3mm]panelB.north west) {(b) Dynamic (LLM-driven) Orchestration};
+  \draw[loop] (b_d.east) -- ++(12mm,0)
+              node[edgelbl, midway, above]{yes (replan)}
+              |- (b_ctrl.east);
+\end{tikzpicture}\\[2mm]
+{\small\textbf{(b)} Dynamic (LLM-driven) Orchestration}
+\end{minipage}
 
-% Dynamic flow
-\node[ctrl] (dyn_ctrl) at ([xshift=12mm, yshift=12mm]panelB.west) {LLM Orchestrator\\(Planner/Router)};
-\node[agent, below left=14mm and 8mm of dyn_ctrl] (dyn_s1) {Synthesis\\Agent A};
-\node[agent, below right=14mm and 8mm of dyn_ctrl] (dyn_s2) {Synthesis\\Agent B};
-\node[agent, below=12mm of dyn_s1] (dyn_v1) {Verification\\Agent};
-\node[agent, below=12mm of dyn_v1] (dyn_safe) {Safety\\Agent};
+\vspace{2mm}
 
-\draw[arrow] (dyn_ctrl) -- (dyn_s1);
-\draw[arrow] (dyn_ctrl) -- (dyn_s2);
-\draw[arrow] (dyn_s1) -- (dyn_v1);
-\draw[arrow] (dyn_s2) -- (dyn_v1);
-\draw[arrow] (dyn_v1) -- (dyn_safe);
+% ----------------------------------------------------------------------------
+% Panel C: full width, hierarchical tree with centered merge below.
+% ----------------------------------------------------------------------------
+\begin{minipage}{\linewidth}
+\centering
+\begin{tikzpicture}[node distance=7mm and 4mm]
+  \node[ctrl]                                  (c_sup)  {Supervisor\\Agent};
+  \node[ctrl, below left=8mm and 18mm of c_sup]  (c_t1) {Team A\\Lead};
+  \node[ctrl, below right=8mm and 18mm of c_sup] (c_t2) {Team B\\Lead};
 
-% Feedback loop
-\node[decision, right=18mm of dyn_v1] (dyn_cond) {Discrepancy?};
-\draw[arrow] (dyn_v1) -- (dyn_cond);
-\draw[arrow] (dyn_cond) |- node[pos=0.5, above, font=\small]{yes} ([xshift=5mm]dyn_ctrl.east);
-\draw[arrow] (dyn_cond) |- node[pos=0.4, below, font=\small]{no} (dyn_safe);
+  \node[worker, below left=8mm and -3mm of c_t1]  (c_a1) {Sub-Agent\,A1};
+  \node[worker, below right=8mm and -3mm of c_t1] (c_a2) {Sub-Agent\,A2};
+  \node[worker, below left=8mm and -3mm of c_t2]  (c_b1) {Sub-Agent\,B1};
+  \node[worker, below right=8mm and -3mm of c_t2] (c_b2) {Sub-Agent\,B2};
 
-% --- Panel C: Hierarchical Orchestration --------------------------------------
-\node[draw=none, rounded corners, inner sep=6mm, minimum width=5.0cm, minimum height=5.2cm, right=7mm of panelB.east, anchor=west] (panelC) {};
-\node[title, anchor=west] at ([yshift=-3mm]panelC.north west) {(c) Hierarchical Orchestration};
+  \draw[flow] (c_sup) -- (c_t1);
+  \draw[flow] (c_sup) -- (c_t2);
+  \draw[flow] (c_t1)  -- (c_a1);
+  \draw[flow] (c_t1)  -- (c_a2);
+  \draw[flow] (c_t2)  -- (c_b1);
+  \draw[flow] (c_t2)  -- (c_b2);
 
-% Hierarchical flow
-\node[ctrl] (hier_sup) at ([xshift=12mm, yshift=16mm]panelC.west) {Supervisor\\Agent};
+  % Aggregation: centered below the sub-agent row so no node bleeds sideways.
+  \node[merge] (c_merge) at ($(c_a2)!0.5!(c_b1) + (0,-10mm)$)
+        {Aggregation\,/\,Synthesis};
 
-\node[agent, below left=16mm and 10mm of hier_sup] (team1) {Team A\\Lead};
-\node[agent, below right=16mm and 10mm of hier_sup] (team2) {Team B\\Lead};
+  \draw[flow] (c_a1) |- (c_merge.west);
+  \draw[flow] (c_a2) |- (c_merge.west);
+  \draw[flow] (c_b1) |- (c_merge.east);
+  \draw[flow] (c_b2) |- (c_merge.east);
 
-\draw[arrow] (hier_sup) -- (team1);
-\draw[arrow] (hier_sup) -- (team2);
+  % Feedback to supervisor: route the vertical segment well to the right of
+  % the rightmost sub-agent so it does not visually cross any node.
+  \draw[loop] (c_merge.east) -- ([xshift=10mm]c_b2.east|-c_merge.east)
+                             -- ([xshift=10mm]c_b2.east|-c_sup.east)
+                             -- (c_sup.east);
+\end{tikzpicture}\\[2mm]
+{\small\textbf{(c)} Hierarchical Orchestration}
+\end{minipage}
 
-\node[agent, below=14mm of team1, xshift=-16mm] (t1a) {Sub-Agent\\A1};
-\node[agent, below=14mm of team1, xshift=16mm] (t1b) {Sub-Agent\\A2};
-\node[agent, below=14mm of team2, xshift=-16mm] (t2a) {Sub-Agent\\B1};
-\node[agent, below=14mm of team2, xshift=16mm] (t2b) {Sub-Agent\\B2};
+\vspace{2mm}
 
-\draw[arrow] (team1) -- (t1a);
-\draw[arrow] (team1) -- (t1b);
-\draw[arrow] (team2) -- (t2a);
-\draw[arrow] (team2) -- (t2b);
-
-% Aggregation
-\node[agent, right=15mm of team2] (merge) {Aggregation/\\Synthesis};
-\draw[arrow] (t1a) |- (merge);
-\draw[arrow] (t1b) |- (merge);
-\draw[arrow] (t2a) |- (merge);
-\draw[arrow] (t2b) |- (merge);
-\draw[arrow] (merge) -- (hier_sup);
-
+% ----------------------------------------------------------------------------
+% Legend strip (grayscale-safe key for the shape + line-style vocabulary).
+% ----------------------------------------------------------------------------
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+  \node[ctrl,   minimum width=16mm, minimum height=5mm, font=\scriptsize\bfseries] (l_ctrl) {Controller};
+  \node[worker, right=2mm of l_ctrl, minimum width=14mm, minimum height=5mm, font=\scriptsize\bfseries] (l_work) {Worker};
+  \node[decide, right=2mm of l_work, aspect=1.8, font=\scriptsize\bfseries] (l_dec) {Decision};
+  \node[merge,  right=2mm of l_dec, minimum width=18mm, minimum height=5mm, font=\scriptsize\bfseries] (l_mrg) {Merge};
+  \coordinate (l_a) at ([xshift=8mm]l_mrg.east);
+  \draw[flow] (l_a) -- ++(8mm,0) node[right] {control flow};
+  \coordinate (l_b) at ([xshift=34mm]l_a);
+  \draw[loop] (l_b) -- ++(8mm,0) node[right] {feedback / replan};
 \end{tikzpicture}
-\end{llmfigbox}
 
-\caption{Orchestration strategy selection determines system adaptability and operational complexity. 
-(\textbf{a}) \emph{Rule-Based}: fixed, testable pipelines with explicit branches (retrieval → synthesis → verification → safety) provide predictability and ease of debugging. 
-(\textbf{b}) \emph{Dynamic (LLM-driven)}: an LLM planner routes tasks at runtime, enabling adaptive flows and feedback but requiring rigorous testing. 
-(\textbf{c}) \emph{Hierarchical}: a supervisor delegates to sub-teams (which may orchestrate further sub-agents) and aggregates results, enabling scalability but increasing coordination overhead. 
+\caption[Orchestration strategy selection (rule-based, dynamic, hierarchical).]{%
+Orchestration strategy selection determines system adaptability and operational complexity. Read each panel top-down: a controller (green) dispatches to worker agents (blue), with diamonds marking decision points and trapeziums marking merges; dashed arrows are feedback loops.
+(\textbf{a}) \emph{Rule-Based}: a fixed pipeline (retrieval $\rightarrow$ synthesis $\rightarrow$ verification $\rightarrow$ safety) with one explicit retry branch~---~predictable and easy to debug.
+(\textbf{b}) \emph{Dynamic (LLM-driven)}: an LLM planner fans out to parallel synthesis agents, then a verifier can trigger a replan; flexible but requires rigorous regression testing of the planner's choices.
+(\textbf{c}) \emph{Hierarchical}: a supervisor delegates to sub-team leads, sub-agents execute in parallel, and results merge before the supervisor closes the loop; scales well but adds coordination overhead.
 \ishtar{} primarily uses a rule-based pipeline today, with potential evolution toward dynamic and hierarchical patterns for complex scenarios.}
 \label{fig:ch09_orchestration_strategies}
 \end{figure}
@@ -1279,41 +1322,42 @@ To ground the concepts above, let's walk through the orchestration pipeline of I
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[
-  node distance=18mm and 20mm,
-  every node/.style={font=\small},
-  box/.style={draw=black!30, line width=0.8pt, rounded corners=6pt, align=center, inner sep=8pt, font=\small\bfseries},
-  arrow/.style={-{Latex}, line width=1.5pt, color=black!75},
-  arrowDashed/.style={-{Latex}, dashed, dash pattern=on 4pt off 3pt, line width=1.2pt, color=black!60}
-]
-% Top row - increased spacing
-\node[box, fill=llmblue!15, minimum width=32mm, minimum height=12mm] (ingest) {Ingestion};
-\node[box, fill=llmorange!15, minimum width=32mm, minimum height=12mm, right=of ingest] (retr) {Retrieval};
-\node[box, fill=llmpurple!15, minimum width=32mm, minimum height=12mm, right=of retr] (synth) {Synthesis};
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Semantic mapping: blue = worker agents (ingestion, retrieval, synthesis,
+% verification); orange = policy gate (safety); green = controller and
+% terminal sink (orchestrator, delivery). Solid arrows carry data flow;
+% dashed arrows carry orchestrator control signals.
+\tikzset{
+  agent/.style    ={llm/box/blue,   minimum width=30mm, font=\footnotesize\bfseries},
+  gate/.style     ={llm/box/orange, minimum width=30mm, font=\footnotesize\bfseries},
+  ctrl/.style     ={llm/box/green,  minimum width=34mm, font=\footnotesize\bfseries},
+  flow/.style     ={llm/arrow},
+  control/.style  ={llm/arrow/dashed},
+  edgelbl/.style  ={font=\scriptsize, fill=white, inner sep=1pt},
+}
+\begin{tikzpicture}[node distance=12mm and 16mm]
+  \node[agent]                                    (ingest) {Ingestion};
+  \node[agent, right=of ingest]                   (retr)   {Retrieval};
+  \node[agent, right=of retr]                     (synth)  {Synthesis};
 
-% Bottom row - increased spacing
-\node[box, fill=llmpurple!15, minimum width=32mm, minimum height=12mm, below=of synth] (verify) {Verification};
-\node[box, fill=llmorange!15, minimum width=32mm, minimum height=12mm, left=of verify] (safety) {Safety};
+  \node[agent, below=of synth]                    (verify) {Verification};
+  \node[gate,  left=of verify]                    (safety) {Safety};
 
-% Orchestrator - positioned bottom-left, well clear of other nodes
-\node[box, fill=llmgreen!15, minimum width=36mm, minimum height=14mm, below=of ingest, yshift=-12mm] (orch) {Orchestrator\\(router + budgets)};
+  \node[ctrl, below=of ingest, yshift=-8mm]       (orch)   {Orchestrator\\(router + budgets)};
+  \node[ctrl, below=of safety, yshift=-6mm]       (deliver) {Delivery};
 
-% Delivery node - positioned to receive from Safety, aligned with bottom row
-\node[box, fill=llmgreen!15, minimum width=32mm, minimum height=12mm, below=of safety, yshift=-8mm] (deliver) {Delivery};
+  \draw[flow] (ingest) -- node[edgelbl, midway, above]{chunks + metadata} (retr);
+  \draw[flow] (retr)   -- node[edgelbl, midway, above]{context pack} (synth);
+  \draw[flow] (synth)  -- node[edgelbl, midway, right]{draft + citations} (verify);
+  \draw[flow] (verify) -- node[edgelbl, midway, above]{verified answer} (safety);
+  \draw[flow] (safety) -- node[edgelbl, midway, right]{response} (deliver);
 
-% Main flow arrows with labels
-\draw[arrow] (ingest) -- node[above, font=\footnotesize, midway]{chunks + metadata} (retr);
-\draw[arrow] (retr) -- node[above, font=\footnotesize, midway]{context pack} (synth);
-\draw[arrow] (synth) -- node[right, font=\footnotesize, midway, xshift=2mm]{draft + citations} (verify);
-\draw[arrow] (verify) -- node[below, font=\footnotesize, midway]{verified answer} (safety);
-\draw[arrow] (safety) -- node[right, font=\footnotesize, midway, xshift=2mm]{response} (deliver);
-
-% Orchestrator control edges (dashed) - routed to avoid overlaps
-\draw[arrowDashed] (orch.north east) .. controls +(8mm,8mm) and +(-8mm,0) .. (retr.south west);
-\draw[arrowDashed] (orch.north east) .. controls +(12mm,12mm) and +(-8mm,0) .. (synth.south west);
-\draw[arrowDashed] (orch.east) .. controls +(12mm,0) and +(-8mm,-8mm) .. (verify.south west);
-\draw[arrowDashed] (orch.east) .. controls +(8mm,0) and +(-8mm,-8mm) .. (safety.south west);
+  % Orchestrator control edges (dashed) routed clear of the data-plane row.
+  \draw[control] (orch.north) -- ([yshift=-3mm]ingest.south);
+  \draw[control] (orch.north east) .. controls +(6mm,12mm) and +(-6mm,-6mm) .. (retr.south west);
+  \draw[control] (orch.north east) .. controls +(14mm,16mm) and +(-6mm,-6mm) .. (synth.south west);
+  \draw[control] (orch.east) .. controls +(20mm,0) and +(-6mm,-6mm) .. (verify.south west);
+  \draw[control] (orch.east) .. controls +(8mm,0) and +(-6mm,-6mm) .. (safety.south west);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{\ishtar{} multi-agent pipeline demonstrates production-ready orchestration patterns. The orchestrator enforces workflow order, budgets, and policy gates, ensuring reliable execution; retrieval produces a context pack that is preserved through synthesis and verification to support auditable citations. This pipeline structure enables traceability, error handling, and quality assurance by making each handoff explicit and verifiable.}
@@ -1370,77 +1414,71 @@ In our example, if the verified answer contains coordinates or specific names th
 
 \begin{figure}[t]
 \centering
-% Temporarily increase maximum width to allow larger figure
+% Temporarily widen the llmfigbox so the linear sequence does not need to
+% scale below \footnotesize at the top of a Springer-textwidth column.
 \renewcommand{\LLMFigMaxWidth}{1.6\linewidth}
 \begin{llmfigbox}
-\begin{tikzpicture}[
-  node distance=20mm and 24mm,
-  every node/.style={font=\normalsize},
-  user/.style={ellipse, draw=black!30, line width=0.8pt, fill=blue!10, rounded corners=6pt, align=center, inner sep=8pt, font=\normalsize\bfseries, minimum width=36mm, minimum height=14mm},
-  orchestrator/.style={rectangle, draw=black!40, line width=1.2pt, fill=teal!15, rounded corners=7pt, align=center, inner sep=10pt, font=\normalsize\bfseries, minimum width=40mm, minimum height=18mm},
-  agent/.style={rectangle, draw=black!30, line width=0.8pt, rounded corners=6pt, align=center, inner sep=8pt, font=\normalsize\bfseries, minimum width=34mm, minimum height=14mm},
-  store/.style={cylinder, draw=black!30, line width=0.8pt, fill=gray!10, shape aspect=0.4, align=center, inner sep=8pt, font=\normalsize\bfseries, minimum width=30mm, minimum height=16mm},
-  background/.style={rectangle, draw=black!20, line width=0.6pt, fill=gray!5, rounded corners=5pt, align=center, inner sep=6pt, font=\small\itshape, minimum width=32mm, minimum height=12mm},
-  arrow/.style={-{Latex}, line width=2pt, color=black!75},
-  arrowDashed/.style={-{Latex}, dashed, dash pattern=on 4pt off 3pt, line width=1.5pt, color=black!50},
-  arrowThin/.style={-{Latex}, line width=1.2pt, color=black!60}
-]
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% Semantic mapping: purple = external actors (user, external sources);
+% green = controller (orchestrator); blue = worker agents (retrieval,
+% synthesis, verification, translation, ingestion); orange = policy gate
+% (safety); gray = neutral data substrate (vector store).
+\tikzset{
+  ext/.style    ={llm/box/purple, minimum width=30mm, font=\footnotesize\bfseries},
+  ctrl/.style   ={llm/box/green,  minimum width=34mm, minimum height=14mm,
+                  font=\footnotesize\bfseries},
+  agent/.style  ={llm/box/blue,   minimum width=28mm, font=\footnotesize\bfseries},
+  gate/.style   ={llm/box/orange, minimum width=28mm, font=\footnotesize\bfseries},
+  store/.style  ={llm/box/gray,   minimum width=26mm, font=\footnotesize\bfseries},
+  bg/.style     ={llm/box/gray,   minimum width=28mm,
+                  font=\footnotesize\itshape},
+  flow/.style   ={llm/arrow},
+  loop/.style   ={llm/arrow/dashed},
+  side/.style   ={llm/arrow},
+  edgelbl/.style={font=\scriptsize, fill=white, inner sep=1pt},
+}
+\begin{tikzpicture}[node distance=14mm and 16mm]
+  \node[ext]                                         (user)         {User Query};
+  \node[ctrl, right=of user]                         (orch)         {Orchestrator};
 
-% User
-\node[user] (user) {User Query};
+  \node[agent, above right=12mm and 18mm of orch.north east] (retrieval)    {Retrieval\\Agent};
+  \node[agent, right=of retrieval]                   (synthesis)    {Synthesis\\Agent};
+  \node[agent, right=of synthesis]                   (verification) {Verification\\Agent};
+  \node[gate,  right=of verification]                (safety)       {Safety\\Agent};
+  \node[agent, right=of safety]                      (translation)  {Translation\\Agent\\(optional)};
 
-% Orchestrator (central hub)
-\node[orchestrator, right=of user] (orch) {Orchestrator};
+  \node[store, above=18mm of retrieval]              (vectorstore)  {Vector\\Store};
+  \node[bg, left=of vectorstore, xshift=-6mm]        (ingestion)    {Ingestion\\Agent};
+  \node[ext, above=18mm of verification]             (externalsources) {External\\Sources};
+  \node[ext, right=of translation, xshift=6mm]       (userresponse) {User};
 
-% Sequential agents (top row)
-\node[agent, fill=orange!15, above right=14mm and 24mm of orch.north east] (retrieval) {Retrieval\\Agent};
-\node[agent, fill=purple!15, right=of retrieval] (synthesis) {Synthesis\\Agent};
-\node[agent, fill=violet!15, right=of synthesis] (verification) {Verification\\Agent};
-\node[agent, fill=red!15, right=of verification] (safety) {Safety\\Agent};
-\node[agent, fill=green!15, right=of safety, minimum width=34mm] (translation) {Translation\\Agent\\(optional)};
+  \draw[flow] (user) -- node[edgelbl, midway, above]{query} (orch);
+  \draw[flow] (orch.north) .. controls +(0,8mm) and +(-8mm,0) ..
+              node[edgelbl, midway, left]{invoke} (retrieval.west);
+  \draw[flow] (retrieval)    -- node[edgelbl, midway, above]{context pack} (synthesis);
+  \draw[flow] (synthesis)    -- node[edgelbl, midway, above]{draft}        (verification);
+  \draw[flow] (verification) -- node[edgelbl, midway, above]{verified}     (safety);
+  \draw[flow] (safety)       -- node[edgelbl, midway, above]{safe answer}  (translation);
+  \draw[flow] (translation)  -- node[edgelbl, midway, above]{translated}   (userresponse);
 
-% Vector Store (shared resource)
-\node[store, above=22mm of retrieval] (vectorstore) {Vector\\Store};
+  % Return paths to orchestrator (dashed) — fan into the orchestrator's
+  % east edge with progressively larger control offsets so the curves do
+  % not collide with each other or with the agent row above.
+  \draw[loop] (retrieval.south)    .. controls +(0,-6mm) and +(8mm,0)  .. (orch.north east);
+  \draw[loop] (synthesis.south)    .. controls +(0,-6mm) and +(12mm,0) .. (orch.north east);
+  \draw[loop] (verification.south) .. controls +(0,-6mm) and +(16mm,0) .. (orch.north east);
+  \draw[loop] (safety.south)       .. controls +(0,-6mm) and +(20mm,0) .. (orch.north east);
+  \draw[loop] (translation.south)  .. controls +(0,-6mm) and +(24mm,0) .. (orch.north east);
 
-% Ingestion Agent (background/parallel)
-\node[background, left=of vectorstore, xshift=-8mm] (ingestion) {Ingestion\\Agent};
+  \draw[side] (retrieval.north)    -- node[edgelbl, midway, left]{searches} (vectorstore.south);
+  \draw[side] (ingestion.east)     -- node[edgelbl, midway, above]{updates} (vectorstore.west);
+  \draw[side] (verification.north) -- node[edgelbl, midway, right]{calls if needed} (externalsources.south);
 
-% External sources (for verification)
-\node[background, above=22mm of verification] (externalsources) {External\\Sources};
-
-% User response (final output)
-\node[user, right=of translation, xshift=8mm] (userresponse) {User};
-
-% Main sequential flow: User → Orchestrator → Agents → User
-\draw[arrow] (user) -- node[above, font=\small, midway]{query} (orch);
-\draw[arrow] (orch.north) .. controls +(0,10mm) and +(-10mm,0) .. node[left, font=\small, midway, xshift=-4mm]{invoke} (retrieval.west);
-\draw[arrow] (retrieval) -- node[above, font=\small, midway]{context pack} (synthesis);
-\draw[arrow] (synthesis) -- node[above, font=\small, midway]{draft} (verification);
-\draw[arrow] (verification) -- node[above, font=\small, midway]{verified info} (safety);
-\draw[arrow] (safety) -- node[above, font=\small, midway]{safe answer} (translation);
-\draw[arrow] (translation) -- node[above, font=\small, midway]{translated} (userresponse);
-
-% Return paths to orchestrator (dashed)
-\draw[arrowDashed] (retrieval.south) .. controls +(0,-8mm) and +(10mm,0) .. node[right, font=\small, midway, xshift=3mm]{context pack} (orch.north east);
-\draw[arrowDashed] (synthesis.south) .. controls +(0,-8mm) and +(14mm,0) .. (orch.north east);
-\draw[arrowDashed] (verification.south) .. controls +(0,-8mm) and +(18mm,0) .. (orch.north east);
-\draw[arrowDashed] (safety.south) .. controls +(0,-8mm) and +(22mm,0) .. (orch.north east);
-\draw[arrowDashed] (translation.south) .. controls +(0,-8mm) and +(26mm,0) .. (orch.north east);
-
-% Retrieval → Vector Store
-\draw[arrowThin] (retrieval.north) -- node[left, font=\small, midway]{searches} (vectorstore.south);
-
-% Ingestion → Vector Store (continuous/parallel)
-\draw[arrowThin] (ingestion.east) -- node[above, font=\small, midway]{updates} (vectorstore.west);
-
-% Verification → External Sources
-\draw[arrowThin] (verification.north) -- node[right, font=\small, midway]{calls if needed} (externalsources.south);
-
-% Background process indicator
-\node[font=\small\itshape, color=black!50, above=6mm of ingestion] {Background Process};
-
+  \node[font=\footnotesize\itshape, text=black!60, above=4mm of ingestion]
+       {Background process};
 \end{tikzpicture}
 \end{llmfigbox}
+% Restore the book default so subsequent figures honor the book-wide budget.
 \renewcommand{\LLMFigMaxWidth}{1.15\linewidth}
 \caption{Sequential agent pipeline flow in \ishtar{} demonstrates how the orchestrator routes queries through specialized agents. The main flow proceeds sequentially: User Query → Orchestrator → Retrieval Agent (searches Vector Store) → Synthesis Agent → Verification Agent (may call External Sources) → Safety Agent → Translation Agent (optional) → User. Each agent returns results to the Orchestrator, which coordinates the workflow. Meanwhile, the Ingestion Agent runs continuously in the background, updating the Vector Store independently of user queries. This architecture ensures traceability, error handling, and quality assurance through explicit handoffs and centralized orchestration.}
 \label{fig:ch09_ishtar_sequential_flow}
@@ -1546,24 +1584,36 @@ For \ishtar{}, circuit breakers protect against external dependency failures (we
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[
-  node distance=40mm,
-  state/.style={circle, draw=black!60, line width=1pt, minimum size=22mm, align=center, font=\small\bfseries, inner sep=2pt},
-  arrow/.style={-Stealth, thick, line width=1pt}
-]
+% Local styles built on the book-wide llm/* contract (macros.tex).
+% State machines are still expressed with circles (the conventional
+% finite-state shape), but stroke weights, palette colors, and arrow
+% heads come from the llm/* contract so the figure remains visually
+% consistent with the rest of the book.
+\tikzset{
+  state/.style       ={circle, draw=black!70, line width=0.6pt,
+                       minimum size=22mm, align=center,
+                       font=\footnotesize\bfseries, inner sep=2pt},
+  state/closed/.style={state, fill=llmgreen!12,  draw=llmgreen!70},
+  state/open/.style  ={state, fill=llmorange!12, draw=llmorange!70},
+  state/half/.style  ={state, fill=llmorange!8,  draw=llmorange!70, dashed},
+  flow/.style        ={llm/arrow},
+  loop/.style        ={llm/arrow/dashed},
+  edgelbl/.style     ={font=\footnotesize, fill=white, inner sep=1pt},
+}
+\begin{tikzpicture}[node distance=34mm and 34mm]
+  \node[state/closed]                                       (closed) {Closed\\{\footnotesize (normal)}};
+  \node[state/open,  right=of closed]                       (open)   {Open\\{\footnotesize (rejecting)}};
+  \node[state/half,  below right=20mm and 16mm of closed]   (half)   {Half-Open\\{\footnotesize (probing)}};
 
-\node[state, fill=llmgreen!15, draw=llmgreen!60] (closed) {Closed\\{\footnotesize (normal)}};
-\node[state, fill=llmorange!15, draw=llmorange!60, right=of closed] (open) {Open\\{\footnotesize (rejecting)}};
-\node[state, fill=llmorange!15, draw=llmorange!60, below right=25mm and 20mm of closed] (half) {Half-Open\\{\footnotesize (probing)}};
+  \draw[flow] (closed) -- node[edgelbl, midway, above]{failure threshold exceeded} (open);
+  \draw[flow] (open)   -- node[edgelbl, midway, right, text width=22mm, align=center]{cooldown\\expires} (half);
+  \draw[flow] (half)   -- node[edgelbl, midway, below left]{probe succeeds} (closed);
+  \draw[flow] (half) to[bend right=30] node[edgelbl, midway, below right]{probe fails} (open);
 
-\draw[arrow, llmgreen!70!black] (closed) -- node[above, font=\footnotesize]{failure threshold exceeded} (open);
-\draw[arrow, llmorange!70!black] (open) -- node[right, font=\footnotesize, text width=2.5cm, align=center]{cooldown\\expires} (half);
-\draw[arrow, llmorange!70!black] (half) -- node[below left, font=\footnotesize]{probe succeeds} (closed);
-\draw[arrow, llmorange!70!black] (half) to[bend right=30] node[below right, font=\footnotesize]{probe fails} (open);
-
-% Self-loops
-\draw[arrow, llmgreen!50!black] (closed) to[loop above, looseness=5] node[above, font=\footnotesize]{success / minor failure} (closed);
-\draw[arrow, llmorange!50!black] (open) to[loop above, looseness=5] node[above, font=\footnotesize]{reject / fallback} (open);
+  % Self-loops use the dashed feedback arrow style so steady-state
+  % behavior reads as "no transition" rather than as a primary edge.
+  \draw[loop] (closed) to[loop above, looseness=5] node[edgelbl, above]{success / minor failure} (closed);
+  \draw[loop] (open)   to[loop above, looseness=5] node[edgelbl, above]{reject / fallback}        (open);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Circuit breaker state machine prevents cascading failures in multi-agent systems. In the \emph{Closed} state, requests flow normally and failures are counted. When failures exceed a threshold, the circuit \emph{Opens}, immediately rejecting requests and routing to fallbacks. After a cooldown, the \emph{Half-Open} state tests recovery with a single probe. This pattern is essential for protecting agent pipelines from external dependency outages and internal agent failures.}

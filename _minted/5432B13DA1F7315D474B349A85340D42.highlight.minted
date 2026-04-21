@@ -1,0 +1,71 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} prometheus.yml \PYGZhy{}\PYGZhy{} scrape three LLM services every 10s.}
+\PYG{n+nt}{global}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{scrape\PYGZus{}interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{15s}
+\PYG{+w}{  }\PYG{n+nt}{evaluation\PYGZus{}interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{15s}
+\PYG{+w}{  }\PYG{n+nt}{external\PYGZus{}labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ cluster}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}ishtar\PYGZhy{}production\PYGZsq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ environment}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}production\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{n+nt}{scrape\PYGZus{}configs}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{job\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}ishtar\PYGZhy{}llm\PYGZhy{}inference\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+nt}{scrape\PYGZus{}interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10s}
+\PYG{+w}{    }\PYG{n+nt}{metrics\PYGZus{}path}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}/metrics\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+nt}{static\PYGZus{}configs}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{targets}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZsq{}ishtar\PYGZhy{}llm\PYGZhy{}inference:8000\PYGZsq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{        }\PYG{n+nt}{labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ service}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}llm\PYGZhy{}inference\PYGZsq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ component}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}inference\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{job\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}ishtar\PYGZhy{}retrieval\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+nt}{scrape\PYGZus{}interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10s}
+\PYG{+w}{    }\PYG{n+nt}{static\PYGZus{}configs}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{targets}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZsq{}ishtar\PYGZhy{}retrieval:8080\PYGZsq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{        }\PYG{n+nt}{labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ service}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}retrieval\PYGZsq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ component}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}rag\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{job\PYGZus{}name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}ishtar\PYGZhy{}tools\PYGZsq{}}
+\PYG{+w}{    }\PYG{n+nt}{scrape\PYGZus{}interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{10s}
+\PYG{+w}{    }\PYG{n+nt}{static\PYGZus{}configs}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{targets}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZsq{}ishtar\PYGZhy{}tools:9000\PYGZsq{}}\PYG{p+pIndicator}{]}
+\PYG{+w}{        }\PYG{n+nt}{labels}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ service}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}tools\PYGZsq{}}\PYG{p+pIndicator}{,}\PYG{n+nt}{ component}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}orchestration\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{n+nt}{rule\PYGZus{}files}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZsq{}llm\PYGZus{}recording\PYGZus{}rules.yml\PYGZsq{}}\PYG{p+pIndicator}{]}
+\PYG{n+nt}{alerting}\PYG{p}{:}
+\PYG{+w}{  }\PYG{n+nt}{alertmanagers}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[\PYGZob{}}\PYG{n+nt}{ static\PYGZus{}configs}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[\PYGZob{}}\PYG{n+nt}{ targets}\PYG{p}{:}\PYG{+w}{ }\PYG{p+pIndicator}{[}\PYG{l+s}{\PYGZsq{}alertmanager:9093\PYGZsq{}}\PYG{p+pIndicator}{]}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}]}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}]}
+\PYG{n+nn}{\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{c+c1}{\PYGZsh{} llm\PYGZus{}recording\PYGZus{}rules.yml \PYGZhy{}\PYGZhy{} pre\PYGZhy{}computed aggregations for fast dashboards}
+\PYG{c+c1}{\PYGZsh{} and alerting. Four groups: latency, quality, cost, retrieval\PYGZus{}quality.}
+\PYG{n+nt}{groups}\PYG{p}{:}
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{llm\PYGZus{}latency}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{30s}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ record}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{ishtar}\PYG{p+pIndicator}{:}\PYG{n+nv}{ttft}\PYG{p+pIndicator}{:}\PYG{n+nv}{p50}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}histogram\PYGZus{}quantile(0.50,}
+\PYG{+w}{                  }\PYG{l+s}{sum(rate(ishtar\PYGZus{}ttft\PYGZus{}seconds\PYGZus{}bucket[5m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(le,}\PYG{n+nv}{ }\PYG{l+s}{service))\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} ... analogous :p95 and :p99 records ...}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ record}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{ishtar}\PYG{p+pIndicator}{:}\PYG{n+nv}{tokens\PYGZus{}per\PYGZus{}second}\PYG{p+pIndicator}{:}\PYG{n+nv}{avg}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}rate(ishtar\PYGZus{}tokens\PYGZus{}total[5m])}
+\PYG{+w}{                 }\PYG{l+s}{/}\PYG{n+nv}{ }\PYG{l+s}{rate(ishtar\PYGZus{}requests\PYGZus{}total[5m])\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{llm\PYGZus{}quality}\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} groundedness mean+p95, citation\PYGZus{}coverage, toxicity}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1m}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ record}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{ishtar}\PYG{p+pIndicator}{:}\PYG{n+nv}{groundedness}\PYG{p+pIndicator}{:}\PYG{n+nv}{mean}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}avg(ishtar\PYGZus{}groundedness\PYGZus{}score)}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service,}\PYG{n+nv}{ }\PYG{l+s}{prompt\PYGZus{}version)\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ record}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{ishtar}\PYG{p+pIndicator}{:}\PYG{n+nv}{toxicity}\PYG{p+pIndicator}{:}\PYG{n+nv}{rate}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}sum(rate(ishtar\PYGZus{}toxicity\PYGZus{}flags\PYGZus{}total[5m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)}
+\PYG{+w}{                 }\PYG{l+s}{/}\PYG{n+nv}{ }\PYG{l+s}{sum(rate(ishtar\PYGZus{}requests\PYGZus{}total[5m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{c+c1}{\PYGZsh{} ... groundedness:p95 and citation\PYGZus{}coverage:mean records ...}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{llm\PYGZus{}cost}\PYG{+w}{          }\PYG{c+c1}{\PYGZsh{} USD/request and USD/1k\PYGZhy{}tokens per service}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1m}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ record}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{ishtar}\PYG{p+pIndicator}{:}\PYG{n+nv}{cost\PYGZus{}per\PYGZus{}request}\PYG{p+pIndicator}{:}\PYG{n+nv}{avg}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}sum(rate(ishtar\PYGZus{}cost\PYGZus{}usd\PYGZus{}total[5m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)}
+\PYG{+w}{                 }\PYG{l+s}{/}\PYG{n+nv}{ }\PYG{l+s}{sum(rate(ishtar\PYGZus{}requests\PYGZus{}total[5m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ record}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{ishtar}\PYG{p+pIndicator}{:}\PYG{n+nv}{cost\PYGZus{}per\PYGZus{}1k\PYGZus{}tokens}\PYG{p+pIndicator}{:}\PYG{n+nv}{avg}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}1000}\PYG{n+nv}{ }\PYG{l+s}{*}\PYG{n+nv}{ }\PYG{l+s}{sum(rate(ishtar\PYGZus{}cost\PYGZus{}usd\PYGZus{}total[5m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)}
+\PYG{+w}{                      }\PYG{l+s}{/}\PYG{n+nv}{ }\PYG{l+s}{sum(rate(ishtar\PYGZus{}tokens\PYGZus{}total[5m]))}\PYG{n+nv}{ }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(service)\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{n+nt}{name}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{retrieval\PYGZus{}quality}\PYG{+w}{ }\PYG{c+c1}{\PYGZsh{} latency:p95, recall\PYGZus{}at\PYGZus{}k, mrr (full set in repo)}
+\PYG{+w}{    }\PYG{n+nt}{interval}\PYG{p}{:}\PYG{+w}{ }\PYG{l+lScalar+lScalarPlain}{1m}
+\PYG{+w}{    }\PYG{n+nt}{rules}\PYG{p}{:}
+\PYG{+w}{      }\PYG{p+pIndicator}{\PYGZhy{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZob{}}\PYG{n+nt}{ record}\PYG{p}{:}\PYG{+w}{ }\PYG{n+nv}{ishtar}\PYG{p+pIndicator}{:}\PYG{n+nv}{retrieval\PYGZus{}latency}\PYG{p+pIndicator}{:}\PYG{n+nv}{p95}\PYG{p+pIndicator}{,}
+\PYG{n+nt}{          expr}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s}{\PYGZsq{}histogram\PYGZus{}quantile(0.95,}
+\PYG{+w}{                  }\PYG{l+s}{sum(rate(ishtar\PYGZus{}retrieval\PYGZus{}latency\PYGZus{}ms\PYGZus{}bucket[5m]))}
+\PYG{+w}{                    }\PYG{l+s}{by}\PYG{n+nv}{ }\PYG{l+s}{(le,}\PYG{n+nv}{ }\PYG{l+s}{index\PYGZus{}version))\PYGZsq{}}\PYG{+w}{ }\PYG{p+pIndicator}{\PYGZcb{}}
+\end{MintedVerbatim}

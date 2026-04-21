@@ -105,20 +105,19 @@ Fig.~\ref{fig:ch10_testing_pyramid} visualizes this prioritization, while Table~
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
+% Pyramid layers use the book-wide llm/box/* contract; box width shrinks
+% with each layer to encode "fewer tests as we move up the pyramid".
+% Color sweep blue -> green -> orange -> purple gives grayscale
+% separation between adjacent layers.
 \begin{tikzpicture}[font=\small]
-% Unit
-\filldraw[fill=llmgreen!20, draw=none, rounded corners=3pt] (0,0) rectangle (10,1);
-\node[align=center, font=\small\bfseries] at (5,0.5) {Unit tests\\\normalsize Prompts, schemas, deterministic code (cheap, many)};
-% Integration
-\filldraw[fill=llmblue!20, draw=none, rounded corners=3pt] (1,1) rectangle (9,2);
-\node[align=center, font=\small\bfseries] at (5,1.5) {Integration tests\\\normalsize RAG chains, tool calls, agents (moderate)};
-% E2E
-\filldraw[fill=llmorange!20, draw=none, rounded corners=3pt] (2,2) rectangle (8,3);
-\node[align=center, font=\small\bfseries] at (5,2.5) {End-to-end tests\\\normalsize User workflows, multi-turn (expensive)};
-% Adversarial
-\filldraw[fill=llmorange!20, draw=none, rounded corners=3pt] (3,3) rectangle (7,4);
-\node[align=center, font=\small\bfseries] at (5,3.5) {Adversarial / red-team\\\normalsize Injection, jailbreaks, abuse (targeted)};
+\node[llm/box/blue,   minimum width=10cm, minimum height=10mm, font=\footnotesize\bfseries] at (5,0.5)
+      {Unit tests\\\footnotesize\mdseries Prompts, schemas, deterministic code (cheap, many)};
+\node[llm/box/green,  minimum width=8cm,  minimum height=10mm, font=\footnotesize\bfseries] at (5,1.6)
+      {Integration tests\\\footnotesize\mdseries RAG chains, tool calls, agents (moderate)};
+\node[llm/box/orange, minimum width=6cm,  minimum height=10mm, font=\footnotesize\bfseries] at (5,2.7)
+      {End-to-end tests\\\footnotesize\mdseries User workflows, multi-turn (expensive)};
+\node[llm/box/purple, minimum width=4cm,  minimum height=10mm, font=\footnotesize\bfseries] at (5,3.8)
+      {Adversarial / red-team\\\footnotesize\mdseries Injection, jailbreaks, abuse (targeted)};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Testing pyramid prioritization balances feedback speed with coverage depth. Lower layers (unit tests) run frequently and provide fast feedback for frequently changing artifacts; upper layers (end-to-end, adversarial) run less often but validate system-level behavior and security. This pyramid structure enables teams to catch regressions early while maintaining comprehensive validation.}
@@ -178,7 +177,9 @@ Fig.~\ref{fig:ch10_test_coverage_matrix} visualizes this coverage matrix approac
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
+% Coverage matrix uses programmatic placement; cell colors track the
+% llm/* palette (llmpurple = not tested, llmblue = tested) so the grid
+% remains grayscale-readable.
 \begin{tikzpicture}[font=\normalsize, node distance=10mm]
 % Grid dimensions
 \pgfmathsetmacro{\cellwidth}{2.8}
@@ -764,100 +765,88 @@ Fig.~\ref{fig:ch10_metrics_dashboard} shows how multiple metrics are visualized 
 % Temporarily increase maximum width to allow larger figure
 \renewcommand{\LLMFigMaxWidth}{1.8\linewidth}
 \begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[font=\small, scale=1.0]
-% Dashboard layout - tighter outer box eliminates dead space below charts
-\draw[fill=gray!5, draw=black!25, line width=1.2pt, rounded corners=6pt] (0,5.4) rectangle (18,14);
-\node[anchor=north west, font=\large\bfseries, text=black!90] at (0.6,13.4) {Evaluation Metrics Dashboard};
+% Dashboard panels follow the llm/box/* contract: draw weight 0.6pt and
+% the !70 border tint match the rest of the book. Each panel is colored
+% by metric family (blue/green = quality, orange = latency, purple = cost)
+% so the four cells stay distinguishable in grayscale.
+\begin{tikzpicture}[font=\small]
+% Outer dashboard chrome (solid version of llm/lane).
+\draw[draw=black!40, line width=0.6pt, fill=black!4, rounded corners=4pt] (0,5.4) rectangle (18,14);
+\node[anchor=north west, font=\small\bfseries, text=black!85] at (0.6,13.4) {Evaluation Metrics Dashboard};
 
-% Top row - Correctness Trend (left) - taller box with better scale visibility
-\draw[fill=white, draw=llmblue!60!black, line width=1.2pt, rounded corners=4pt] (0.8,9.5) rectangle (8.2,12.8);
-\node[anchor=north west, font=\normalsize\bfseries, text=llmblue!90!black] at (1.0,12.6) {Correctness Trend};
-% Y-axis scale labels - positioned inside chart area
+% --- Top-left: Correctness Trend (blue) ---------------------------------
+\draw[fill=white, draw=llmblue!70, line width=0.6pt, rounded corners=3pt] (0.8,9.5) rectangle (8.2,12.8);
+\node[anchor=north west, font=\footnotesize\bfseries, text=llmblue] at (1.0,12.6) {Correctness Trend};
 \node[anchor=east, font=\footnotesize, text=black!60] at (1.6,11.8) {0.95};
 \node[anchor=east, font=\footnotesize, text=black!60] at (1.6,11.0) {0.90};
 \node[anchor=east, font=\footnotesize, text=black!60] at (1.6,10.2) {0.85};
-% Simple upward trend line - adjusted for taller box with better scale
-\draw[llmblue!80!black, line width=3pt] (1.3,10.3) -- (2.5,10.5) -- (3.7,10.7) -- (4.9,10.9) -- (6.1,11.1) -- (7.3,11.3);
-% Grid lines - adjusted for taller box
+\draw[color=llmblue, line width=1.4pt] (1.3,10.3) -- (2.5,10.5) -- (3.7,10.7) -- (4.9,10.9) -- (6.1,11.1) -- (7.3,11.3);
 \foreach \x in {1.3,2.5,3.7,4.9,6.1,7.3} {
-  \draw[gray!30, line width=0.3pt] (\x,10.0) -- (\x,11.5);
+  \draw[black!15, line width=0.3pt] (\x,10.0) -- (\x,11.5);
 }
 \foreach \y in {10.2,10.5,10.8,11.1,11.4} {
-  \draw[gray!30, line width=0.3pt] (1.3,\y) -- (7.3,\y);
+  \draw[black!15, line width=0.3pt] (1.3,\y) -- (7.3,\y);
 }
-% Value indicator - larger font
-\node[anchor=east, font=\normalsize\bfseries, text=llmblue!90!black] at (7.8,10.8) {0.92 $\uparrow$};
-% X-axis time labels - inside chart area, larger and more visible
+\node[anchor=east, font=\footnotesize\bfseries, text=llmblue] at (7.8,10.8) {0.92 $\uparrow$};
 \node[anchor=center, font=\footnotesize, text=black!70] at (2.9,9.9) {Week 1};
 \node[anchor=center, font=\footnotesize, text=black!70] at (5.3,9.9) {Week 2};
 \node[anchor=center, font=\footnotesize, text=black!70] at (7.3,9.9) {Week 3};
 
-% Top row - Faithfulness Trend (right) - taller box with better scale visibility
-\draw[fill=white, draw=llmgreen!60!black, line width=1.2pt, rounded corners=4pt] (9.8,9.5) rectangle (17.2,12.8);
-\node[anchor=north west, font=\normalsize\bfseries, text=llmgreen!90!black] at (10.0,12.6) {Faithfulness Trend};
-% Y-axis scale labels - positioned inside chart area
+% --- Top-right: Faithfulness Trend (green) ------------------------------
+\draw[fill=white, draw=llmgreen!70, line width=0.6pt, rounded corners=3pt] (9.8,9.5) rectangle (17.2,12.8);
+\node[anchor=north west, font=\footnotesize\bfseries, text=llmgreen] at (10.0,12.6) {Faithfulness Trend};
 \node[anchor=east, font=\footnotesize, text=black!60] at (10.6,11.8) {0.95};
 \node[anchor=east, font=\footnotesize, text=black!60] at (10.6,11.0) {0.90};
 \node[anchor=east, font=\footnotesize, text=black!60] at (10.6,10.2) {0.85};
-% Simple downward trend line - adjusted for taller box with better scale
-\draw[llmgreen!80!black, line width=3pt] (10.3,11.5) -- (11.5,11.3) -- (12.7,11.1) -- (13.9,10.9) -- (15.1,10.7) -- (16.3,10.5);
-% Grid lines - adjusted for taller box
+\draw[color=llmgreen, line width=1.4pt, dashed, dash pattern=on 4pt off 2pt]
+     (10.3,11.5) -- (11.5,11.3) -- (12.7,11.1) -- (13.9,10.9) -- (15.1,10.7) -- (16.3,10.5);
 \foreach \x in {10.3,11.5,12.7,13.9,15.1,16.3} {
-  \draw[gray!30, line width=0.3pt] (\x,10.0) -- (\x,11.5);
+  \draw[black!15, line width=0.3pt] (\x,10.0) -- (\x,11.5);
 }
 \foreach \y in {10.2,10.5,10.8,11.1,11.4} {
-  \draw[gray!30, line width=0.3pt] (10.3,\y) -- (16.3,\y);
+  \draw[black!15, line width=0.3pt] (10.3,\y) -- (16.3,\y);
 }
-% Value indicator - larger font
-\node[anchor=east, font=\normalsize\bfseries, text=llmgreen!90!black] at (16.8,10.8) {0.88 $\downarrow$};
-% X-axis time labels - inside chart area, larger and more visible
+\node[anchor=east, font=\footnotesize\bfseries, text=llmgreen] at (16.8,10.8) {0.88 $\downarrow$};
 \node[anchor=center, font=\footnotesize, text=black!70] at (11.9,9.9) {Week 1};
 \node[anchor=center, font=\footnotesize, text=black!70] at (14.3,9.9) {Week 2};
 \node[anchor=center, font=\footnotesize, text=black!70] at (16.3,9.9) {Week 3};
 
-% Bottom row - Latency Trend (left) - taller box with better scale visibility
-\draw[fill=white, draw=llmorange!60!black, line width=1.2pt, rounded corners=4pt] (0.8,6.2) rectangle (8.2,9.5);
-\node[anchor=north west, font=\normalsize\bfseries, text=llmorange!90!black] at (1.0,9.3) {Latency Trend};
-% Y-axis scale labels (latency in seconds) - positioned inside chart area
+% --- Bottom-left: Latency Trend (orange) --------------------------------
+\draw[fill=white, draw=llmorange!70, line width=0.6pt, rounded corners=3pt] (0.8,6.2) rectangle (8.2,9.5);
+\node[anchor=north west, font=\footnotesize\bfseries, text=llmorange] at (1.0,9.3) {Latency Trend};
 \node[anchor=east, font=\footnotesize, text=black!60] at (1.6,8.5) {1.5s};
 \node[anchor=east, font=\footnotesize, text=black!60] at (1.6,7.7) {1.2s};
 \node[anchor=east, font=\footnotesize, text=black!60] at (1.6,6.9) {0.9s};
-% Simple downward trend line (improving = lower latency) - adjusted for taller box
-\draw[llmorange!80!black, line width=3pt] (1.3,8.3) -- (2.5,8.1) -- (3.7,7.9) -- (4.9,7.7) -- (6.1,7.5) -- (7.3,7.3);
-% Grid lines - adjusted for taller box
+\draw[color=llmorange, line width=1.4pt, dotted, dash pattern=on 1pt off 1.5pt]
+     (1.3,8.3) -- (2.5,8.1) -- (3.7,7.9) -- (4.9,7.7) -- (6.1,7.5) -- (7.3,7.3);
 \foreach \x in {1.3,2.5,3.7,4.9,6.1,7.3} {
-  \draw[gray!30, line width=0.3pt] (\x,6.8) -- (\x,8.5);
+  \draw[black!15, line width=0.3pt] (\x,6.8) -- (\x,8.5);
 }
 \foreach \y in {7.0,7.3,7.6,7.9,8.2} {
-  \draw[gray!30, line width=0.3pt] (1.3,\y) -- (7.3,\y);
+  \draw[black!15, line width=0.3pt] (1.3,\y) -- (7.3,\y);
 }
-% Value indicator - larger font
-\node[anchor=east, font=\normalsize\bfseries, text=llmorange!90!black] at (7.8,7.8) {1.1s $\downarrow$};
-% X-axis time labels - inside chart area, larger and more visible
+\node[anchor=east, font=\footnotesize\bfseries, text=llmorange] at (7.8,7.8) {1.1s $\downarrow$};
 \node[anchor=center, font=\footnotesize, text=black!70] at (2.9,6.6) {Week 1};
 \node[anchor=center, font=\footnotesize, text=black!70] at (5.3,6.6) {Week 2};
 \node[anchor=center, font=\footnotesize, text=black!70] at (7.3,6.6) {Week 3};
 
-% Bottom row - Cost Trend (right) - taller box with better scale visibility
-\draw[fill=white, draw=llmorange!60!black, line width=1.2pt, rounded corners=4pt] (9.8,6.2) rectangle (17.2,9.5);
-\node[anchor=north west, font=\normalsize\bfseries, text=llmorange!90!black] at (10.0,9.3) {Cost Trend};
-% Y-axis scale labels (cost in dollars) - positioned inside chart area
+% --- Bottom-right: Cost Trend (purple) ----------------------------------
+% Note: switched from orange -> purple so the cost panel reads as a
+% distinct metric family (avoids confusion with the orange latency panel).
+\draw[fill=white, draw=llmpurple!70, line width=0.6pt, rounded corners=3pt] (9.8,6.2) rectangle (17.2,9.5);
+\node[anchor=north west, font=\footnotesize\bfseries, text=llmpurple] at (10.0,9.3) {Cost Trend};
 \node[anchor=east, font=\footnotesize, text=black!60] at (10.6,8.5) {\$0.06};
 \node[anchor=east, font=\footnotesize, text=black!60] at (10.6,7.7) {\$0.05};
 \node[anchor=east, font=\footnotesize, text=black!60] at (10.6,6.9) {\$0.04};
-% Simple downward trend line (improving = lower cost) - adjusted for taller box
-\draw[llmorange!80!black, line width=3pt] (10.3,8.3) -- (11.5,8.1) -- (12.7,7.9) -- (13.9,7.7) -- (15.1,7.5) -- (16.3,7.3);
-% Grid lines - adjusted for taller box
+\draw[color=llmpurple, line width=1.4pt, dashdotted]
+     (10.3,8.3) -- (11.5,8.1) -- (12.7,7.9) -- (13.9,7.7) -- (15.1,7.5) -- (16.3,7.3);
 \foreach \x in {10.3,11.5,12.7,13.9,15.1,16.3} {
-  \draw[gray!30, line width=0.3pt] (\x,6.8) -- (\x,8.5);
+  \draw[black!15, line width=0.3pt] (\x,6.8) -- (\x,8.5);
 }
 \foreach \y in {7.0,7.3,7.6,7.9,8.2} {
-  \draw[gray!30, line width=0.3pt] (10.3,\y) -- (16.3,\y);
+  \draw[black!15, line width=0.3pt] (10.3,\y) -- (16.3,\y);
 }
-% Value indicator - larger font
-\node[anchor=east, font=\normalsize\bfseries, text=llmorange!90!black] at (16.8,7.8) {\$0.04 $\downarrow$};
-% X-axis time labels - inside chart area, larger and more visible
+\node[anchor=east, font=\footnotesize\bfseries, text=llmpurple] at (16.8,7.8) {\$0.04 $\downarrow$};
 \node[anchor=center, font=\footnotesize, text=black!70] at (11.9,6.6) {Week 1};
 \node[anchor=center, font=\footnotesize, text=black!70] at (14.3,6.6) {Week 2};
 \node[anchor=center, font=\footnotesize, text=black!70] at (16.3,6.6) {Week 3};
@@ -997,22 +986,23 @@ Fig.~\ref{fig:ch10_eval_pipeline_flow} illustrates how these techniques integrat
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[font=\small, node distance=14mm,
-  box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries},
-  arrow/.style={-{Latex}, line width=1.2pt, color=black!70}
-]
-\node[box, fill=llmblue!15, minimum width=2.7cm, minimum height=10mm] (input) {Input Query};
-\node[box, fill=llmgreen!15, right=of input, minimum width=2.7cm, minimum height=10mm] (golden) {Golden Dataset\\Check};
-\node[box, fill=llmorange!15, right=of golden, minimum width=2.7cm, minimum height=10mm] (judge) {LLM-as-Judge};
-\node[box, fill=llmpurple!15, right=of judge, minimum width=2.7cm, minimum height=10mm] (semantic) {Semantic\\Similarity};
-\node[box, fill=llmpurple!15, below=of judge, minimum width=2.7cm, minimum height=10mm] (aggregate) {Aggregated\\Score};
+% Semantic color mapping (book-wide llm/* contract):
+%   blue   = data/input        green  = controller/check
+%   orange = decision/scoring  purple = alternative path
+%   gray   = neutral aggregate
+\begin{tikzpicture}[node distance=12mm,
+  edgelbl/.style={font=\footnotesize, fill=white, inner sep=1pt}]
+\node[llm/box/blue,   minimum width=2.7cm] (input)     {Input Query};
+\node[llm/box/green,  right=of input,  minimum width=2.7cm] (golden)    {Golden Dataset\\Check};
+\node[llm/box/orange, right=of golden, minimum width=2.7cm] (judge)     {LLM-as-Judge};
+\node[llm/box/purple, right=of judge,  minimum width=2.7cm] (semantic)  {Semantic\\Similarity};
+\node[llm/box/gray,   below=of judge,  minimum width=2.7cm] (aggregate) {Aggregated\\Score};
 
-\draw[arrow] (input) -- (golden);
-\draw[arrow] (golden) -- node[above, font=\footnotesize] {reference match} (judge);
-\draw[arrow] (judge) -- (semantic);
-\draw[arrow] (semantic) -- (aggregate);
-\draw[arrow] (golden) .. controls +(0,-10mm) and +(-10mm,0) .. (aggregate);
+\draw[llm/arrow] (input) -- (golden);
+\draw[llm/arrow] (golden) -- node[edgelbl, above] {reference match} (judge);
+\draw[llm/arrow] (judge) -- (semantic);
+\draw[llm/arrow] (semantic) |- (aggregate.east);
+\draw[llm/arrow] (golden) |- (aggregate.west);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Integrated evaluation pipeline combines multiple automated techniques for comprehensive quality assessment. Golden datasets provide reference-based validation, LLM-as-judge adds nuanced scoring, and semantic similarity captures meaning-level matches. This multi-technique approach reduces blind spots and provides robust quality signals, enabling teams to catch regressions across different quality dimensions.}
@@ -1107,38 +1097,29 @@ Fig.~\ref{fig:ch10_judge_calibration_curve} visualizes the calibration mapping p
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[font=\small]
+\begin{tikzpicture}
 \begin{axis}[
-  width=0.95\linewidth,
+  llm/chart,
   height=7cm,
   xlabel={Judge Score (before calibration)},
   ylabel={Human Score},
-  xlabel style={font=\bfseries},
-  ylabel style={font=\bfseries},
-  grid=major,
-  grid style={gray!30, line width=0.4pt},
-  minor grid style={gray!15, line width=0.25pt},
-  xmin=1, xmax=5,
-  ymin=1, ymax=5,
-  xtick={1,2,3,4,5},
-  ytick={1,2,3,4,5},
-  tick align=outside,
-  ticklabel style={font=\footnotesize},
-  axis line style={line width=1pt},
-  legend style={at={(0.03,0.97)},anchor=north west, draw=none, fill=none, font=\footnotesize, column sep=15pt}
+  xmin=1, xmax=5, ymin=1, ymax=5,
+  xtick={1,2,3,4,5}, ytick={1,2,3,4,5},
+  legend style={at={(0.03,0.97)}, anchor=north west, font=\footnotesize, column sep=10pt}
 ]
-% Scatter points (example data)
-\addplot[only marks, mark=*, mark size=3.5pt, mark options={fill=blue!70!black, draw=white, line width=1.2pt}, blue!70!black] coordinates {
+% Scatter points (example data) -- llmblue carries "data" semantic.
+\addplot[only marks, mark=*, mark size=2.2pt, color=llmblue]
+  coordinates {
   (1.5, 1.8) (2.1, 2.3) (2.3, 2.1) (2.8, 2.9) (3.1, 3.2)
   (3.2, 3.0) (3.5, 3.6) (3.7, 3.8) (4.0, 4.1) (4.2, 4.3)
   (4.5, 4.6) (4.7, 4.8)
 };
 \addlegendentry{Data points};
-% Calibration curve (isotonic regression example)
-\addplot[smooth, very thick, line width=1.8pt, red!70!black, domain=1:5] {0.7*x + 0.9};
+% Calibration curve (isotonic regression example) -- llmorange = correction.
+\addplot[smooth, color=llmorange, line width=1.4pt, domain=1:5] {0.7*x + 0.9};
 \addlegendentry{Calibration curve};
-% Perfect calibration line (reference)
-\addplot[smooth, dashed, dash pattern=on 4pt off 2pt, thick, line width=1.5pt, gray!60!black, domain=1:5] {x};
+% Perfect calibration reference -- gray dashed for "ideal".
+\addplot[smooth, color=llmgray, line width=1.0pt, dashed, dash pattern=on 4pt off 2pt, domain=1:5] {x};
 \addlegendentry{Perfect calibration};
 \end{axis}
 \end{tikzpicture}
@@ -1283,19 +1264,29 @@ A practical baseline is to align red-team suites with the OWASP Top 10 for LLM A
 for release \cite{owasp_llm_top10}.
 Table~\ref{tab:ch10_eval_tool_comparison} compares major evaluation frameworks and their capabilities.
 
-\begin{table}[t]
-\centering
-\caption{Evaluation tool comparison helps teams select appropriate frameworks for their LLMOps pipelines. Different tools excel at different aspects (golden datasets, LLM-as-judge, RAG evaluation, CI/CD integration), and teams often combine multiple tools for comprehensive coverage. This comparison guides tool selection based on specific evaluation needs.}
-\label{tab:ch10_eval_tool_comparison}
-\small
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.3}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
 \rowcolors{2}{gray!8}{white}
-\begin{tabularx}{\linewidth}{@{}p{2.5cm}X X p{2.5cm}@{}}
+\begin{xltabular}{\linewidth}{@{}p{2.3cm}X X p{2.3cm}@{}}
+\caption{Evaluation tool comparison helps teams select appropriate frameworks for their LLMOps pipelines. Different tools excel at different aspects (golden datasets, LLM-as-judge, RAG evaluation, CI/CD integration), and teams often combine multiple tools for comprehensive coverage. This comparison guides tool selection based on specific evaluation needs.}
+\label{tab:ch10_eval_tool_comparison}\\
 \toprule
 \rowcolor{gray!15}
 \textbf{Tool/Framework} & \textbf{Primary Use Case} & \textbf{Key Features} & \textbf{Integration Options} \\
 \midrule
+\endfirsthead
+\multicolumn{4}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+\toprule
+\rowcolor{gray!15}
+\textbf{Tool/Framework} & \textbf{Primary Use Case} & \textbf{Key Features} & \textbf{Integration Options} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+\endfoot
+\bottomrule
+\endlastfoot
 OpenAI Evals &
 Golden dataset regression &
 Test suite registry; CI/CD gates &
@@ -1320,9 +1311,8 @@ Promptfoo &
 Prompt testing &
 Unit/integration tests; multi-provider &
 CLI; CI/CD hooks \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\end{xltabular}
+}
 
 
 \subsection{Statistical Treatment and Confidence}
@@ -1435,19 +1425,29 @@ Human-in-the-loop evaluation ensures LLM systems remain robust, ethical, and ali
 A recurrent failure mode in human evaluation programs is \emph{underspecified rubrics}. If ``quality'' is not operationally defined, different reviewers will optimize for different values (verbosity vs.\ concision, caution vs.\ directness), and the evaluation signal becomes unstable.
 A rubric is a contract: it encodes the editorial or business definition of ``good'' and determines what the automated evaluation stack should learn to approximate.
 
-\begin{table}[t]
-\centering
-\caption{Rubric design enables consistent human evaluation and LLM judge calibration. For evidence-grounded journalism assistance (Ishtar AI), ``hard fails'' correspond to non-negotiable constraints (faithfulness, safety violations) that block release; ``soft scores'' capture gradations of quality (correctness, attribution, neutrality, clarity) that guide improvements. This rubric structure converts subjective quality judgments into measurable, actionable signals.}
-\label{tab:ch10_ishtar_rubric}
-\small
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.3}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
 \rowcolors{2}{gray!8}{white}
-\begin{tabularx}{\linewidth}{@{}p{3.0cm}X p{3.4cm}@{}}
+\begin{xltabular}{\linewidth}{@{}p{2.8cm}X p{3.2cm}@{}}
+\caption{Rubric design enables consistent human evaluation and LLM judge calibration. For evidence-grounded journalism assistance (Ishtar AI), ``hard fails'' correspond to non-negotiable constraints (faithfulness, safety violations) that block release; ``soft scores'' capture gradations of quality (correctness, attribution, neutrality, clarity) that guide improvements. This rubric structure converts subjective quality judgments into measurable, actionable signals.}
+\label{tab:ch10_ishtar_rubric}\\
 \toprule
 \rowcolor{gray!15}
 \textbf{Dimension} & \textbf{Definition} & \textbf{Scoring guidance} \\
 \midrule
+\endfirsthead
+\multicolumn{3}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+\toprule
+\rowcolor{gray!15}
+\textbf{Dimension} & \textbf{Definition} & \textbf{Scoring guidance} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+\endfoot
+\bottomrule
+\endlastfoot
 \textbf{Hard fail: faithfulness} &
 Any material claim not supported by provided evidence or trusted sources &
 Binary: fail if at least one unsupported material claim is present \\
@@ -1471,9 +1471,8 @@ Maintains journalistic tone; avoids loaded language &
 Clarity \& concision &
 Readable structure, avoids unnecessary verbosity &
 1--5: 1=confusing, 3=okay, 5=clear and concise \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\end{xltabular}
+}
 
 \subsubsection*{10.5.1 Inter-rater reliability}
 Human evaluation is itself a measurement process; it is only trustworthy if it is \emph{reliable}.
@@ -1553,19 +1552,29 @@ Key considerations include:
 
 Table~\ref{tab:ch10_load_test_configs} shows example load test configurations for different scenarios. Load testing outcomes often drive autoscaling policies, batching trade-offs, and fallback designs (e.g., serving smaller models during overload). For \ishtar{}, load testing ensures responsiveness during sudden spikes in journalist queries during crises.
 
-\begin{table}[t]
-\centering
-\caption{Load test configurations define realistic stress scenarios for LLM systems. Different patterns (gradual ramp, spike, sustained load) reveal different failure modes, helping teams validate autoscaling policies, identify bottlenecks, and ensure systems meet latency SLOs under expected traffic. These configurations guide teams in designing comprehensive load testing strategies.}
-\label{tab:ch10_load_test_configs}
-\small
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.3}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
 \rowcolors{2}{gray!8}{white}
-\begin{tabularx}{\linewidth}{@{}p{2.5cm}X p{2.2cm} p{2.0cm} X@{}}
+\begin{xltabular}{\linewidth}{@{}p{2.3cm}X p{2.0cm} p{1.8cm} X@{}}
+\caption{Load test configurations define realistic stress scenarios for LLM systems. Different patterns (gradual ramp, spike, sustained load) reveal different failure modes, helping teams validate autoscaling policies, identify bottlenecks, and ensure systems meet latency SLOs under expected traffic. These configurations guide teams in designing comprehensive load testing strategies.}
+\label{tab:ch10_load_test_configs}\\
 \toprule
 \rowcolor{gray!15}
 \textbf{Scenario} & \textbf{Ramp-up Pattern} & \textbf{Target Load} & \textbf{Duration} & \textbf{Success Criteria} \\
 \midrule
+\endfirsthead
+\multicolumn{5}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+\toprule
+\rowcolor{gray!15}
+\textbf{Scenario} & \textbf{Ramp-up Pattern} & \textbf{Target Load} & \textbf{Duration} & \textbf{Success Criteria} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+\endfoot
+\bottomrule
+\endlastfoot
 Baseline capacity &
 Linear: 0 → 50 req/s over 5 min &
 50 req/s &
@@ -1589,9 +1598,8 @@ Linear: 0 → 150 req/s &
 150 req/s &
 Until failure &
 Graceful degradation; fallback engaged \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\end{xltabular}
+}
 
 \subsubsection*{10.6.2 Fault Injection}
 Even if a system handles load, what happens when parts fail? Fault injection (chaos testing) answers this by simulating failures to test resilience \cite{pagerduty1}. Netflix’s Chaos Monkey pioneered this practice.  
@@ -1631,19 +1639,29 @@ A common anti-pattern is ``random failure'' without clear success criteria, whic
 Define: (i) the steady-state hypothesis (what ``healthy'' means), (ii) the fault to inject, (iii) expected system behavior (fallback path), and (iv) stop conditions.
 Table~\ref{tab:ch10_fault_injection_matrix} illustrates a concise ``fault injection matrix'' that teams can maintain alongside their runbooks.
 
-\begin{table}[t]
-\centering
-\caption{Fault injection matrix enables systematic chaos testing and resilience validation. For an LLM+RAG system, each row defines a reusable experiment with explicit success criteria, enabling teams to verify that failures degrade gracefully rather than catastrophically. This matrix structure converts ad hoc chaos testing into a repeatable, auditable resilience validation process.}
-\label{tab:ch10_fault_injection_matrix}
-\small
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.3}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
 \rowcolors{2}{gray!8}{white}
-\begin{tabularx}{\linewidth}{@{}p{2.8cm}X X p{2.4cm}@{}}
+\begin{xltabular}{\linewidth}{@{}p{2.6cm}X X p{2.2cm}@{}}
+\caption{Fault injection matrix enables systematic chaos testing and resilience validation. For an LLM+RAG system, each row defines a reusable experiment with explicit success criteria, enabling teams to verify that failures degrade gracefully rather than catastrophically. This matrix structure converts ad hoc chaos testing into a repeatable, auditable resilience validation process.}
+\label{tab:ch10_fault_injection_matrix}\\
 \toprule
 \rowcolor{gray!15}
 \textbf{Injected fault} & \textbf{Expected behavior} & \textbf{Signals to monitor} & \textbf{Pass criteria} \\
 \midrule
+\endfirsthead
+\multicolumn{4}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+\toprule
+\rowcolor{gray!15}
+\textbf{Injected fault} & \textbf{Expected behavior} & \textbf{Signals to monitor} & \textbf{Pass criteria} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+\endfoot
+\bottomrule
+\endlastfoot
 Retriever timeout &
 Graceful degradation: answer with disclaimer or cached results &
 Timeout rate, fallback rate, user-visible errors &
@@ -1663,9 +1681,8 @@ Corrupted tool output &
 Schema validation fails; retry or safe fallback response &
 Validation failures, exception rate &
 No unhandled exceptions; user gets safe response \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\end{xltabular}
+}
 
 \begin{llmalgobox}{Fault injection experiment execution}
 \label{alg:ch10_fault_injection_experiment}
@@ -1727,24 +1744,27 @@ Fig.~\ref{fig:ch10_cicd_gate_flow} shows the decision flow for evaluation gates.
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[font=\small, node distance=12mm,
-  box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries},
-  arrow/.style={-{Latex}, line width=1.2pt, color=black!70}
-]
-\node[box, fill=llmblue!15, minimum width=2.7cm, minimum height=10mm] (change) {Code Change};
-\node[box, fill=llmgreen!15, below=of change, minimum width=2.7cm, minimum height=10mm] (tests) {Run Tests};
-\node[box, fill=llmorange!15, below=of tests, minimum width=2.7cm, minimum height=10mm] (compare) {Compare\\Metrics};
-\node[box, fill=llmpurple!15, below=of compare, minimum width=2.7cm, minimum height=10mm] (gate) {Gate\\Decision};
-\node[box, fill=llmorange!15, left=of gate, minimum width=2.2cm, minimum height=10mm] (block) {Block};
-\node[box, fill=llmgreen!15, right=of gate, minimum width=2.2cm, minimum height=10mm] (deploy) {Deploy};
+% Vertical pipeline using the book-wide llm/box/* contract.
+% blue   = code/data input        green  = test/deploy controllers
+% orange = decision (gate/fail)   purple = aggregation/decision body
+% Solid arrows = forward control flow; dashed = feedback loop.
+\begin{tikzpicture}[node distance=12mm,
+  edgelbl/.style={font=\footnotesize, fill=white, inner sep=1pt}]
+\node[llm/box/blue,   minimum width=2.7cm] (change)                  {Code Change};
+\node[llm/box/green,  below=of change,  minimum width=2.7cm] (tests)   {Run Tests};
+\node[llm/box/orange, below=of tests,   minimum width=2.7cm] (compare) {Compare\\Metrics};
+\node[llm/box/purple, below=of compare, minimum width=2.7cm] (gate)    {Gate\\Decision};
+\node[llm/box/orange, left=of gate,  minimum width=2.2cm] (block)  {Block};
+\node[llm/box/green,  right=of gate, minimum width=2.2cm] (deploy) {Deploy};
 
-\draw[arrow] (change) -- (tests);
-\draw[arrow] (tests) -- (compare);
-\draw[arrow] (compare) -- (gate);
-\draw[arrow, color=llmorange!70!black] (gate) -- node[above, font=\footnotesize] {fail} (block);
-\draw[arrow, color=llmgreen!70!black] (gate) -- node[above, font=\footnotesize] {pass} (deploy);
-\draw[arrow, dashed, dash pattern=on 3pt off 2pt, color=black!60] (block) .. controls +(-6mm,0) and +(-6mm,0) .. (change);
+\draw[llm/arrow] (change)  -- (tests);
+\draw[llm/arrow] (tests)   -- (compare);
+\draw[llm/arrow] (compare) -- (gate);
+\draw[llm/arrow] (gate) -- node[edgelbl, above] {fail} (block);
+\draw[llm/arrow] (gate) -- node[edgelbl, above] {pass} (deploy);
+% Feedback: route well left of the column so the dashed loop never crosses
+% the boxes between block and change.
+\draw[llm/arrow/dashed] (block.west) -- ++(-10mm,0) |- (change.west);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{CI/CD evaluation gate flow integrates quality checks into deployment pipelines. Automated tests run on each change, metrics are compared against baselines, and gates block deployments when thresholds are violated. This ensures that regressions are caught before reaching production, maintaining quality while enabling rapid iteration. Failed gates trigger feedback loops that prevent broken changes from progressing.}
@@ -1791,19 +1811,18 @@ In practice, not all evaluation runs can be executed on every commit: comprehens
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[font=\small, node distance=12mm,
-  box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries},
-  arrow/.style={-{Latex}, line width=1.2pt, color=black!70}
-]
-\node[box, fill=llmblue!15, minimum width=2.9cm, minimum height=9mm] (pr) {Pull Request\\(fast gate)};
-\node[box, fill=llmgreen!15, right=of pr, minimum width=2.9cm, minimum height=9mm] (merge) {Merge to main\\(nightly gate)};
-\node[box, fill=llmorange!15, right=of merge, minimum width=2.9cm, minimum height=9mm] (release) {Pre-release\\(full gate)};
-\node[box, fill=llmpurple!15, right=of release, minimum width=2.9cm, minimum height=9mm] (canary) {Canary + monitor\\(online gate)};
+% Tiered gate progression: blue (input PR) -> green (merge controller)
+% -> orange (release decision) -> purple (production-facing canary).
+\begin{tikzpicture}[node distance=10mm,
+  edgelbl/.style={font=\footnotesize, fill=white, inner sep=1pt}]
+\node[llm/box/blue,   minimum width=2.9cm] (pr)                      {Pull Request\\(fast gate)};
+\node[llm/box/green,  right=of pr,      minimum width=2.9cm] (merge)   {Merge to main\\(nightly gate)};
+\node[llm/box/orange, right=of merge,   minimum width=2.9cm] (release) {Pre-release\\(full gate)};
+\node[llm/box/purple, right=of release, minimum width=2.9cm] (canary)  {Canary + monitor\\(online gate)};
 
-\draw[arrow] (pr) -- node[above, font=\footnotesize]{smoke eval} (merge);
-\draw[arrow] (merge) -- node[above, font=\footnotesize]{full eval suite} (release);
-\draw[arrow] (release) -- node[above, font=\footnotesize]{deploy} (canary);
+\draw[llm/arrow] (pr)      -- node[edgelbl, above]{smoke eval}     (merge);
+\draw[llm/arrow] (merge)   -- node[edgelbl, above]{full eval suite}(release);
+\draw[llm/arrow] (release) -- node[edgelbl, above]{deploy}         (canary);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Tiered evaluation gates integrate LLM evaluation into CI/CD. Fast gates protect developer velocity; full gates protect releases; canaries detect residual regressions in production.}
@@ -1926,37 +1945,42 @@ When evaluation gates detect failures, the response should depend on which categ
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-\begin{tikzpicture}[font=\small, node distance=14mm,
-  box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries, minimum width=2.6cm, minimum height=10mm},
-  arrow/.style={-{Latex}, line width=1.2pt, color=black!70},
-  decision/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries, minimum width=2.6cm, minimum height=10mm, diamond, aspect=2}
-]
-% Main flow
-\node[box, fill=llmblue!15] (run) {Run Evals};
-\node[box, fill=llmblue!10, below=of run] (check) {All pass?};
-\node[box, fill=llmgreen!15, right=35mm of check] (deploy) {Deploy};
-\node[box, fill=llmgreen!15, right=25mm of deploy] (monitor) {Monitor};
-\node[box, fill=llmblue!10, below=of check] (which) {Which failed?};
-\node[box, fill=llmorange!15, left=25mm of which] (safety) {Safety};
-\node[box, fill=llmorange!15, below=of which] (quality) {Quality};
-\node[box, fill=llmpurple!15, right=25mm of which] (perf) {Performance};
+% Decisions are encoded both by color (orange) AND by shape (diamond) so
+% the figure stays legible in grayscale. Tightened node distances keep
+% the rightmost outcome (monitor) inside \linewidth.
+\begin{tikzpicture}[node distance=8mm and 6mm,
+  decide/.style={diamond, aspect=2.2, draw=llmorange!75, line width=0.6pt,
+                 fill=llmorange!12, align=center, inner sep=2pt,
+                 font=\footnotesize\bfseries},
+  edgelbl/.style={font=\footnotesize, fill=white, inner sep=1pt}]
+% Top row: input -> first decision -> deploy -> monitor.
+\node[llm/box/blue, minimum width=2.4cm]                    (run)     {Run Evals};
+\node[decide, below=of run, minimum width=2.4cm]            (check)   {All pass?};
+\node[llm/box/green, right=14mm of check, minimum width=2.0cm] (deploy)  {Deploy};
+\node[llm/box/green, right=of deploy, minimum width=2.0cm]     (monitor) {Monitor};
 
-% Outcomes
-\node[box, fill=llmorange!25, below=of safety] (block) {Block\\deployment};
-\node[box, fill=llmorange!25, below=of quality] (review) {Flag for\\human review};
-\node[box, fill=llmpurple!25, below=of perf] (warn) {Warn; allow\\with override};
+% Second decision: triage failed category.
+\node[decide, below=of check, minimum width=2.6cm]          (which)   {Which failed?};
+\node[llm/box/orange, left=14mm of which, minimum width=2.0cm] (safety)  {Safety};
+\node[llm/box/orange, below=of which, minimum width=2.0cm]     (quality) {Quality};
+\node[llm/box/purple, right=14mm of which, minimum width=2.0cm] (perf)    {Performance};
 
-% Arrows
-\draw[arrow] (run) -- (check);
-\draw[arrow, color=llmgreen!70!black] (check) -- node[above, font=\footnotesize]{Yes} (deploy);
-\draw[arrow] (deploy) -- (monitor);
-\draw[arrow, color=llmorange!70!black] (check) -- node[right, font=\footnotesize]{No} (which);
-\draw[arrow] (which) -- (safety);
-\draw[arrow] (which) -- (quality);
-\draw[arrow] (which) -- (perf);
-\draw[arrow, color=llmorange!70!black] (safety) -- (block);
-\draw[arrow, color=llmorange!70!black] (quality) -- (review);
-\draw[arrow, color=llmpurple!70!black] (perf) -- (warn);
+% Outcomes (one per failure category).
+\node[llm/box/orange, below=of safety,  minimum width=2.4cm] (block)  {Block\\deployment};
+\node[llm/box/orange, below=of quality, minimum width=2.4cm] (review) {Flag for\\human review};
+\node[llm/box/purple, below=of perf,    minimum width=2.4cm] (warn)   {Warn; allow\\with override};
+
+% Edges
+\draw[llm/arrow] (run)    -- (check);
+\draw[llm/arrow] (check)  -- node[edgelbl, above]{Yes} (deploy);
+\draw[llm/arrow] (deploy) -- (monitor);
+\draw[llm/arrow] (check)  -- node[edgelbl, right]{No}  (which);
+\draw[llm/arrow] (which)  -- (safety);
+\draw[llm/arrow] (which)  -- (quality);
+\draw[llm/arrow] (which)  -- (perf);
+\draw[llm/arrow] (safety)  -- (block);
+\draw[llm/arrow] (quality) -- (review);
+\draw[llm/arrow] (perf)    -- (warn);
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Tiered CI/CD gates stop the great majority of regressions before production while preserving fast deploy cycles. Safety failures block deployment unconditionally, quality regressions are flagged for human review, and performance warnings allow deployment with an explicit override---balancing velocity with risk management.}
@@ -1978,26 +2002,40 @@ Fig.~\ref{fig:ch10_resilience_architecture} illustrates how these strategies wor
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[font=\small, node distance=12mm,
-  lane/.style={draw=none, rounded corners=5pt, align=center, inner sep=6pt, font=\small\bfseries},
-  box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries},
-  arrow/.style={-{Latex}, line width=1.2pt, color=black!70}
-]
-% Normal path
-\node[lane, fill=llmgreen!15, minimum width=0.95\linewidth, minimum height=10mm] (normal) {Normal Path: Primary LLM → Response};
-\node[lane, fill=llmorange!15, below=of normal, minimum width=0.95\linewidth, minimum height=10mm] (failure) {Failure Path: Timeout/Circuit Breaker → Fallback Model → Graceful Degradation};
+% Layout fix: original placed full-width lanes (0.95\linewidth) and then
+% pushed the decision tree 10mm RIGHT of normal.east, which overflowed
+% \linewidth and crossed the figure border. Now we use a two-column
+% layout: narrower lanes on the left (~0.55\linewidth) and a vertical
+% decision chain on the right, both fitting within \linewidth.
+\begin{tikzpicture}[node distance=8mm,
+  edgelbl/.style={font=\footnotesize, fill=white, inner sep=1pt},
+  decide/.style={diamond, aspect=2, draw=llmorange!75, line width=0.6pt,
+                 fill=llmorange!12, align=center, inner sep=2pt,
+                 font=\footnotesize\bfseries}]
+% --- Left column: two narrative lanes -----------------------------------
+\node[llm/box/green,  minimum width=0.55\linewidth, minimum height=12mm,
+      font=\footnotesize\bfseries, align=center] (normal)
+      {Normal Path:\\Primary LLM $\rightarrow$ Response};
+\node[llm/box/orange, below=4mm of normal,
+      minimum width=0.55\linewidth, minimum height=12mm,
+      font=\footnotesize\bfseries, align=center] (failure)
+      {Failure Path: Timeout / Circuit Breaker\\$\rightarrow$ Fallback $\rightarrow$ Graceful Degradation};
 
-% Decision points
-\node[box, fill=llmorange!15, right=10mm of normal.east, anchor=west, minimum width=2.2cm, minimum height=9mm] (timeout) {Timeout?};
-\node[box, fill=llmpurple!15, below=of timeout, minimum width=2.2cm, minimum height=9mm] (circuit) {Circuit\\Open?};
-\node[box, fill=llmblue!15, below=of circuit, minimum width=2.2cm, minimum height=9mm] (fallback) {Fallback\\Model};
-\node[box, fill=llmgreen!15, below=of fallback, minimum width=2.2cm, minimum height=9mm] (degrade) {Degraded\\Response};
+% --- Right column: decision chain (top -> bottom) -----------------------
+\node[decide, right=10mm of normal.east, minimum width=2.4cm] (timeout) {Timeout?};
+\node[decide, below=of timeout, minimum width=2.4cm]          (circuit) {Circuit\\Open?};
+\node[llm/box/blue,  below=of circuit, minimum width=2.4cm]   (fallback){Fallback\\Model};
+\node[llm/box/green, below=of fallback, minimum width=2.4cm]  (degrade) {Degraded\\Response};
 
-\draw[arrow] (normal.east) -- (timeout);
-\draw[arrow, color=llmorange!70!black] (timeout) -- node[right, font=\footnotesize] {yes} (circuit);
-\draw[arrow, color=llmorange!70!black] (circuit) -- node[right, font=\footnotesize] {yes} (fallback);
-\draw[arrow, color=llmorange!70!black] (fallback) -- (degrade);
+% --- Edges --------------------------------------------------------------
+\draw[llm/arrow] (normal.east) -- (timeout);
+\draw[llm/arrow] (timeout) -- node[edgelbl, right]{yes} (circuit);
+\draw[llm/arrow] (circuit) -- node[edgelbl, right]{yes} (fallback);
+\draw[llm/arrow] (fallback) -- (degrade);
+% Feedback: route around the decision column on the LEFT so the dashed
+% loop never crosses the timeout/circuit/fallback boxes.
+\draw[llm/arrow/dashed] (degrade.west) -- ++(-12mm,0) |- (failure.east)
+      node[edgelbl, midway, above=2pt]{recover};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Resilience architecture ensures graceful failure handling through layered defenses. Fallback models activate when primary services fail; circuit breakers prevent cascading failures; timeouts prevent indefinite blocking; graceful degradation maintains partial functionality. This defense-in-depth approach maintains service continuity under adverse conditions, ensuring users receive responses even when components fail.}
@@ -2117,19 +2155,25 @@ All three are version-controlled and executed through a single evaluation harnes
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
-% Color definitions
-\begin{tikzpicture}[font=\small, node distance=12mm,
-  box/.style={draw=none, rounded corners=5pt, align=center, inner sep=5pt, font=\small\bfseries},
-  arrow/.style={-{Latex}, line width=1.2pt, color=black!70}
-]
-\node[box, fill=llmblue!15, minimum width=3.2cm, minimum height=9mm] (logs) {Production logs\\(sampled, labeled)};
-\node[box, fill=llmgreen!15, right=of logs, minimum width=3.2cm, minimum height=9mm] (datasets) {Eval datasets\\golden + incidents + slices};
-\node[box, fill=llmorange!15, right=of datasets, minimum width=3.2cm, minimum height=9mm] (runner) {Eval runner\\(offline)};
-\node[box, fill=llmpurple!15, right=of runner, minimum width=3.2cm, minimum height=9mm] (report) {Report + gates\\CI/CD decision};
+% Closed-loop evaluation: forward chain logs -> datasets -> runner ->
+% report (solid arrows = execution flow); the new dashed feedback arrow
+% (incident reports re-seeding the dataset) is routed BELOW every node
+% so it never visually crosses the runner or datasets boxes.
+\begin{tikzpicture}[node distance=8mm,
+  edgelbl/.style={font=\footnotesize, fill=white, inner sep=1pt}]
+\node[llm/box/blue,   minimum width=3.2cm] (logs)                    {Production logs\\(sampled, labeled)};
+\node[llm/box/green,  right=of logs,     minimum width=3.2cm] (datasets) {Eval datasets\\golden + incidents + slices};
+\node[llm/box/orange, right=of datasets, minimum width=3.2cm] (runner)   {Eval runner\\(offline)};
+\node[llm/box/purple, right=of runner,   minimum width=3.2cm] (report)   {Report + gates\\CI/CD decision};
 
-\draw[arrow] (logs) -- node[above, font=\footnotesize]{curate} (datasets);
-\draw[arrow] (datasets) -- node[above, font=\footnotesize]{execute} (runner);
-\draw[arrow] (runner) -- node[above, font=\footnotesize]{aggregate} (report);
+\draw[llm/arrow] (logs)     -- node[edgelbl, above]{curate}    (datasets);
+\draw[llm/arrow] (datasets) -- node[edgelbl, above]{execute}   (runner);
+\draw[llm/arrow] (runner)   -- node[edgelbl, above]{aggregate} (report);
+
+% Feedback edge: incidents discovered in the report flow back into the
+% production-log curation step. Routed via a clear ``below'' detour.
+\draw[llm/arrow/dashed] (report.south) -- ++(0,-9mm) -| (logs.south)
+      node[edgelbl, pos=0.25, below]{incident regression seeds};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Evaluation loop design enables continuous quality improvement. Production logs seed incident tests, converting failures into regression tests; curated datasets feed an offline evaluation runner for systematic validation; aggregated reports become CI/CD gates and dashboards, enabling data-driven release decisions. This closed-loop approach ensures that production observations drive quality improvements.}

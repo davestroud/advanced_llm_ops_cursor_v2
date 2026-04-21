@@ -309,95 +309,56 @@ In summary, it is best to operate GPUs at a batch size that still meets your lat
 \begin{figure}[t]
   \centering
   \begin{llmfigbox}
-  \begin{tikzpicture}[font=\small]
-    \begin{axis}[
-      width=0.95\textwidth,
+  % Throughput-vs-batch-size with semantic shading: green = rapid gain,
+  % orange = diminishing returns, gray = saturation. Uses palette colors
+  % from macros.tex so phases stay grayscale-distinct.
+  \begin{tikzpicture}
+    \begin{axis}[llm/chart,
       height=10cm,
       xlabel={Batch Size $B$},
       ylabel={Throughput $\Theta$ (tokens/sec)},
       xmin=-5, xmax=140,
       ymin=0, ymax=12000,
-      grid=major,
-      grid style={gray!30, line width=0.4pt},
-      minor grid style={gray!15, line width=0.25pt},
       axis lines=left,
-      axis line style={line width=1pt, color=black!70},
-      tick style={thick, color=black!70},
-      tick align=outside,
-      xlabel style={font=\normalsize\bfseries, color=black!80, yshift=4pt},
-      ylabel style={font=\normalsize\bfseries, color=black!80, xshift=-4pt},
       xtick={0,16,32,48,64,80,96,112,128},
       ytick={0,2000,4000,6000,8000,10000,12000},
       yticklabels={0,2k,4k,6k,8k,10k,12k},
-      tick label style={font=\small},
       every axis plot/.append style={smooth},
       clip=false,
       enlarge x limits={abs=8},
       enlarge y limits={abs=500}
     ]
-      
-      % Define the throughput function (diminishing returns curve)
+
       \pgfmathdeclarefunction{throughput}{1}{%
         \pgfmathparse{12000 * (1 - exp(-#1/15)) + 2000 * (1 - exp(-#1/50))}%
       }
-      
-      % Add shaded regions for different phases (behind the curve)
-      \addplot[
-        fill=green!15,
-        draw=none,
-        domain=1:8,
-        area legend
-      ] {throughput(x)} \closedcycle;
-      
-      \addplot[
-        fill=orange!15,
-        draw=none,
-        domain=8:40,
-        area legend
-      ] {throughput(x)} \closedcycle;
-      
-      \addplot[
-        fill=red!15,
-        draw=none,
-        domain=40:140,
-        area legend
-      ] {throughput(x)} \closedcycle;
-      
-      % Main throughput curve (diminishing returns) - thick blue line
-      \addplot[
-        very thick,
-        line width=1.8pt,
-        color=blue!70!black,
-        smooth,
-        domain=1:140,
-        samples=150
-      ] {throughput(x)};
-      
-      % Add reference lines at key batch sizes (32, 64, 128)
-      \addplot[dashed, color=gray!50, thick, line width=0.8pt] coordinates {(32,0) (32,8500)};
-      \addplot[dashed, color=gray!50, thick, line width=0.8pt] coordinates {(64,0) (64,10500)};
-      \addplot[dashed, color=gray!50, thick, line width=0.8pt] coordinates {(128,0) (128,11000)};
-      
-      % Annotate key points with colored markers
-      \node[circle, fill=green!70!black, draw=white, line width=2pt, inner sep=4pt] at (axis cs:4,3500) {};
-      \node[font=\small\bfseries, text=green!70!black, above=5pt, right=8pt] at (axis cs:4,3500) {3$\times$ gain};
-      
-      \node[circle, fill=orange!70!black, draw=white, line width=2pt, inner sep=4pt] at (axis cs:32,8500) {};
-      \node[font=\small\bfseries, text=orange!70!black, above=5pt] at (axis cs:32,8500) {Diminishing};
-      
-      \node[circle, fill=red!70!black, draw=white, line width=2pt, inner sep=4pt] at (axis cs:64,10500) {};
-      \node[font=\small\bfseries, text=red!70!black, above=5pt] at (axis cs:64,10500) {Saturation};
-      
-      % Add phase labels in shaded regions (larger font for readability, positioned to be visible)
-      \node[font=\small\bfseries, text=green!70!black, align=center, right=10pt] at (axis cs:4,2000) {Rapid\\gain};
-      \node[font=\small\bfseries, text=orange!70!black, align=center] at (axis cs:24,6000) {Diminishing\\returns};
-      \node[font=\small\bfseries, text=red!70!black, align=center] at (axis cs:100,11000) {Saturation\\region};
-      
-      % Add batch size labels on x-axis for key points
-      \node[font=\small, text=gray!70, below=4pt] at (axis cs:32,0) {32};
-      \node[font=\small, text=gray!70, below=4pt] at (axis cs:64,0) {64};
-      \node[font=\small, text=gray!70, below=4pt] at (axis cs:128,0) {128};
-      
+
+      \addplot[fill=llmgreen!15,  draw=none, domain=1:8,    area legend] {throughput(x)} \closedcycle;
+      \addplot[fill=llmorange!15, draw=none, domain=8:40,   area legend] {throughput(x)} \closedcycle;
+      \addplot[fill=llmgray!15,   draw=none, domain=40:140, area legend] {throughput(x)} \closedcycle;
+
+      \addplot[color=llmblue, line width=1.4pt, smooth, domain=1:140, samples=150] {throughput(x)};
+
+      \addplot[dashed, color=black!40, line width=0.6pt] coordinates {(32,0)  (32,8500)};
+      \addplot[dashed, color=black!40, line width=0.6pt] coordinates {(64,0)  (64,10500)};
+      \addplot[dashed, color=black!40, line width=0.6pt] coordinates {(128,0) (128,11000)};
+
+      \node[circle, fill=llmgreen,  draw=white, line width=1.5pt, inner sep=3pt] at (axis cs:4,3500)  {};
+      \node[font=\footnotesize\bfseries, text=llmgreen,  above=5pt, right=8pt] at (axis cs:4,3500)  {3$\times$ gain};
+
+      \node[circle, fill=llmorange, draw=white, line width=1.5pt, inner sep=3pt] at (axis cs:32,8500) {};
+      \node[font=\footnotesize\bfseries, text=llmorange, above=5pt] at (axis cs:32,8500) {Diminishing};
+
+      \node[circle, fill=llmgray,   draw=white, line width=1.5pt, inner sep=3pt] at (axis cs:64,10500){};
+      \node[font=\footnotesize\bfseries, text=llmgray,   above=5pt] at (axis cs:64,10500){Saturation};
+
+      \node[font=\footnotesize\bfseries, text=llmgreen,  align=center, right=10pt] at (axis cs:4,2000)   {Rapid\\gain};
+      \node[font=\footnotesize\bfseries, text=llmorange, align=center]             at (axis cs:24,6000)  {Diminishing\\returns};
+      \node[font=\footnotesize\bfseries, text=llmgray,   align=center]             at (axis cs:100,11000){Saturation\\region};
+
+      \node[font=\footnotesize, text=black!60, below=4pt] at (axis cs:32,0)  {32};
+      \node[font=\footnotesize, text=black!60, below=4pt] at (axis cs:64,0)  {64};
+      \node[font=\footnotesize, text=black!60, below=4pt] at (axis cs:128,0) {128};
     \end{axis}
   \end{tikzpicture}
   \end{llmfigbox}
@@ -1138,13 +1099,12 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \resizebox{0.95\linewidth}{!}{%
 \begin{tikzpicture}[
   font=\footnotesize,
-  >=Stealth,
   box/.style={rectangle, rounded corners=4pt, draw=black!70, line width=0.9pt, align=center},
   header/.style={font=\small\bfseries, inner sep=4pt, text=black!90},
   res/.style={rectangle, rounded corners=3pt, draw=black!70, line width=0.8pt,
               minimum height=9mm, font=\footnotesize\bfseries, align=center, text width=18mm},
-  arrow/.style={-{Latex[length=2mm]}, line width=1pt, draw=black!75},
-  arrowDashed/.style={-{Latex[length=2mm]}, dashed, line width=0.8pt, draw=black!55},
+  arrow/.style={llm/arrow},
+  arrowDashed/.style={llm/arrow/dashed},
   cloud/.style={box, fill=llmblue!15, draw=llmblue!80!black, line width=1pt,
                 minimum width=44mm, minimum height=56mm, inner sep=6pt},
   vpc/.style={box, fill=llmblue!18, draw=llmblue!75!black, line width=0.8pt, inner sep=5pt},
@@ -1175,8 +1135,8 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \node[gpu] (gpuA1) at ($(vpcA.south) + (-10mm, 7mm)$) {GPU};
 \node[gpu] (gpuA2) at ($(vpcA.south) + (10mm, 7mm)$) {GPU};
 
-\draw[arrow, color=llmorange!85!black] (apigwA) -- (k8sA);
-\draw[arrow, color=llmpurple!85!black] (k8sA) -- (objA);
+\draw[arrow] (apigwA) -- (k8sA);
+\draw[arrow] (k8sA) -- (objA);
 
 % ================== (B) HYBRID (Top Right) ==================
 % On-Premise block (shifted left to create room for connection nodes)
@@ -1206,11 +1166,11 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \node[gw, text width=14mm] (vpnL) at (46mm, 22mm) {VPN\\Gateway};
 \node[gw, text width=14mm] (vpnR) at (76mm, 22mm) {Direct\\Connect};
 
-\draw[arrow, color=llmgreen!85!black] (k8sBprem.east) -- (vpnL.west);
-\draw[arrow, color=llmgreen!85!black] (vpnR.east) -- (k8sBcloud.west);
-\draw[arrowDashed, color=gray!65] (vpnL) -- (vpnR);
-\draw[arrow, color=llmpurple!85!black] (k8sBprem) -- (vecB);
-\draw[arrow, color=llmorange!85!black] (apigwB) -- (k8sBcloud);
+\draw[arrow] (k8sBprem.east) -- (vpnL.west);
+\draw[arrow] (vpnR.east) -- (k8sBcloud.west);
+\draw[arrowDashed] (vpnL) -- (vpnR);
+\draw[arrow] (k8sBprem) -- (vecB);
+\draw[arrow] (apigwB) -- (k8sBcloud);
 
 % ================== (C) MULTI-CLUSTER (Bottom Center) ==================
 \node[cloud, minimum width=95mm, minimum height=52mm] (cloudC) at (5mm, -65mm) {};
@@ -1235,9 +1195,9 @@ This section surveys the most common deployment architectures in LLMOps, analyzi
 \node[gpu] (gpuC3) at ($(vpcC2.south) + (-9mm, 7mm)$) {GPU};
 \node[gpu] (gpuC4) at ($(vpcC2.south) + (9mm, 7mm)$) {GPU};
 
-\draw[arrow, color=llmorange!85!black] (glbC.south west) ++(2mm,0) -- (k8sC1.north);
-\draw[arrow, color=llmorange!85!black] (glbC.south east) ++(-2mm,0) -- (k8sC2.north);
-\draw[arrowDashed, color=gray!65] (k8sC1) --
+\draw[arrow] (glbC.south west) ++(2mm,0) -- (k8sC1.north);
+\draw[arrow] (glbC.south east) ++(-2mm,0) -- (k8sC2.north);
+\draw[arrowDashed] (k8sC1) --
   node[font=\footnotesize\bfseries, align=center, midway, below=1mm, text=black!80]
   {failover} (k8sC2);
 
@@ -1318,13 +1278,13 @@ The trade-offs include cost (cloud GPUs remain expensive at scale) and reliance 
   \begin{llmfigbox}
   \begin{tikzpicture}[
     node distance=4mm and 8mm,
-    cloud/.style={llm/box/purple, ellipse, minimum width=30mm, minimum height=10mm, font=\scriptsize\bfseries, align=center, text width=28mm},
-    ingress/.style={llm/box/blue, minimum width=34mm, minimum height=10mm, font=\scriptsize\bfseries, align=center, text width=32mm},
-    security/.style={llm/box/orange, fill=llmorange!18, draw=llmorange!70, minimum width=22mm, minimum height=9mm, font=\scriptsize\bfseries, align=center, text width=20mm},
-    k8s/.style={llm/box/orange, fill=llmorange!25, draw=llmorange!70, minimum width=26mm, minimum height=9mm, font=\scriptsize\bfseries, align=center},
-    gpu/.style={llm/box/orange, fill=llmorange!12, draw=llmorange!50, minimum width=14mm, minimum height=8mm, font=\scriptsize, align=center},
-    managed/.style={llm/box/green, fill=llmgreen!15, draw=llmgreen!70, minimum width=22mm, minimum height=8mm, font=\scriptsize, align=center, text width=20mm},
-    az/.style={llm/lane, inner sep=6pt, minimum height=32mm},
+    cloud/.style={llm/box/purple, ellipse, minimum width=32mm, minimum height=11mm, font=\footnotesize\bfseries, align=center, text width=30mm},
+    ingress/.style={llm/box/blue, minimum width=36mm, minimum height=11mm, font=\footnotesize\bfseries, align=center, text width=34mm},
+    security/.style={llm/box/orange, fill=llmorange!18, draw=llmorange!70, minimum width=24mm, minimum height=10mm, font=\footnotesize\bfseries, align=center, text width=22mm},
+    k8s/.style={llm/box/orange, fill=llmorange!25, draw=llmorange!70, minimum width=28mm, minimum height=10mm, font=\footnotesize\bfseries, align=center},
+    gpu/.style={llm/box/orange, fill=llmorange!12, draw=llmorange!50, minimum width=15mm, minimum height=9mm, font=\footnotesize, align=center},
+    managed/.style={llm/box/green, fill=llmgreen!15, draw=llmgreen!70, minimum width=24mm, minimum height=9mm, font=\footnotesize, align=center, text width=22mm},
+    az/.style={llm/lane, inner sep=6pt, minimum height=34mm},
     legendsw/.style={rectangle, draw=black!40, minimum width=6mm, minimum height=4mm},
   ]
     % Top: Cloud provider
@@ -1342,17 +1302,17 @@ The trade-offs include cost (cloud GPUs remain expensive at scale) and reliance 
     \node[gpu, right=2mm of g12]                   (g13) {GPU\\Node};
     \node[gpu, below=1mm of g11, xshift=0mm, text=black!40] (g14) {GPU\\Node};
     \node[gpu, right=2mm of g14, text=black!40]             (g15) {GPU\\Node};
-    \node[llm/label, right=2mm of k8s1.south east, yshift=-6mm, font=\scriptsize\bfseries, text=llmorange!80!black] (as) {Auto\\Scale};
-    \node[fit=(k8s1)(g14)(g15)(as), az, label={[font=\scriptsize\bfseries,text=llmblue!70!black]above:AZ-1}] (az1) {};
+    \node[llm/label, below=2mm of g14.south east, anchor=north, xshift=2mm, font=\footnotesize\bfseries, text=llmorange!80!black] (as) {Auto-Scale Reserve};
+    \node[fit=(k8s1)(g14)(g15)(as), az, label={[font=\footnotesize\bfseries,text=llmblue!70!black]above:AZ-1}] (az1) {};
 
     % AZ-2 container
     \node[k8s, right=18mm of k8s1] (k8s2) {K8s Cluster};
     \node[gpu, below=4mm of k8s2, xshift=-7mm]  (g21) {GPU\\Node};
     \node[gpu, right=2mm of g21]                 (g22) {GPU\\Node};
-    \node[fit=(k8s2)(g21)(g22), az, label={[font=\scriptsize\bfseries,text=llmblue!70!black]above:AZ-2}] (az2) {};
+    \node[fit=(k8s2)(g21)(g22), az, label={[font=\footnotesize\bfseries,text=llmblue!70!black]above:AZ-2}] (az2) {};
 
     % "Private Subnets" outer lane
-    \node[fit=(az1)(az2), llm/lane, inner sep=9pt, label={[font=\scriptsize\bfseries,text=llmblue!70!black]below:Private Subnets}] (priv) {};
+    \node[fit=(az1)(az2), llm/lane, inner sep=9pt, label={[font=\footnotesize\bfseries,text=llmblue!70!black]below:Private Subnets}] (priv) {};
 
     % Managed services column (right)
     \node[managed, right=12mm of az2, yshift=12mm] (sqs) {SQS\\Pub/Sub};
@@ -1360,7 +1320,7 @@ The trade-offs include cost (cloud GPUs remain expensive at scale) and reliance 
     \node[managed, below=2mm of vdb]               (obj) {Object\\Store};
     \node[managed, below=2mm of obj]               (brk) {Bedrock\\OpenAI};
     \node[fit=(sqs)(brk), llm/lane, inner sep=5pt, dash pattern=on 1pt off 1pt] (mgsbox) {};
-    \node[llm/label, right=2mm of mgsbox.east, font=\scriptsize\bfseries, text=llmpurple!70!black, align=center] {DR Region\\via IaC};
+    \node[llm/label, right=2mm of mgsbox.east, font=\footnotesize\bfseries, text=llmpurple!70!black, align=center] {DR Region\\via IaC};
 
     % ------- Arrows -------
     \draw[llm/arrow] (cp)  -- (api);
@@ -1377,16 +1337,20 @@ The trade-offs include cost (cloud GPUs remain expensive at scale) and reliance 
     \draw[llm/arrow/dashed] (k8s2.east) to[bend left=5]  (vdb.west);
     \draw[llm/arrow/dashed] (k8s2.east) to[bend right=5] (obj.west);
     \draw[llm/arrow/dashed] (k8s2.east) to[bend right=10](brk.west);
-    \draw[{Latex[length=2.2mm]}-{Latex[length=2.2mm]}, line width=0.8pt, color=llmorange!80!black] (g15) -- (as);
+    % A small upward arrow from the Auto-Scale label to the reserve row
+    % indicates that the reserve nodes can be expanded on demand.
+    \draw[{Latex[length=2mm,width=1.4mm]}-,
+          line width=0.6pt, color=llmorange!80!black, dashed]
+      (g14.south -| as.north) -- (as.north);
 
     % Legend
-    \node[llm/label, below=10mm of priv.south west, anchor=north west, font=\scriptsize\bfseries] (klbl) {Key Features:};
+    \node[llm/label, below=10mm of priv.south west, anchor=north west, font=\footnotesize\bfseries] (klbl) {Key Features:};
     \node[legendsw, fill=llmorange!18, draw=llmorange!50, below=3mm of klbl.south west, anchor=north west] (le1) {};
-    \node[llm/label, right=2mm of le1, font=\scriptsize] {GPU Nodes (Auto-scaling)};
+    \node[llm/label, right=2mm of le1, font=\footnotesize] {GPU Nodes (Auto-scaling)};
     \node[legendsw, fill=llmgreen!15,  draw=llmgreen!70,  below=2mm of le1]  (le2) {};
-    \node[llm/label, right=2mm of le2, font=\scriptsize] {Managed Services};
+    \node[llm/label, right=2mm of le2, font=\footnotesize] {Managed Services};
     \node[legendsw, fill=llmorange!18, draw=llmorange!70, below=2mm of le2]  (le3) {};
-    \node[llm/label, right=2mm of le3, font=\scriptsize] {Security \& IAM};
+    \node[llm/label, right=2mm of le3, font=\footnotesize] {Security \& IAM};
   \end{tikzpicture}
   \end{llmfigbox}
   \caption{Cloud-native deployment architecture enables scalable, resilient LLMOps. Elastic GPU scaling across multiple availability zones ensures availability; integration with managed services (queues, vector databases, object storage) reduces operational overhead; secure networking through API gateways and private subnets protects sensitive data; disaster recovery capabilities ensure business continuity. GPU nodes auto-scale based on demand, while IAM and security groups enforce access controls. This architecture pattern balances scalability, security, and operational simplicity.}
@@ -1518,13 +1482,13 @@ The on-prem L4 cluster processes $\sim$200 articles/minute, embedding and taggin
 \begin{llmfigbox}
 \begin{tikzpicture}[
   node distance=4mm and 10mm,
-  gpu/.style={llm/box/purple, fill=llmpurple!18, draw=llmpurple!70, minimum width=18mm, minimum height=8mm, font=\scriptsize, align=center},
-  gpuH/.style={llm/box/purple, fill=llmpurple!30, draw=llmpurple!80, minimum width=22mm, minimum height=8mm, font=\scriptsize\bfseries, align=center},
-  gpuA/.style={llm/box/purple, fill=llmpurple!10, draw=llmpurple!50, minimum width=22mm, minimum height=8mm, font=\scriptsize, align=center},
-  embed/.style={llm/box/orange, fill=llmorange!18, draw=llmorange!70, minimum width=30mm, minimum height=12mm, font=\scriptsize\bfseries, align=center, text width=28mm},
-  iac/.style={llm/box/blue, minimum width=54mm, minimum height=10mm, font=\scriptsize\bfseries, align=center, text width=50mm},
-  pods/.style={llm/box/orange, fill=llmorange!18, draw=llmorange!70, minimum width=54mm, minimum height=10mm, font=\scriptsize\bfseries, align=center, text width=50mm},
-  vpn/.style={llm/box/green, fill=llmgreen!15, draw=llmgreen!70, minimum width=16mm, minimum height=9mm, font=\scriptsize\bfseries, align=center},
+  gpu/.style ={llm/box/purple, fill=llmpurple!18, draw=llmpurple!70, minimum width=20mm, minimum height=9mm,  font=\footnotesize, align=center},
+  gpuH/.style={llm/box/purple, fill=llmpurple!30, draw=llmpurple!80, minimum width=24mm, minimum height=9mm,  font=\footnotesize\bfseries, align=center},
+  gpuA/.style={llm/box/purple, fill=llmpurple!10, draw=llmpurple!50, minimum width=24mm, minimum height=9mm,  font=\footnotesize, align=center},
+  embed/.style={llm/box/orange, fill=llmorange!18, draw=llmorange!70, minimum width=32mm, minimum height=13mm, font=\footnotesize\bfseries, align=center, text width=30mm},
+  iac/.style ={llm/box/blue,   minimum width=58mm, minimum height=11mm, font=\footnotesize\bfseries, align=center, text width=54mm},
+  pods/.style={llm/box/orange, fill=llmorange!18, draw=llmorange!70, minimum width=58mm, minimum height=11mm, font=\footnotesize\bfseries, align=center, text width=54mm},
+  vpn/.style ={llm/box/green,  fill=llmgreen!15,  draw=llmgreen!70,  minimum width=18mm, minimum height=10mm, font=\footnotesize\bfseries, align=center},
   group/.style={llm/lane, inner sep=7pt},
   legendsw/.style={rectangle, draw=black!40, minimum width=6mm, minimum height=4mm},
 ]
@@ -1533,31 +1497,30 @@ The on-prem L4 cluster processes $\sim$200 articles/minute, embedding and taggin
   \node[gpu, right=4mm of l41] (l42) {L4 GPU};
   \node[embed, below=6mm of $(l41)!0.5!(l42)$] (embed) {Embeddings /\\NER Tagging};
   \node[fit=(l41)(l42)(embed), group,
-        label={[font=\scriptsize\bfseries,text=black!70]above:On-Prem (L4 Cluster)}] (onprem) {};
+        label={[font=\footnotesize\bfseries,text=black!70]above:On-Prem (L4 Cluster)}] (onprem) {};
 
   % Right: AWS EKS cluster
-  \node[iac,  right=30mm of l41, xshift=8mm] (tf) {Terraform + ArgoCD + K8s Autoscaling};
+  \node[iac,  right=32mm of l41, xshift=8mm] (tf) {Terraform + ArgoCD + K8s Autoscaling};
   \node[pods, below=3mm of tf] (pods) {Model Serving Pods (TGI / vLLM)};
 
   % Autoscaling node group
-  \node[gpuH, below=5mm of pods.south, xshift=-14mm] (h1) {H100};
+  \node[gpuH, below=5mm of pods.south, xshift=-15mm] (h1) {H100};
   \node[gpuH, right=4mm of h1] (h2) {H100};
-  \node[llm/label, font=\scriptsize\bfseries, above=0.5mm of h1.north west, anchor=south west, xshift=-4mm] {Autoscaling Node Group};
+  \node[llm/label, font=\footnotesize\bfseries, above=0.5mm of h1.north west, anchor=south west, xshift=-4mm] {Autoscaling Node Group};
   \node[fit=(h1)(h2), group, inner sep=5pt] (asng) {};
 
   % Baseline node group
   \node[gpuA, below=4mm of h1] (a1) {A100};
   \node[gpuA, right=4mm of a1]  (a2) {A100};
-  \node[llm/label, font=\scriptsize, above=0.5mm of a1.north west, anchor=south west, xshift=-4mm] {Baseline Node Group};
+  \node[llm/label, font=\footnotesize, above=0.5mm of a1.north west, anchor=south west, xshift=-4mm] {Baseline Node Group};
   \node[fit=(a1)(a2), group, inner sep=5pt] (bng) {};
 
   \node[fit=(tf)(pods)(asng)(bng), group, inner sep=8pt,
-        label={[font=\scriptsize\bfseries,text=llmblue!70!black]above:AWS EKS Cluster}] (eks) {};
+        label={[font=\footnotesize\bfseries,text=llmblue!70!black]above:AWS EKS Cluster}] (eks) {};
 
   % VPN bridge
   \node[vpn] (vpn) at ($(onprem.east)!0.5!(eks.west)$) {VPN};
 
-  % Arrows
   \draw[llm/arrow] (l41) -- (embed);
   \draw[llm/arrow] (l42) -- (embed);
   \draw[llm/arrow] (onprem.east) -- (vpn.west);
@@ -1565,15 +1528,15 @@ The on-prem L4 cluster processes $\sim$200 articles/minute, embedding and taggin
   \draw[llm/arrow] (tf) -- (pods);
 
   % Legend
-  \node[llm/label, below=6mm of bng.south west, anchor=north west, font=\scriptsize, xshift=-40mm] (k1) {};
+  \node[llm/label, below=6mm of bng.south west, anchor=north west, font=\footnotesize, xshift=-40mm] (k1) {};
   \node[legendsw, fill=llmpurple!10, draw=llmpurple!50, right=0mm of k1.west] (le1) {};
-  \node[llm/label, right=2mm of le1, font=\scriptsize] (le1t) {L4 / A100 GPU};
+  \node[llm/label, right=2mm of le1, font=\footnotesize] (le1t) {L4 / A100 GPU};
   \node[legendsw, fill=llmpurple!30, draw=llmpurple!80, right=8mm of le1t] (le2) {};
-  \node[llm/label, right=2mm of le2, font=\scriptsize] (le2t) {H100 GPU};
+  \node[llm/label, right=2mm of le2, font=\footnotesize] (le2t) {H100 GPU};
   \node[legendsw, fill=llmorange!18, draw=llmorange!70, right=8mm of le2t] (le3) {};
-  \node[llm/label, right=2mm of le3, font=\scriptsize] (le3t) {Serving Pods};
+  \node[llm/label, right=2mm of le3, font=\footnotesize] (le3t) {Serving Pods};
   \node[legendsw, fill=llmblue!15,   draw=llmblue!70,   right=8mm of le3t] (le4) {};
-  \node[llm/label, right=2mm of le4, font=\scriptsize] {IaC / Control Plane};
+  \node[llm/label, right=2mm of le4, font=\footnotesize] {IaC / Control Plane};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Hybrid infrastructure enables cost optimization and operational flexibility for \ishtar{}. On-prem L4 GPUs handle embeddings and preprocessing, reducing cloud costs for predictable workloads; AWS EKS hosts baseline A100s and autoscaling H100s for summarization, providing elasticity for variable traffic. Terraform, ArgoCD, and Kubernetes manage deployments and scaling, demonstrating how infrastructure-as-code and GitOps enable reliable hybrid operations.}

@@ -1,0 +1,42 @@
+\begin{MintedVerbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{dataclasses}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{dataclass}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{GPUConfig}\PYG{p}{:}
+    \PYG{n}{name}\PYG{p}{:} \PYG{n+nb}{str}
+    \PYG{n}{hourly\PYGZus{}cost\PYGZus{}usd}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{max\PYGZus{}throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{memory\PYGZus{}gb}\PYG{p}{:} \PYG{n+nb}{int}
+
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{CostResult}\PYG{p}{:}
+    \PYG{n}{cost\PYGZus{}per\PYGZus{}1k\PYGZus{}tokens\PYGZus{}usd}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{cost\PYGZus{}per\PYGZus{}second\PYGZus{}usd}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{effective\PYGZus{}throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec}\PYG{p}{:} \PYG{n+nb}{float}
+    \PYG{n}{utilization\PYGZus{}percent}\PYG{p}{:} \PYG{n+nb}{float}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{calculate\PYGZus{}cost\PYGZus{}per\PYGZus{}token}\PYG{p}{(}\PYG{n}{gpu}\PYG{p}{:} \PYG{n}{GPUConfig}\PYG{p}{,}
+                             \PYG{n}{utilization\PYGZus{}percent}\PYG{p}{:} \PYG{n+nb}{float} \PYG{o}{=} \PYG{l+m+mf}{100.0}\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{CostResult}\PYG{p}{:}
+    \PYG{k}{if} \PYG{o+ow}{not} \PYG{l+m+mi}{0} \PYG{o}{\PYGZlt{}=} \PYG{n}{utilization\PYGZus{}percent} \PYG{o}{\PYGZlt{}=} \PYG{l+m+mi}{100}\PYG{p}{:}
+        \PYG{k}{raise} \PYG{n+ne}{ValueError}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Utilization must be between 0 and 100\PYGZdq{}}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} Effective throughput scales linearly with utilization;}
+    \PYG{c+c1}{\PYGZsh{} cost\PYGZhy{}per\PYGZhy{}token = (USD/sec) / (tokens/sec).}
+    \PYG{n}{effective\PYGZus{}throughput} \PYG{o}{=} \PYG{p}{(}
+        \PYG{n}{gpu}\PYG{o}{.}\PYG{n}{max\PYGZus{}throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec} \PYG{o}{*} \PYG{p}{(}\PYG{n}{utilization\PYGZus{}percent} \PYG{o}{/} \PYG{l+m+mf}{100.0}\PYG{p}{))}
+    \PYG{n}{cost\PYGZus{}per\PYGZus{}second} \PYG{o}{=} \PYG{n}{gpu}\PYG{o}{.}\PYG{n}{hourly\PYGZus{}cost\PYGZus{}usd} \PYG{o}{/} \PYG{l+m+mf}{3600.0}
+    \PYG{n}{cost\PYGZus{}per\PYGZus{}token} \PYG{o}{=} \PYG{n}{cost\PYGZus{}per\PYGZus{}second} \PYG{o}{/} \PYG{n}{effective\PYGZus{}throughput}
+    \PYG{k}{return} \PYG{n}{CostResult}\PYG{p}{(}
+        \PYG{n}{cost\PYGZus{}per\PYGZus{}1k\PYGZus{}tokens\PYGZus{}usd}\PYG{o}{=}\PYG{n}{cost\PYGZus{}per\PYGZus{}token} \PYG{o}{*} \PYG{l+m+mf}{1000.0}\PYG{p}{,}
+        \PYG{n}{cost\PYGZus{}per\PYGZus{}second\PYGZus{}usd}\PYG{o}{=}\PYG{n}{cost\PYGZus{}per\PYGZus{}second}\PYG{p}{,}
+        \PYG{n}{effective\PYGZus{}throughput\PYGZus{}tokens\PYGZus{}per\PYGZus{}sec}\PYG{o}{=}\PYG{n}{effective\PYGZus{}throughput}\PYG{p}{,}
+        \PYG{n}{utilization\PYGZus{}percent}\PYG{o}{=}\PYG{n}{utilization\PYGZus{}percent}\PYG{p}{,}
+    \PYG{p}{)}
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{compare\PYGZus{}gpu\PYGZus{}options}\PYG{p}{(}\PYG{n}{gpus}\PYG{p}{,} \PYG{n}{utilization\PYGZus{}percent}\PYG{p}{:} \PYG{n+nb}{float} \PYG{o}{=} \PYG{l+m+mf}{100.0}\PYG{p}{):}
+    \PYG{k}{return} \PYG{p}{\PYGZob{}}\PYG{n}{g}\PYG{o}{.}\PYG{n}{name}\PYG{p}{:} \PYG{n}{calculate\PYGZus{}cost\PYGZus{}per\PYGZus{}token}\PYG{p}{(}\PYG{n}{g}\PYG{p}{,} \PYG{n}{utilization\PYGZus{}percent}\PYG{p}{)}
+            \PYG{k}{for} \PYG{n}{g} \PYG{o+ow}{in} \PYG{n}{gpus}\PYG{p}{\PYGZcb{}}
+
+\PYG{c+c1}{\PYGZsh{} ... (driver block: defines A100\PYGZhy{}80GB (\PYGZdl{}3.80/h, 8k tok/s) and}
+\PYG{c+c1}{\PYGZsh{}      H100\PYGZhy{}80GB (\PYGZdl{}5.00/h, 12k tok/s); prints cost/1k tokens at}
+\PYG{c+c1}{\PYGZsh{}      100\PYGZpc{} and 50\PYGZpc{} utilization. Full source in companion repo.) ...}
+\end{MintedVerbatim}

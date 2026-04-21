@@ -104,8 +104,8 @@ Fig.~\ref{fig:ch07_opt_pyramid} illustrates the four-layer optimization framewor
   at (2.3, 6.1) {Prompt optimization, RAG compression, caching, speculative decoding};
 
 % Arrow indicating effort/impact
-\draw[-Stealth, thick, gray!60] (-6.0, 0) -- (-6.0, 7.0);
-\node[rotate=90, font=\footnotesize\bfseries, gray!70] at (-6.5, 3.5) {Increasing specialization \& effort};
+\draw[llm/arrow, color=llmgray] (-6.0, 0) -- (-6.0, 7.0);
+\node[llm/label, rotate=90, font=\footnotesize\bfseries, text=llmgray] at (-6.5, 3.5) {Increasing specialization \& effort};
 \end{tikzpicture}
 \end{llmfigbox}
 \caption{Four-layer optimization pyramid organizes techniques by scope and effort. The base layer (infrastructure) provides the broadest leverage with the least model-specific effort; each successive layer adds more targeted optimizations. Teams should build upward: ensure the lower layers are well-tuned before investing in higher-layer techniques, as gains compound multiplicatively across layers.}
@@ -151,6 +151,7 @@ Fig.~\ref{fig:ch07_opt_pyramid} illustrates the four-layer optimization framewor
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
 \begin{axis}[
+    llm/chart,
     width=0.95\linewidth,
     height=7cm,
     ybar=0.35,
@@ -165,7 +166,7 @@ Fig.~\ref{fig:ch07_opt_pyramid} illustrates the four-layer optimization framewor
         anchor=south,
         draw=none,
         fill=none,
-        font=\small,
+        font=\footnotesize,
         cells={anchor=center},
         legend columns=2,
         column sep=20pt,
@@ -174,44 +175,34 @@ Fig.~\ref{fig:ch07_opt_pyramid} illustrates the four-layer optimization framewor
     nodes near coords,
     nodes near coords align={vertical},
     nodes near coords style={font=\footnotesize\bfseries},
-    grid=major,
-    grid style={gray!30, line width=0.4pt},
-    minor grid style={gray!15, line width=0.25pt},
     minor y tick num=4,
-    tick align=outside,
-    tick pos=left,
-    xlabel style={font=\small\bfseries, yshift=3pt},
-    ylabel style={font=\small\bfseries, xshift=-3pt},
-    ticklabel style={font=\small},
-    axis line style={line width=1pt},
-    xticklabel style={font=\small\bfseries},
-    ytick={0,500,1000,1500,2000,2500,3000,3500},
-    yticklabels={0,500,1000,1500,2000,2500,3000,3500}
+    xticklabel style={font=\footnotesize\bfseries},
+    ytick={0,500,1000,1500,2000,2500,3000,3500}
 ]
 \addplot+[
-    fill=red!75!black,
-    draw=red!85!black,
-    line width=0.8pt,
+    fill=llmorange!70,
+    draw=llmorange,
+    line width=0.6pt,
     every node near coord/.append style={
         xshift=5pt,
         fill=white,
         inner sep=1.5pt,
         rounded corners=2pt,
-        draw=red!85!black,
+        draw=llmorange,
         line width=0.3pt
     }
 ] coordinates {(p50,780) (p95,1800) (p99,3200)};
 \addlegendentry{Before (baseline)}
 
 \addplot+[
-    fill=blue!75!black,
-    draw=blue!85!black,
-    line width=0.8pt,
+    fill=llmblue!70,
+    draw=llmblue,
+    line width=0.6pt,
     every node near coord/.append style={
         fill=white,
         inner sep=1.5pt,
         rounded corners=2pt,
-        draw=blue!85!black,
+        draw=llmblue,
         line width=0.3pt
     }
 ] coordinates {(p50,420) (p95,950) (p99,1800)};
@@ -360,20 +351,18 @@ From a production perspective, parameter-efficient fine-tuning is valuable becau
 
 Table~\ref{tab:ch07_compression_summary} summarizes the compression and adaptation techniques discussed, comparing their memory reduction, speed impact, quality impact, and hardware requirements.
 
-\begin{table}[tb]
-\centering
-\small
-\caption{Compression and adaptation techniques enable efficient LLM deployment. Quantization reduces memory and increases speed; distillation transfers knowledge to smaller models; LoRA enables parameter-efficient fine-tuning. Choose based on deployment constraints, accuracy requirements, and update frequency.}
-\label{tab:ch07_compression_summary}
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.3}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
 \rowcolors{2}{gray!8}{white}
-\begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash\bfseries}p{2.5cm}
+\begin{xltabular}{\linewidth}{@{}>{\raggedright\arraybackslash\bfseries}p{2.3cm}
                   >{\raggedright\arraybackslash}X
                   >{\raggedright\arraybackslash}X
                   >{\raggedright\arraybackslash}X
                   >{\raggedright\arraybackslash}X
                   >{\raggedright\arraybackslash}X@{}}
+\caption{Compression and adaptation techniques enable efficient LLM deployment. Quantization reduces memory and increases speed; distillation transfers knowledge to smaller models; LoRA enables parameter-efficient fine-tuning. Choose based on deployment constraints, accuracy requirements, and update frequency.}
+\label{tab:ch07_compression_summary}\\
 \toprule
 \rowcolor{gray!15}
 \textbf{Technique} &
@@ -383,6 +372,23 @@ Table~\ref{tab:ch07_compression_summary} summarizes the compression and adaptati
 \textbf{Quality impact} &
 \textbf{Hardware / framework notes and when to use} \\
 \midrule
+\endfirsthead
+\multicolumn{6}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+\toprule
+\rowcolor{gray!15}
+\textbf{Technique} &
+\textbf{What it changes} &
+\textbf{Typical memory reduction} &
+\textbf{Speed impact} &
+\textbf{Quality impact} &
+\textbf{Hardware / framework notes and when to use} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{6}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+\endfoot
+\bottomrule
+\endlastfoot
 Quantization (INT8/FP8/4-bit) &
 Numeric precision of weights (and sometimes activations/KV cache). &
 $\sim$50\% (INT8/FP8) to $\sim$75\% (4-bit) vs.\ FP16. &
@@ -431,15 +437,15 @@ Reduces precision or size of attention KV cache at inference. &
 Lower latency via better batching/longer contexts. &
 Low to moderate; can affect long-context fidelity. &
 Pairs well with long contexts and high concurrency; test for degradation on long-range tasks. \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\end{xltabular}
+}
 
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
 \begin{axis}[
+    llm/chart,
     width=0.95\linewidth,
     height=7cm,
     ybar=0.35,
@@ -454,7 +460,7 @@ Pairs well with long contexts and high concurrency; test for degradation on long
         anchor=south,
         draw=none,
         fill=none,
-        font=\small,
+        font=\footnotesize,
         cells={anchor=center},
         legend columns=2,
         column sep=20pt,
@@ -463,47 +469,27 @@ Pairs well with long contexts and high concurrency; test for degradation on long
     nodes near coords,
     nodes near coords align={vertical},
     nodes near coords style={font=\footnotesize\bfseries},
-    grid=major,
-    grid style={gray!30, line width=0.4pt},
-    minor grid style={gray!15, line width=0.25pt},
     minor y tick num=4,
-    tick align=outside,
-    tick pos=left,
-    xlabel style={font=\small\bfseries, yshift=3pt},
-    ylabel style={font=\small\bfseries, xshift=-3pt},
-    ticklabel style={font=\small},
-    axis line style={line width=1pt},
-    xticklabel style={font=\small\bfseries},
+    xticklabel style={font=\footnotesize\bfseries},
     ytick={0,0.5,1.0,1.5,2.0},
-    yticklabels={0,0.5,1.0,1.5,2.0},
     enlarge x limits=0.08
 ]
-% A100 (illustrative)
+% A100
 \addplot+[
-    fill=blue!75!black,
-    draw=blue!85!black,
-    line width=0.8pt,
+    fill=llmblue!70, draw=llmblue, line width=0.6pt,
     every node near coord/.append style={
-        fill=white,
-        inner sep=1.5pt,
-        rounded corners=2pt,
-        draw=blue!85!black,
-        line width=0.3pt
+        fill=white, inner sep=1.5pt, rounded corners=2pt,
+        draw=llmblue, line width=0.3pt
     }
 ] coordinates {(FP16,1.00) (INT8,1.35) (FP8,1.00) (4-bit,1.55)};
 \addlegendentry{A100 (normalized to FP16)}
 
-% H100 (illustrative)
+% H100
 \addplot+[
-    fill=orange!75!black,
-    draw=orange!85!black,
-    line width=0.8pt,
+    fill=llmorange!70, draw=llmorange, line width=0.6pt,
     every node near coord/.append style={
-        fill=white,
-        inner sep=1.5pt,
-        rounded corners=2pt,
-        draw=orange!85!black,
-        line width=0.3pt
+        fill=white, inner sep=1.5pt, rounded corners=2pt,
+        draw=llmorange, line width=0.3pt
     }
 ] coordinates {(FP16,1.00) (INT8,1.40) (FP8,1.85) (4-bit,1.70)};
 \addlegendentry{H100 (normalized to FP16)}
@@ -551,13 +537,13 @@ FP16 requires multi-GPU (tensor/pipeline parallel); INT8/FP8 fits on single H100
 \centering
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
-\node[draw=none, rounded corners, fill=gray!5, align=left, inner sep=4mm, text width=0.95\linewidth]{
+\node[llm/box/gray, align=left, inner sep=4mm, text width=0.92\linewidth, font=\footnotesize]{%
 \textbf{Sizing cheat-sheet (inference memory)}\\[2pt]
 \begin{itemize}\setlength\itemsep{0.3em}
   \item \emph{Weights (per replica)}: $\displaystyle M_{\text{weights}} \approx P \times b$, where $P$ is parameter count and $b$ is bytes/weight (e.g., FP16$=2$, INT8/FP8$=1$, 4-bit$=0.5$).
   \item \emph{KV cache (decoder-only)}: $\displaystyle M_{\text{KV}} \approx 2 \cdot L \cdot B \cdot S \cdot d \cdot b$, for $L$ layers, batch $B$, sequence length $S$, per-token hidden $d$ (or $H\cdot d_h$), bytes/elt $b$ (see Eq.~\eqref{eq:kv-total}).
   \item \emph{Rule of thumb}: For long contexts or high concurrency, $M_{\text{KV}}$ can exceed $M_{\text{weights}}$; plan headroom for paging/fragmentation (Section~\ref{sec:perf-attention-kv-cache}).
-\end{itemize}
+\end{itemize}%
 };
 \end{tikzpicture}
 \end{llmfigbox}
@@ -657,17 +643,16 @@ That said, batching has trade-offs: it increases the latency for each individual
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
 \begin{axis}[
-  width=14cm, height=5.2cm,
+  llm/chart, llm/cycle,
+  width=0.95\linewidth, height=5.2cm,
   xlabel={Batch size $B$},
   ylabel={Throughput (normalized)},
   xmin=1, xmax=32,
   ymin=0, ymax=1.05,
-  grid=both, grid style={gray!20},
-  tick align=outside,
   xtick={1,2,4,8,16,32},
-  legend style={at={(0.5,1.02)},anchor=south,draw=none,fill=none},
+  legend style={at={(0.5,1.02)},anchor=south,draw=none,fill=none,font=\footnotesize},
 ]
-\addplot+[very thick] coordinates {
+\addplot+ coordinates {
   (1,0.18) (2,0.33) (4,0.55) (8,0.75) (16,0.92) (32,1.00)
 };
 \addlegendentry{Tokens/s (relative)}
@@ -1038,15 +1023,13 @@ In summary, rigorous performance testing gives confidence that optimizations are
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
 \begin{axis}[
+    llm/chart,
     width=0.95\linewidth,
     height=7cm,
     xlabel={Latency (ms)},
     ylabel={CDF},
     xmin=0, xmax=4000,
     ymin=0, ymax=1.05,
-    grid=major,
-    grid style={gray!30, line width=0.4pt},
-    minor grid style={gray!15, line width=0.25pt},
     minor x tick num=4,
     minor y tick num=4,
     legend style={
@@ -1054,28 +1037,19 @@ In summary, rigorous performance testing gives confidence that optimizations are
         anchor=south,
         draw=none,
         fill=none,
-        font=\small
+        font=\footnotesize
     },
-    tick align=outside,
-    tick pos=left,
-    xlabel style={font=\small\bfseries, yshift=3pt},
-    ylabel style={font=\small\bfseries, xshift=-3pt},
-    ticklabel style={font=\small},
-    axis line style={line width=1pt},
     xtick={0,500,1000,1500,2000,2500,3000,3500,4000},
     ytick={0,0.2,0.4,0.5,0.6,0.8,0.95,0.99,1.0},
-    yticklabels={0,0.2,0.4,0.5,0.6,0.8,0.95,0.99,1.0},
-    yticklabel style={fill=white, inner sep=1pt, text opacity=1.0},
-    xticklabel style={fill=white, inner sep=1pt, text opacity=1.0}
+    yticklabel style={fill=white, inner sep=1pt, text opacity=1.0, font=\footnotesize},
+    xticklabel style={fill=white, inner sep=1pt, text opacity=1.0, font=\footnotesize}
 ]
-% Example CDF (monotone increasing) - enhanced styling
+% CDF curve
 \addplot+[
-    color=blue!75!black,
-    very thick,
-    line width=1.8pt,
-    mark=*,
-    mark size=2.5pt,
-    mark options={fill=blue!75!black, draw=white, line width=0.4pt},
+    color=llmblue, solid,
+    line width=1.4pt,
+    mark=*, mark size=2pt,
+    mark options={fill=llmblue, draw=white, line width=0.4pt},
     smooth
 ] table{
 x   y
@@ -1092,87 +1066,43 @@ x   y
 };
 \addlegendentry{Latency CDF}
 
-% Markers for p50, p95, p99 - enhanced styling
-\addplot+[
-    domain=0:1,
-    samples=2,
-    color=red!75!black,
-    dashed,
-    line width=1.2pt,
-    dash pattern=on 4pt off 2pt
-] coordinates {(420,0) (420,0.5)};
-\addplot+[
-    only marks,
-    mark=square*,
-    mark size=3.5pt,
-    color=red!75!black,
-    mark options={fill=red!75!black, draw=white, line width=0.4pt}
-] coordinates {(420,0) (420,0.5)};
-\node[
-    color=red!75!black,
-    font=\footnotesize\bfseries,
-    fill=white,
-    inner sep=3pt,
-    rounded corners=3pt,
-    draw=red!75!black,
-    line width=0.5pt,
-    anchor=west,
-    align=left
-] at (axis cs:550,0.55) {p50: 420\,ms};
+% p50 marker
+\addplot+[domain=0:1, samples=2, color=llmgreen, dashed,
+          line width=1pt, dash pattern=on 4pt off 2pt, mark=none]
+    coordinates {(420,0) (420,0.5)};
+\addplot+[only marks, mark=square*, mark size=3pt,
+          color=llmgreen,
+          mark options={fill=llmgreen, draw=white, line width=0.4pt}]
+    coordinates {(420,0) (420,0.5)};
+\node[llm/label, fill=white, inner sep=3pt, rounded corners=3pt,
+      draw=llmgreen, line width=0.5pt, text=llmgreen,
+      anchor=west, font=\footnotesize\bfseries]
+    at (axis cs:550,0.55) {p50: 420\,ms};
 
-\addplot+[
-    domain=0:1,
-    samples=2,
-    color=orange!80!black,
-    dashed,
-    line width=1.2pt,
-    dash pattern=on 4pt off 2pt
-] coordinates {(2000,0) (2000,0.95)};
-\addplot+[
-    only marks,
-    mark=*,
-    mark size=3.5pt,
-    color=orange!80!black,
-    mark options={fill=orange!80!black, draw=white, line width=0.4pt}
-] coordinates {(2000,0) (2000,0.95)};
-\node[
-    color=orange!80!black,
-    font=\footnotesize\bfseries,
-    fill=white,
-    inner sep=3pt,
-    rounded corners=3pt,
-    draw=orange!80!black,
-    line width=0.5pt,
-    anchor=west,
-    align=left
-] at (axis cs:2200,0.98) {p95: 2000\,ms};
+% p95 marker
+\addplot+[domain=0:1, samples=2, color=llmorange, dashed,
+          line width=1pt, dash pattern=on 4pt off 2pt, mark=none]
+    coordinates {(2000,0) (2000,0.95)};
+\addplot+[only marks, mark=*, mark size=3pt, color=llmorange,
+          mark options={fill=llmorange, draw=white, line width=0.4pt}]
+    coordinates {(2000,0) (2000,0.95)};
+\node[llm/label, fill=white, inner sep=3pt, rounded corners=3pt,
+      draw=llmorange, line width=0.5pt, text=llmorange,
+      anchor=west, font=\footnotesize\bfseries]
+    at (axis cs:2200,0.98) {p95: 2000\,ms};
 
-\addplot+[
-    domain=0:1,
-    samples=2,
-    color=gray!70!black,
-    dashed,
-    line width=1.2pt,
-    dash pattern=on 4pt off 2pt
-] coordinates {(3200,0) (3200,0.99)};
-\addplot+[
-    only marks,
-    mark=triangle*,
-    mark size=3.5pt,
-    color=gray!70!black,
-    mark options={fill=gray!70!black, draw=white, line width=0.4pt}
-] coordinates {(3200,0) (3200,0.99)};
-\node[
-    color=gray!70!black,
-    font=\footnotesize\bfseries,
-    fill=white,
-    inner sep=3pt,
-    rounded corners=3pt,
-    draw=gray!70!black,
-    line width=0.5pt,
-    anchor=west,
-    align=left
-] at (axis cs:3450,1.02) {p99: 3200\,ms};
+% p99 marker
+\addplot+[domain=0:1, samples=2, color=llmgray, dashed,
+          line width=1pt, dash pattern=on 4pt off 2pt, mark=none]
+    coordinates {(3200,0) (3200,0.99)};
+\addplot+[only marks, mark=triangle*, mark size=3pt,
+          color=llmgray,
+          mark options={fill=llmgray, draw=white, line width=0.4pt}]
+    coordinates {(3200,0) (3200,0.99)};
+\node[llm/label, fill=white, inner sep=3pt, rounded corners=3pt,
+      draw=llmgray, line width=0.5pt, text=llmgray,
+      anchor=west, font=\footnotesize\bfseries]
+    at (axis cs:3450,1.02) {p99: 3200\,ms};
 
 \end{axis}
 \end{tikzpicture}
@@ -1186,6 +1116,7 @@ x   y
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
 \begin{axis}[
+    llm/chart,
     width=0.95\linewidth,
     height=7cm,
     ybar=0.4,
@@ -1198,33 +1129,17 @@ x   y
     nodes near coords,
     nodes near coords align={vertical},
     nodes near coords style={font=\footnotesize\bfseries},
-    grid=major,
-    grid style={gray!30, line width=0.4pt},
-    minor grid style={gray!15, line width=0.25pt},
     minor y tick num=4,
-    tick align=outside,
-    tick pos=left,
-    xlabel style={font=\small\bfseries, yshift=3pt},
-    ylabel style={font=\small\bfseries, xshift=-3pt},
-    ticklabel style={font=\small},
-    axis line style={line width=1pt},
-    xticklabel style={font=\small\bfseries},
+    xticklabel style={font=\footnotesize\bfseries},
     ytick={0,0.05,0.10,0.15,0.20},
-    yticklabels={0,0.05,0.10,0.15,0.20},
     enlarge x limits=0.08,
     every node near coord/.append style={
-        fill=white,
-        inner sep=1.5pt,
-        rounded corners=2pt,
-        draw=blue!85!black,
-        line width=0.3pt
+        fill=white, inner sep=1.5pt, rounded corners=2pt,
+        draw=llmblue, line width=0.3pt
     }
 ]
-% Example costs; replace with your computed values
 \addplot+[
-    fill=blue!75!black,
-    draw=blue!85!black,
-    line width=0.8pt
+    fill=llmblue!70, draw=llmblue, line width=0.6pt
 ] coordinates {
   (PyTorch,0.15) (TGI,0.10) (vLLM,0.07) (TensorRT-LLM,0.05)
 };
@@ -1599,7 +1514,7 @@ A number of specialized inference engines have been developed to serve LLMs effi
 
 Figure~\ref{fig:ch07_inference_engine_callout} summarizes a production vLLM deployment as five tunable surfaces. Each surface owns a small number of knobs whose defaults you should understand before promoting the engine into the request path.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
 \centering
 \begin{llmfigbox}
 \begin{tikzpicture}[font=\small]
@@ -1627,19 +1542,29 @@ Figure~\ref{fig:ch07_inference_engine_callout} summarizes a production vLLM depl
 \label{fig:ch07_inference_engine_callout}
 \end{figure}
 
-\begin{table}[tb]
-  \centering
-  \small
-  \caption{Serving runtime selection determines operational complexity and performance characteristics. Different runtimes optimize for different deployment scenarios: some prioritize ease of use, others focus on maximum throughput or lowest latency. Choose based on team expertise, scale requirements, and operational constraints.}
-  \label{tab:ch07_runtimes}
-  \setlength{\tabcolsep}{6pt}
-  \renewcommand{\arraystretch}{1.3}
+{\footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.2}
   \rowcolors{2}{gray!8}{white}
-  \begin{tabularx}{0.95\linewidth}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+  \begin{xltabular}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+    \caption{Serving runtime selection determines operational complexity and performance characteristics. Different runtimes optimize for different deployment scenarios: some prioritize ease of use, others focus on maximum throughput or lowest latency. Choose based on team expertise, scale requirements, and operational constraints.}
+    \label{tab:ch07_runtimes}\\
     \toprule
     \rowcolor{gray!15}
     & \textbf{vLLM} \cite{Kwon2023vLLM} & \textbf{Hugging Face TGI} \cite{tgi_docs} & \textbf{TensorRT-LLM} \cite{tensorrt_llm_docs} \\
     \midrule
+    \endfirsthead
+    \multicolumn{4}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+    \toprule
+    \rowcolor{gray!15}
+    & \textbf{vLLM} & \textbf{Hugging Face TGI} & \textbf{TensorRT-LLM} \\
+    \midrule
+    \endhead
+    \midrule
+    \multicolumn{4}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+    \endfoot
+    \bottomrule
+    \endlastfoot
     \textbf{Batching/Scheduling} 
     & Continuous batching; request interleaving; excels at tokens/s under bursty load 
     & Static/dynamic batching; turnkey server with REST/Websocket APIs; multi-model scheduling 
@@ -1669,9 +1594,8 @@ Figure~\ref{fig:ch07_inference_engine_callout} summarizes a production vLLM depl
     & High-throughput, variable workloads, long contexts 
     & Quick production hardening, ease-of-use, moderate latency needs 
     & Absolute max performance on NVIDIA GPUs under strict SLOs \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
+  \end{xltabular}
+}
 
 \subsubsection{Practice notes.}  
 For \ishtar{}, vLLM’s continuous batching and PagedAttention yielded large tokens/s gains under bursty traffic and long-context queries. TGI provided a robust production baseline with simpler deployment, while TensorRT-LLM delivered best-in-class single-instance latency when workloads were fixed and throughput-sensitive.

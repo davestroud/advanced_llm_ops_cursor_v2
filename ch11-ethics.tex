@@ -418,19 +418,29 @@ Addressing bias requires interventions across the LLMOps pipeline. The following
 
 Table~\ref{tab:ch11_bias_mitigation} systematically maps bias sources to targeted mitigation techniques and evaluation methods, enabling teams to design comprehensive bias mitigation pipelines that address root causes rather than symptoms.
 
-\begin{table}[t]
-\centering
-\small
-\caption{Bias sources and mitigation strategies enable systematic fairness management in LLM systems. Each bias source requires targeted mitigation techniques and evaluation methods. Understanding these mappings helps teams design comprehensive bias mitigation pipelines that address root causes rather than symptoms.}
-\label{tab:ch11_bias_mitigation}
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.3}
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
 \rowcolors{2}{gray!8}{white}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\begin{xltabular}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\caption{Bias sources and mitigation strategies enable systematic fairness management in LLM systems. Each bias source requires targeted mitigation techniques and evaluation methods. Understanding these mappings helps teams design comprehensive bias mitigation pipelines that address root causes rather than symptoms.}
+\label{tab:ch11_bias_mitigation}\\
 \toprule
 \rowcolor{gray!15}
 \textbf{Bias Source} & \textbf{Examples} & \textbf{Mitigation Techniques} & \textbf{Evaluation Methods} \\
 \midrule
+\endfirsthead
+\multicolumn{4}{@{}l}{\footnotesize\itshape Table~\thetable\ (continued).}\\
+\toprule
+\rowcolor{gray!15}
+\textbf{Bias Source} & \textbf{Examples} & \textbf{Mitigation Techniques} & \textbf{Evaluation Methods} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r@{}}{\footnotesize\itshape Continued on next page\ldots}\\
+\endfoot
+\bottomrule
+\endlastfoot
 \textbf{Training Data Bias} & Skewed demographics (more men than women in tech discussions); Western-dominated corpora; stereotypical associations (``illegal immigrant'' in negative contexts); outdated/historical bias \cite{ar5iv_labs} & Data auditing and curation; rebalancing datasets; removing toxic content; including underrepresented voices; filtering extremist texts and PII \cite{bcg2023} & Representational balance analysis; sentiment analysis; protected-group mention detection; demographic distribution checks \\
 \addlinespace[2pt]
 \textbf{Fine-Tuning \& RLHF Bias} & Annotator preferences encoding cultural/stylistic biases; evaluator framing preferences (e.g., crime explanations); RLHF reward model bias & Ensure annotator diversity; clear evaluation criteria; counterbalancing datasets; bias-aware RLHF; fairness constraints in reward models & Inter-annotator agreement analysis; subgroup evaluation; fairness benchmarks during fine-tuning \\
@@ -440,9 +450,8 @@ Table~\ref{tab:ch11_bias_mitigation} systematically maps bias sources to targete
 \textbf{Automation Bias (User)} & Users over-relying on AI outputs; accepting biased statements without scrutiny \cite{euai2025} & Transparency and disclosure; user education; uncertainty indicators; encouraging critical engagement; human oversight & User trust calibration studies; opt-out rates; user feedback on AI-generated content \\
 \addlinespace[2pt]
 \textbf{General Mitigation} & Cross-cutting bias across multiple sources & Fine-tuning on counterbalancing datasets; inference-time system messages; second-pass bias detectors; bias mitigation libraries (AI Fairness 360, Responsible AI Toolbox, Holistic AI) \cite{holisticai2025}; continuous monitoring & Bias benchmarks (Winogender, StereoSet, CrowS-Pairs) \cite{aclanthology2023}; adversarial testing; comparative completions; fairness audits; user-flagged issue tracking \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\end{xltabular}
+}
 
 Bias mitigation is thus not a one-time fix but an ongoing operational responsibility. It requires proactive dataset management, robust testing, responsive fine-tuning, and continuous oversight. Ultimately, fairness in LLMs extends beyond demographics to inclusivity in language, accessibility, and cultural representation, ensuring these systems serve all users equitably.
 
@@ -503,33 +512,38 @@ The audit pipeline in Algorithm~\ref{alg:ch11_bias_audit} is designed to be inte
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
+% Style contract (macros.tex):
+%   blue   = data / measurement stages
+%   orange = decision / callout stage (the audit report)
+%   green  = control / action stages (remediate, monitor, update)
 \begin{tikzpicture}[
-    node distance=1.8cm,
-    every node/.style={font=\small},
-    process/.style={draw, rounded corners, fill=blue!8, minimum width=2.5cm, minimum height=0.9cm, align=center},
-    arrow/.style={-Stealth, thick}
+    node distance=14mm and 16mm,
+    data/.style    ={llm/box/blue,   minimum width=26mm, font=\footnotesize\bfseries},
+    callout/.style ={llm/box/orange, minimum width=26mm, font=\footnotesize\bfseries},
+    ctrl/.style    ={llm/box/green,  minimum width=26mm, font=\footnotesize\bfseries},
+    flow/.style    ={llm/arrow},
 ]
-% Nodes in circular layout
-\node[process] (collect) {Data\\Collection};
-\node[process, right=of collect] (evaluate) {Bias\\Evaluation};
-\node[process, right=of evaluate] (report) {Report\\Generation};
-\node[process, below=of report] (remediate) {Remediation};
-\node[process, below=of evaluate] (monitor) {Continuous\\Monitoring};
-\node[process, below=of collect] (update) {Model\\Update};
+% Top row (left to right)
+\node[data]                          (collect)   {Data\\Collection};
+\node[data,    right=of collect]     (evaluate)  {Bias\\Evaluation};
+\node[callout, right=of evaluate]    (report)    {Report\\Generation};
+% Bottom row (right to left, completing the cycle)
+\node[ctrl,    below=of report]      (remediate) {Remediation};
+\node[ctrl,    below=of evaluate]    (monitor)   {Continuous\\Monitoring};
+\node[ctrl,    below=of collect]     (update)    {Model\\Update};
 
-% Arrows
-\draw[arrow] (collect) -- (evaluate);
-\draw[arrow] (evaluate) -- (report);
-\draw[arrow] (report) -- (remediate);
-\draw[arrow] (remediate) -- (monitor);
-\draw[arrow] (monitor) -- (update);
-\draw[arrow] (update) -- (collect);
+\draw[flow] (collect)   -- (evaluate);
+\draw[flow] (evaluate)  -- (report);
+\draw[flow] (report)    -- (remediate);
+\draw[flow] (remediate) -- (monitor);
+\draw[flow] (monitor)   -- (update);
+\draw[flow] (update)    -- (collect);
 
-% Central label
-\node[font=\footnotesize\itshape, text=gray!60!black] at ($(evaluate)!0.5!(monitor)$) {Continuous cycle};
+\node[llm/label, font=\footnotesize\itshape, align=center]
+      at ($(evaluate)!0.5!(monitor)$) {Continuous\\cycle};
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Continuous bias audits turn fairness from a launch checkbox into a steady-state operational metric. The cycle collects evaluation data, measures disparate outcomes, reports against thresholds, triggers remediation when thresholds are exceeded, and feeds monitoring back into the next model update.}
+\caption{Continuous bias audits turn fairness from a launch checkbox into a steady-state operational metric. The cycle collects evaluation data (blue), measures disparate outcomes, surfaces a threshold-keyed audit report (orange), and triggers remediation, monitoring, and the next model update (green) before the loop closes back to data collection.}
 \label{fig:ch11_bias_audit_cycle}
 \end{figure}
 
@@ -676,34 +690,34 @@ A robust PII redaction pipeline for LLMOps consists of four stages:
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
+% Style contract (macros.tex):
+%   blue  = data-handling stages (ingestion, detection, LLM processing)
+%   green = privacy-control gates (anonymization, retention, deletion)
 \begin{tikzpicture}[
-    node distance=1.4cm,
-    every node/.style={font=\small},
-    process/.style={draw, rounded corners, fill=green!8, minimum width=2.3cm, minimum height=0.9cm, align=center},
-    arrow/.style={-Stealth, thick}
+    node distance=10mm and 12mm,
+    data/.style ={llm/box/blue,  minimum width=24mm, font=\footnotesize\bfseries},
+    gate/.style ={llm/box/green, minimum width=24mm, font=\footnotesize\bfseries},
+    flow/.style ={llm/arrow},
+    edgelbl/.style={llm/label, fill=white, inner sep=1pt},
 ]
-\node[process] (ingest) {Data\\Ingestion};
-\node[process, right=of ingest] (detect) {PII\\Detection};
-\node[process, right=of detect] (anon) {Anonymization /\\Redaction};
-\node[process, right=of anon] (process) {LLM\\Processing};
-\node[process, below=1.5cm of process] (retain) {Retention\\Management};
-\node[process, below=1.5cm of anon] (delete) {Secure\\Deletion};
+% Top row: ingestion to LLM processing
+\node[data]                     (ingest)  {Data\\Ingestion};
+\node[data, right=of ingest]    (detect)  {PII\\Detection};
+\node[gate, right=of detect]    (anon)    {Anonymization /\\Redaction};
+\node[data, right=of anon]      (process) {LLM\\Processing};
 
-\draw[arrow] (ingest) -- (detect);
-\draw[arrow] (detect) -- (anon);
-\draw[arrow] (anon) -- (process);
-\draw[arrow] (process) -- (retain);
-\draw[arrow] (retain) -- (delete);
+% Bottom row: retention/deletion (governance return path)
+\node[gate, below=14mm of process] (retain) {Retention\\Management};
+\node[gate, below=14mm of anon]    (delete) {Secure\\Deletion};
 
-% Labels on arrows
-\node[font=\footnotesize, above=0.1cm] at ($(ingest)!0.5!(detect)$) {NER scan};
-\node[font=\footnotesize, above=0.1cm] at ($(detect)!0.5!(anon)$) {classify};
-\node[font=\footnotesize, above=0.1cm] at ($(anon)!0.5!(process)$) {sanitized};
-\node[font=\footnotesize, right=0.1cm] at ($(process)!0.5!(retain)$) {TTL policy};
-\node[font=\footnotesize, below=0.1cm] at ($(retain)!0.5!(delete)$) {crypto-erase};
+\draw[flow] (ingest)  -- node[edgelbl, above]{NER scan}    (detect);
+\draw[flow] (detect)  -- node[edgelbl, above]{classify}    (anon);
+\draw[flow] (anon)    -- node[edgelbl, above]{sanitized}   (process);
+\draw[flow] (process) -- node[edgelbl, right]{TTL policy}  (retain);
+\draw[flow] (retain)  -- node[edgelbl, below]{crypto-erase}(delete);
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Treating privacy as a lifecycle (collect $\to$ minimize $\to$ retain $\to$ erase) makes GDPR/CCPA obligations enforceable in code rather than policy. Data flows from ingestion through PII detection and anonymization, a retention management layer enforces TTL policies, and crypto-erasure ensures records are irrecoverable once the retention window closes.}
+\caption{Treating privacy as a lifecycle (collect $\to$ minimize $\to$ retain $\to$ erase) makes GDPR/CCPA obligations enforceable in code rather than policy. Data-handling stages (blue) flow through privacy-control gates (green): anonymization gates the LLM, a retention manager enforces TTL policies, and crypto-erasure ensures records are irrecoverable once the retention window closes.}
 \label{fig:ch11_privacy_lifecycle}
 \end{figure}
 
@@ -1027,40 +1041,56 @@ Equally important is the process for resolving and closing escalated incidents. 
 \begin{figure}[t]
 \centering
 \begin{llmfigbox}
+% Style contract (macros.tex):
+%   blue   = data/process nodes; green = positive control path (deliver)
+%   orange = decisions (diamonds) and severity callouts (boxes); shape carries
+%   semantics so the figure remains legible in grayscale.
 \begin{tikzpicture}[
-    node distance=1.2cm and 2.0cm,
-    every node/.style={font=\small},
-    decision/.style={draw, diamond, aspect=2, fill=orange!10, inner sep=2pt, align=center, minimum width=2.0cm},
-    process/.style={draw, rounded corners, fill=blue!8, minimum width=2.0cm, minimum height=0.8cm, align=center},
-    outcome/.style={draw, rounded corners, fill=red!8, minimum width=1.8cm, minimum height=0.7cm, align=center},
-    arrow/.style={-Stealth, thick}
+    node distance=10mm and 16mm,
+    proc/.style    ={llm/box/blue,  minimum width=22mm, font=\footnotesize\bfseries},
+    safe/.style    ={llm/box/green, minimum width=22mm, font=\footnotesize\bfseries},
+    decide/.style  ={diamond, aspect=2.2, draw=llmorange!75, line width=0.6pt,
+                     fill=llmorange!12, align=center, inner sep=2pt,
+                     font=\footnotesize\bfseries, minimum width=22mm},
+    outcome/.style ={llm/box/orange, minimum width=22mm, font=\footnotesize\bfseries},
+    flow/.style    ={llm/arrow},
+    edgelbl/.style ={llm/label, fill=white, inner sep=1pt},
+    chain/.style   ={llm/label, font=\footnotesize\itshape, align=center,
+                     text width=28mm},
 ]
-% Top node
-\node[process] (input) {Input\\Received};
-\node[decision, below=of input] (safe) {Content\\safe?};
-\node[decision, below left=1.2cm and 2.5cm of safe] (severity) {Severity\\level?};
-\node[process, below right=1.2cm and 2.5cm of safe] (deliver) {Deliver\\output};
+% Top: input then first decision (safe?)
+\node[proc]                                  (input)  {Input\\Received};
+\node[decide, below=8mm of input]            (safe)   {Content\\safe?};
 
-% Severity outcomes
-\node[outcome, below left=1.0cm and 1.5cm of severity] (p1) {\textbf{P1}\\Human\\takeover};
-\node[outcome, below=of severity] (p2) {\textbf{P2}\\Flag +\\review};
-\node[outcome, below right=1.0cm and 1.5cm of severity] (p34) {\textbf{P3/P4}\\Log +\\review};
+% Two-way branch: deliver (Yes, right) and severity (No, left)
+\node[safe,   right=22mm of safe]            (deliver){Deliver\\output};
+\node[decide, below=14mm of safe]            (severity){Severity\\level?};
 
-% Arrows
-\draw[arrow] (input) -- (safe);
-\draw[arrow] (safe) -- node[right, font=\footnotesize] {Yes} (deliver);
-\draw[arrow] (safe) -- node[above, font=\footnotesize] {No} (severity);
-\draw[arrow] (severity) -- node[above left, font=\footnotesize] {Critical} (p1);
-\draw[arrow] (severity) -- node[right, font=\footnotesize] {Moderate} (p2);
-\draw[arrow] (severity) -- node[above right, font=\footnotesize] {Low} (p34);
+% Severity outcomes (three columns, well separated to keep diamonds clear)
+\node[outcome, below=14mm of severity]                (p2)  {\textbf{P2}\\Flag +\\review};
+\node[outcome, left=18mm of p2]                       (p1)  {\textbf{P1}\\Human\\takeover};
+\node[outcome, right=18mm of p2]                      (p34) {\textbf{P3/P4}\\Log +\\review};
 
-% Escalation chain annotation
-\node[font=\footnotesize\itshape, text=gray!60!black, below=0.3cm of p1, text width=2.5cm, align=center] {Ethics officer $\rightarrow$ Legal $\rightarrow$ Executive};
-\node[font=\footnotesize\itshape, text=gray!60!black, below=0.3cm of p2, text width=2.5cm, align=center] {Content moderator $\rightarrow$ Ethics officer};
-\node[font=\footnotesize\itshape, text=gray!60!black, below=0.3cm of p34, text width=2.5cm, align=center] {Batch review $\rightarrow$ Weekly report};
+% Flows
+\draw[flow] (input) -- (safe);
+\draw[flow] (safe.east)  -- node[edgelbl, above]{Yes} (deliver.west);
+\draw[flow] (safe.south) -- node[edgelbl, right]{No}  (severity.north);
+
+% Branch from severity into three outcomes via a fan-out bus so arrow labels
+% sit on the horizontal segments and side branches never cross the P2 column.
+\coordinate (fan) at ($(severity.south) + (0,-5mm)$);
+\draw[line width=0.7pt, color=black!75] (severity.south) -- (fan);
+\draw[flow] (fan) -| node[edgelbl, pos=0.25, above]{Critical} (p1.north);
+\draw[flow] (fan) -- node[edgelbl, right]{Moderate}              (p2.north);
+\draw[flow] (fan) -| node[edgelbl, pos=0.25, above]{Low}      (p34.north);
+
+% Escalation chains (annotations sit below their outcome)
+\node[chain, below=3mm of p1]  {Ethics officer $\rightarrow$ Legal $\rightarrow$ Executive};
+\node[chain, below=3mm of p2]  {Content moderator $\rightarrow$ Ethics officer};
+\node[chain, below=3mm of p34] {Batch review $\rightarrow$ Weekly report};
 \end{tikzpicture}
 \end{llmfigbox}
-\caption{Classifying safety incidents at ingress keeps the vast majority of cases on automated paths and routes only the residual to human review. Each severity tier carries a defined response SLA, required action, and escalation chain; critical (P1) incidents trigger immediate human takeover plus notification of the ethics officer, legal team, and executive leadership.}
+\caption{Classifying safety incidents at ingress keeps the vast majority of cases on automated paths and routes only the residual to human review. The first gate (content safe?) lets compliant outputs through (green); unsafe outputs are triaged by severity, with each tier carrying its own SLA, required action, and escalation chain. Critical (P1) incidents trigger immediate human takeover plus notification of the ethics officer, legal team, and executive leadership.}
 \label{fig:ch11_escalation_tree}
 \end{figure}
 
