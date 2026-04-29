@@ -121,7 +121,7 @@ Retrieval-Augmented Generation (RAG) introduces unique observability needs, as i
     \item \textbf{Embedding drift}: Distribution shift in vector embeddings may reduce retrieval quality over time.
 \end{itemize}
 
-Monitoring drift requires continuous embedding distribution checks and canary prompts to detect when retrieval fails to capture relevant documents. Open-source platforms such as \emph{Phoenix} \cite{arize_phoenix_docs} and \emph{Langfuse} \cite{langfuse_obs_overview} provide built-in RAG metrics and support OpenTelemetry-based export for integration into Grafana \cite{grafana_dashboards} dashboards \cite{phoenix2025}.
+Monitoring drift requires continuous embedding distribution checks and canary prompts to detect when retrieval fails to capture relevant documents. Open-source platforms such as \emph{Phoenix} \cite{arize_phoenix_docs} and \emph{Langfuse} \cite{langfuse_obs_overview} provide built-in RAG metrics and support OpenTelemetry-based export for integration into Grafana \cite{grafana_dashboards} dashboards.
 
 \medskip
 \noindent\textbf{Metric taxonomy for RAG pipelines.}
@@ -132,7 +132,7 @@ In production, RAG observability benefits from a layered metric set that separat
     \item \emph{Answer utility}: answer relevance (addresses user question) and correctness against a reference when available.
     \item \emph{System costs/latency}: retriever latency percentiles, re-ranker latency, and overall TTFT/tokens-per-second to surface quality–cost trade-offs.
 \end{enumerate}
-Frameworks such as RAGAS and ARES formalize groundedness (faithfulness), context relevance, and evidence attribution; annotated corpora like RAGTruth can support supervised detectors. A best practice is to combine model-graded scores (e.g., faithfulness) with retrieval metrics (e.g., MRR/NDCG) and to track attribution fidelity (evidence–answer span overlap) as a first-class signal. Table~\ref{tab:ch05_rag_metrics_taxonomy} provides a comprehensive taxonomy of RAG-specific metrics with target values and monitoring recommendations.
+Frameworks such as RAGAS~\cite{ragas_eacl2024} and ARES~\cite{ares_naacl2024} formalize groundedness (faithfulness), context relevance, and evidence attribution; annotated corpora like RAGTruth~\cite{ragtruth} can support supervised detectors. A best practice is to combine model-graded scores (e.g., faithfulness) with retrieval metrics (e.g., MRR/NDCG) and to track attribution fidelity (evidence–answer span overlap) as a first-class signal. Table~\ref{tab:ch05_rag_metrics_taxonomy} provides a comprehensive taxonomy of RAG-specific metrics with target values and monitoring recommendations.
 
 \begin{table}[t]
 \centering
@@ -180,7 +180,7 @@ Operationally, implement scheduled distribution checks for embeddings, version/p
 
 \medskip
 \noindent\textbf{Online evaluators and dashboards.}
-Wire automated evaluators (e.g., RAGAS faithfulness and context relevance) into the serving path to produce per-response scores, persist them with traces, and export aggregates to Grafana. This enables real-time quality surveillance (e.g., rolling mean faithfulness with CI bands; p95 retriever latency) alongside system metrics. OpenTelemetry (OTel) spans should annotate retrieval steps (index, latency, hit count), generation (token counts, temperature), and evaluator outputs so operators can correlate spikes in hallucination rate with retriever outages or index changes. Open-source platforms such as \emph{Phoenix} (RAG observability) and \emph{Langfuse} (trace-centric monitoring) integrate readily and support OTel export for unified dashboards \cite{phoenix2025}.
+Wire automated evaluators (e.g., RAGAS faithfulness and context relevance) into the serving path to produce per-response scores, persist them with traces, and export aggregates to Grafana. This enables real-time quality surveillance (e.g., rolling mean faithfulness with CI bands; p95 retriever latency) alongside system metrics. OpenTelemetry (OTel) spans should annotate retrieval steps (index, latency, hit count), generation (token counts, temperature), and evaluator outputs so operators can correlate spikes in hallucination rate with retriever outages or index changes. Open-source platforms such as \emph{Phoenix} (RAG observability) and \emph{Langfuse} (trace-centric monitoring) integrate readily and support OTel export for unified dashboards.
 
 \medskip
 \noindent\textbf{SLOs, alerts, and runbooks.}
@@ -595,7 +595,7 @@ Table~\ref{tab:ch05_ishtar_obs_stack} summarizes a minimal-but-extensible stack 
 Metrics & Prometheus/OpenMetrics \cite{prometheus_instrumentation,openmetrics_spec} + Grafana \cite{grafana_dashboards} & What is the impact? (P95 TTFT, request/error rate, tokens per request, cost per tenant) and is it getting worse? (burn-rate, change-point detection) \\
 Traces & OpenTelemetry \cite{otel_spec} + Jaeger \cite{jaeger_tracing} (via OTel Collector \cite{otel_collector}) & Where is time and cost spent across retrieval, reranking, model calls, tools, and post-processing? Which span caused the tail? \\
 LLM workflows & LangSmith \cite{langsmith_home} / Langfuse \cite{langfuse_obs_overview} & How did a specific chain/agent execute? Which prompt/template version ran, and what intermediate steps produced the final answer? \\
-Quality & Phoenix evaluators \cite{arize_phoenix_docs,phoenix2025} + LLM-as-a-judge \cite{zheng2023judge} & Did quality regress? (faithfulness, groundedness, toxicity/refusal rates) and which cohorts/routes are affected? \\
+Quality & Phoenix evaluators \cite{arize_phoenix_docs} + LLM-as-a-judge \cite{zheng2023judge} & Did quality regress? (faithfulness, groundedness, toxicity/refusal rates) and which cohorts/routes are affected? \\
 Logs & Structured JSON/OTel logs \cite{otel_logs_concepts} + centralized store & What exactly failed? (error taxonomy, tool schema mismatch) and how to reproduce and replay the request? \\
 \bottomrule
 \end{tabularx}
@@ -764,7 +764,7 @@ For multi-agent systems, observability must capture:
 \end{itemize}
 \end{tcolorbox}
 
-Without these observability foundations, it is impossible to debug RAG hallucinations, optimize retrieval strategies, diagnose multi-agent coordination failures, or validate that agent graphs produce correct outputs. The chapters in Part III assume these observability capabilities are in place, building on them to cover advanced RAG architectures (Chapter~\ref{ch:rag}) and sophisticated multi-agent orchestration patterns (Chapter~\ref{ch:multiagent}).
+Without these observability foundations, it is impractical to debug RAG hallucinations, optimize retrieval strategies, diagnose multi-agent coordination failures, or validate that agent graphs produce correct outputs. The chapters in Part III assume these observability capabilities are in place, building on them to cover advanced RAG architectures (Chapter~\ref{ch:rag}) and sophisticated multi-agent orchestration patterns (Chapter~\ref{ch:multiagent}).
 
 \subsubsection{Quality artifacts in traces.}
 Attach evaluation artifacts to the synthesis span: groundedness/citation scores, refusal reason codes, rubric grades, and claim–evidence links. For RAG, include pointers from each answer claim to supporting spans in the retrieved context so that reviewers can audit faithfulness directly from the trace UI.
@@ -834,7 +834,7 @@ For real-time diagnosis, couple metrics to \emph{OpenTelemetry exemplars} \cite{
 
 \medskip
 \noindent\textbf{RAG and multi-agent tiles.}
-RAG-specific tiles deserve first-class placement: retrieval hit rate, context utilization (share of attribution mass on retrieved tokens), ACR@k, and freshness lag for newly ingested content. Where multi-agent orchestration is used, include \emph{coordination overhead} (aggregate agent turns per request, planner retries, tool-invocation counts) and attribute cost per agent. Such decomposition makes visible whether regressions stem from reasoning policy, retrieval depth, or vendor model changes.
+RAG-specific tiles deserve first-class placement: retrieval hit rate, context utilization (share of attribution mass on retrieved tokens), attribution coverage at k, and freshness lag for newly ingested content. Where multi-agent orchestration is used, include \emph{coordination overhead} (aggregate agent turns per request, planner retries, tool-invocation counts) and attribute cost per agent. Such decomposition makes visible whether regressions stem from reasoning policy, retrieval depth, or vendor model changes.
 
 \medskip
 \noindent\textbf{Operator effectiveness patterns.}
@@ -855,7 +855,7 @@ Observability is incomplete without continuous quality evaluation. Automated eva
 For example, Phoenix \cite{arize_phoenix_docs} supports attaching evaluators that grade outputs for relevance or toxicity, storing the results alongside traces. This makes it possible to chart not only latency or error rates, but also a \emph{hallucination rate} or \emph{toxicity score} over time. Feedback loops connect these evaluations back into prompt libraries or fine-tuning datasets.
 
 \subsubsection{Continuous RAGAS Integration}\index{RAGAS!continuous evaluation}
-The RAGAS framework provides a suite of reference-free metrics---faithfulness, answer relevancy, and context recall---that can be computed continuously on production traffic without requiring ground-truth labels. In a production deployment, a sampled fraction (typically 1--5\%) of live requests is routed through RAGAS evaluators asynchronously. Results are persisted alongside traces and exported to Prometheus, where recording rules compute rolling aggregates:
+The RAGAS framework~\cite{ragas_eacl2024} provides a suite of reference-free metrics---faithfulness, answer relevancy, and context recall---that can be computed continuously on production traffic without requiring ground-truth labels. In a production deployment, a sampled fraction (typically 1--5\%) of live requests is routed through RAGAS evaluators asynchronously. Results are persisted alongside traces and exported to Prometheus, where recording rules compute rolling aggregates:
 
 \begin{itemize}
     \item \textbf{Faithfulness} measures the fraction of answer claims supported by retrieved context. Track rolling 1-hour and 24-hour means with confidence intervals; alert when the 1-hour mean drops below the 24-hour baseline by more than one standard deviation.
@@ -930,7 +930,7 @@ Alerting strategies must balance sensitivity with operator fatigue. Recommended 
 
 These alerts connect metrics to actionable runbooks: when thresholds are breached, predefined playbooks guide operators through detection, stabilization, and recovery. The feedback from these incidents feeds back into CI/CD pipelines (Chapter~\ref{ch:cicd}) through automated rollback gates and into evaluation frameworks (Chapter~\ref{ch:testing}) through updated test suites that prevent recurrence.
 
-Incident response playbooks should define rollback strategies (e.g., revert prompt versions, fail over to smaller models) and escalation criteria for human review. Public prompt-injection and jailbreak failures in deployed assistants underscore the need for rapid tracing, guardrail patching, and adversarial replay before full restoration \cite{owasp_llm,mitre_atlas}.
+Incident response playbooks should define rollback strategies (e.g., revert prompt versions, fail over to smaller models) and escalation criteria for human review. Public prompt-injection and jailbreak failures in deployed assistants underscore the need for rapid tracing, guardrail patching, and adversarial replay before full restoration \cite{owasp_llm}.
 
 \medskip
 \noindent\textbf{SLO-aligned, multi-window alerting.}

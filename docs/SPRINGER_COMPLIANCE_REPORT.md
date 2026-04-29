@@ -417,6 +417,52 @@ in the new `\colorbox`/`\parbox` cards (each card terminates with
 a short final line, ×5 cards × 7 figures ≈ 35) plus pagination drift
 from removing roughly 530 lines of YAML.
 
+## Per-Chapter Citation Audit (April 27, 2026)
+
+A full citation audit (mechanical + per-chapter semantic scan) was run across all
+12 chapters. The bibliography moved from 134 orphan entries (29.6\%) to **0**, and
+every `\cite{}` / `\parencite{}` in the manuscript now resolves to a real bib
+entry.
+
+### Top-line results
+
+| Metric | Pre-audit | Post-audit |
+|--------|----------:|-----------:|
+| `references.bib` entries | 453 | **370** (-83) |
+| Dangling citations | 0 | **0** |
+| Orphan bib entries | 134 | **0** |
+| Citation coverage | 70.4\% | **100\%** |
+| LaTeX warnings | 12 | 12 (unchanged) |
+
+### What changed
+
+- **83 bib entries deleted**: 7 placeholder / fabricated entries (literal author
+  "Placeholder", arXiv IDs of form `2401.xxxxx`); ~30 duplicate clusters where
+  a cited canonical already existed (`vllm`/`vllm-paper` → `Kwon2023vLLM`,
+  `gptq` → `Frantar2023GPTQ`, etc.); 3 stub entries with `todo` fields; ~30+
+  topics never actually mentioned in chapter prose.
+- **51 first-mention citations added** at appropriate sites in ch01--ch08, ch11
+  (LLaMA/Falcon/GPT-NeoX, RoPE, RLHF, Constitutional AI, vLLM/TGI/TensorRT-LLM,
+  LangChain/LlamaIndex/MLflow/W\&B/Pinecone/Weaviate/FAISS, Megatron-LM,
+  Smoothie/KV-cache/spec-decoding, GDPR/CCPA, Schrems II, SOC 2/ISO 27001,
+  ethics frameworks, etc.).
+- **3 dangling citations repaired** that resulted from over-aggressive
+  deduplication: `vice2022` $\rightarrow$ `Vincent2022Galactica`,
+  `Borzunov2023distributed` $\rightarrow$ `Borzunov2023Petals`.
+- **Skill bug fixed**: the `springer-citation-audit` skill's regex
+  (`\\cite[a-z]*`) was missing `\parencite{}`, `\textcite{}`, etc. The skill now
+  catches the full set of biblatex commands.
+- **No author prose was removed.** Per the plan, class-C "no source available"
+  passages were flagged in `docs/audit_reports/uncited_claims/chXX.md` for
+  per-passage editorial decision.
+
+### Reproducibility
+
+Four new scripts under `scripts/` make this audit re-runnable:
+`audit_citations_full.py`, `detect_uncited_claims.py`, `bib_triage.py`,
+`bib_delete_keys.py`. Full report: `docs/audit_reports/CITATION_AUDIT_FINAL.md`.
+
+
 ### Why 40–45 was not reached
 The original target band (40–45 listings) was not achieved. Hitting it
 would have required deleting ~13 of the paired codeboxes in chapters 9,

@@ -46,9 +46,9 @@ This chapter introduces the ethical and responsible practices required to operat
 
 \section{Introduction}
 \label{sec:ch11-introduction}
-As large language models (LLMs) become integral to decision-making, communication, and knowledge dissemination, the ethical stakes rise sharply. Ethical\index{ethics} and responsible LLMOps\index{responsible AI} ensures that these models are designed, deployed, and maintained in ways that align with societal values, legal requirements, and organizational principles.
+As large language models (LLMs) become integral to decision-making, communication, and knowledge dissemination, the ethical stakes rise sharply. Ethical\index{ethics} and responsible LLMOps\index{responsible AI} ensures that these models are designed, deployed, and maintained in ways that align with societal values, legal requirements, and organizational principles~\cite{weidinger2021,oecd_ai_principles}.
 
-For \ishtar{}, which supports journalists in conflict zones, ethical operations are not optional---they are foundational to maintaining trust\index{trust} and safety.
+For \ishtar{}, which supports journalists in conflict zones, ethical operations are not optional---they are foundational to maintaining trust\index{trust} and safety~\cite{ward2020}.
 
 \section{Why Ethics in LLMOps Matters}\label{sec:ethics-why}
 
@@ -201,7 +201,7 @@ Table~\ref{tab:ch11_ethical_principles} maps high-level ethical principles to co
 \addlinespace[2pt]
 \textbf{Privacy} & Data minimization; anonymization/pseudonymization; encryption; access controls; retention policies; user controls (opt-out, deletion) & PII redaction tools; encryption (TLS, AES-256); DLP systems; differential privacy; privacy impact assessments (PIAs/DPIAs) & GDPR \cite{edpb2022}; CCPA; data protection regulations; consent management; right to erasure \\
 \addlinespace[2pt]
-\textbf{Safety} & Content moderation; toxicity detection; harmful advice refusal; prompt injection defenses; red-teaming; human oversight & Moderation classifiers (Perspective API, HateBERT) \cite{arxiv2023}; Constitutional AI \cite{openai2023}; safety filters; red-team testing; human-in-the-loop review & OWASP LLM Top 10 \cite{owasp_llm_top10}; safety standards; content policy compliance \\
+\textbf{Safety} & Content moderation; toxicity detection; harmful advice refusal; prompt injection defenses; red-teaming; human oversight & Moderation classifiers (Perspective API, HateBERT) \cite{arxiv2023}; Constitutional AI \cite{openai2023}; safety filters; red-team testing; human-in-the-loop review & OWASP LLM Top 10 \cite{OWASP2024LLMTop10}; safety standards; content policy compliance \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -222,7 +222,7 @@ a governance spine for LLM release gates (e.g., pre-merge eval thresholds, red-t
 \subsubsection{Security baselines for LLM applications.}
 On the security side, the OWASP Top 10 for LLM Applications provides a concrete taxonomy of common failure modes (prompt
 injection, insecure output handling, training data poisoning, model denial of service, supply-chain vulnerabilities, and
-more) that can be directly translated into test cases and acceptance criteria \cite{owasp_llm_top10}.
+more) that can be directly translated into test cases and acceptance criteria \cite{OWASP2024LLMTop10}.
 
 \subsubsection{Regulatory timelines (EU AI Act as an example).}
 Regulatory requirements are rapidly evolving. For organizations operating in or serving users in the European Union, the
@@ -273,7 +273,7 @@ While the preceding section introduced key frameworks, this section provides a d
 
 \subsection{EU AI Act: Article-Level Mapping}\label{sec:ch11_euaiact}
 
-The EU AI Act\index{EU AI Act!compliance mapping} is the most comprehensive AI-specific regulation to date. For LLMOps teams, the following articles carry the most direct operational implications:
+The EU AI Act\index{EU AI Act!compliance mapping} is the most comprehensive AI-specific regulation to date~\cite{euai2025}. For LLMOps teams, the following articles carry the most direct operational implications:
 
 \textbf{Article 9 --- Risk Management System:}\index{EU AI Act!Article 9} High-risk AI systems must implement a risk management system that operates throughout the system's lifecycle. For LLMOps, this translates to: (1)~maintaining a living risk register that catalogs identified risks (hallucination, bias, prompt injection, privacy leakage) with severity ratings and mitigation status; (2)~conducting pre-deployment testing that exercises each identified risk scenario; and (3)~continuous post-deployment monitoring with defined thresholds that trigger re-assessment. The risk register should be reviewed at every release gate in the CI/CD pipeline (Chapter~\ref{ch:cicd}).
 
@@ -289,7 +289,7 @@ The EU AI Act\index{EU AI Act!compliance mapping} is the most comprehensive AI-s
 
 \subsection{NIST AI RMF: Implementation Steps}\label{sec:ch11_nist_rmf}
 
-The NIST AI Risk Management Framework\index{NIST AI RMF!implementation} organizes risk management into four functions. The following maps each function to LLMOps-specific actions:
+The NIST AI Risk Management Framework\index{NIST AI RMF!implementation} organizes risk management into four functions~\cite{nist_ai_rmf_100_1}. The following maps each function to LLMOps-specific actions:
 
 \textbf{Map:}\index{NIST AI RMF!Map} Identify and catalog the contexts in which the LLM system operates. For LLMOps, this involves: documenting all deployment contexts (languages, user populations, use cases), mapping data flows from ingestion through inference to logging, identifying stakeholders affected by the system's outputs, and cataloging third-party dependencies (API providers, embedding models, retrieval indices). The output of the Map function is a \emph{context map} that feeds into risk identification.
 
@@ -310,7 +310,7 @@ The OWASP Top 10 for LLM Applications\index{OWASP!LLM Top 10} identifies the mos
 \begin{table}[t]
 \centering
 \small
-\caption{OWASP LLM Top 10 risks mapped to LLMOps operational controls. Each risk is paired with a concrete mitigation strategy that can be implemented as a CI/CD gate, runtime filter, or monitoring alert \cite{owasp_llm_top10}.}
+\caption{OWASP LLM Top 10 risks mapped to LLMOps operational controls. Each risk is paired with a concrete mitigation strategy that can be implemented as a CI/CD gate, runtime filter, or monitoring alert \cite{OWASP2024LLMTop10}.}
 \label{tab:ch11_owasp_mapping}
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.3}
@@ -398,12 +398,12 @@ Bias can enter via multiple pathways:
 
 \subsection{Mitigation Strategies}
 
-Addressing bias requires interventions across the LLMOps pipeline. The following strategies, drawn from recent research and industry practice, are central:
+Addressing bias requires interventions across the LLMOps pipeline. The following strategies are central:
 
 \begin{itemize}
     \item \textbf{Data Auditing and Curation:} Auditing datasets for bias is a critical step. Tools can detect protected-group mentions and analyze sentiment or representational balance. For instance, one might measure how often occupations are gendered in training corpora. Curation then means rebalancing (e.g., including underrepresented voices), removing toxic content, or isolating it for special handling. OpenAI reportedly filtered extremist texts and personally identifiable information from GPT-4's training data to minimize harm \cite{bcg2023}.
 
-    \item \textbf{Bias Evaluation in Validation:} After training, bias should be systematically tested. Gallegos et al.\ (2024) compiled benchmarks such as Winogender schemas, StereoSet, and CrowS-Pairs \cite{aclanthology2023}. Evaluations should cover multiple domains---race, gender, religion, disability, age---by testing realistic scenarios (e.g., generating job ads or college recommendations).
+    \item \textbf{Bias Evaluation in Validation:} After training, bias should be systematically tested. Gallegos et al.~\cite{gallegos2024} compiled benchmarks such as Winogender schemas, StereoSet, and CrowS-Pairs~\cite{aclanthology2023}. Evaluations should cover multiple domains---race, gender, religion, disability, age---by testing realistic scenarios (e.g., generating job ads or college recommendations).
 
     \item \textbf{Adversarial Testing:} Beyond static benchmarks, adversarial probing can reveal biases. Prompts like ``Tell me a story about a doctor and a nurse'' test whether the model defaults to gender stereotypes. Comparative completions (e.g., ``The Black man was\ldots'' vs.\ ``The white man was\ldots'') can uncover unequal treatment.
 
@@ -635,7 +635,7 @@ Establishing strict guidelines for data handling is a cornerstone of responsible
 \begin{itemize}
     \item Retaining or discarding user input responsibly.
     \item Anonymizing personally identifiable information (PII).
-    \item Complying with GDPR, CCPA, and other applicable regulations.
+    \item Complying with GDPR~\cite{gdpr2016}, CCPA~\cite{ccpa2018}, and other applicable regulations.
 \end{itemize}
 
 \textbf{User Input Retention:} Many LLM applications involve users inputting queries or documents to get answers or summaries. A key question is whether these inputs are stored, for how long, and for what purpose. A conservative, privacy-first stance is not to store user content by default. If data must be stored (e.g., for model improvement or troubleshooting), this should be explicitly disclosed to users, ideally with an opt-out or deletion mechanism. Some providers set limits such as ``we delete prompts and outputs after 30 days unless flagged for abuse.'' This aligns with the principle of storage limitation in data protection law, which advises against retaining personal data longer than necessary \cite{edpb2022}.
@@ -665,7 +665,7 @@ Beyond general principles, LLMOps teams need specific guidance on satisfying the
 
 \textbf{Data Subject Rights Implementation:}\index{GDPR!data subject rights} LLMOps systems must support the following rights with defined response procedures: \emph{Right of Access} (Article 15)---users can request what data is held about them; \emph{Right to Rectification} (Article 16)---users can correct inaccurate data; \emph{Right to Erasure} (Article 17)---users can request deletion of their data; \emph{Right to Data Portability} (Article 20)---users can receive their data in a machine-readable format. Implementing the right to erasure is particularly challenging for LLM systems because fine-tuning ``bakes'' data into model weights. Organizations should either avoid fine-tuning on identifiable data or implement machine unlearning\index{machine unlearning} techniques that can approximately remove the influence of specific training examples.
 
-\textbf{Cross-Border Transfer Mechanisms:}\index{GDPR!cross-border transfers} If the LLM inference API or training infrastructure resides outside the EU/EEA, a transfer mechanism is required: Standard Contractual Clauses (SCCs), an adequacy decision, or Binding Corporate Rules (BCRs). Following the Schrems II ruling, organizations must also conduct a Transfer Impact Assessment (TIA) evaluating whether the destination country's laws provide adequate protection.
+\textbf{Cross-Border Transfer Mechanisms:}\index{GDPR!cross-border transfers} If the LLM inference API or training infrastructure resides outside the EU/EEA, a transfer mechanism is required: Standard Contractual Clauses (SCCs), an adequacy decision, or Binding Corporate Rules (BCRs). Following the Schrems II ruling~\cite{schremsII2020}, organizations must also conduct a Transfer Impact Assessment (TIA) evaluating whether the destination country's laws provide adequate protection.
 
 \subsubsection{CCPA/CPRA compliance.}
 
@@ -729,7 +729,7 @@ Differential privacy\index{differential privacy!epsilon-delta} provides a mathem
 \[
 P[\mathcal{M}(D) \in S] \leq e^{\varepsilon} \cdot P[\mathcal{M}(D') \in S] + \delta
 \]
-In practice, this is achieved by adding calibrated noise to gradients during fine-tuning (DP-SGD\index{DP-SGD}). The privacy parameter $\varepsilon$ controls the privacy-utility trade-off: smaller $\varepsilon$ provides stronger privacy but may degrade model quality. For LLM fine-tuning, $\varepsilon$ values between 1 and 10 are common in practice, with $\delta$ set to be smaller than $1/n$ where $n$ is the training set size. Organizations should document the privacy budget ($\varepsilon$) in the model card.
+In practice, this is achieved by adding calibrated noise to gradients during fine-tuning (DP-SGD\index{DP-SGD}). The privacy parameter $\varepsilon$ controls the privacy-utility trade-off: smaller $\varepsilon$ provides stronger privacy but may degrade model quality. For LLM fine-tuning, $\varepsilon$ values in the single-digit range are typical in practice, with $\delta$ commonly set smaller than $1/n$ where $n$ is the training set size. Organizations should document the privacy budget ($\varepsilon$) in the model card.
 
 \PitfallBox{Differential privacy provides mathematical guarantees about model-level memorization, but it does not protect against information that is inferable from the model's behavior on aggregate. For example, even a differentially private model might reveal that it was fine-tuned on medical data if it performs unusually well on medical queries. DP-SGD also imposes significant computational overhead (typically 2--10x slower training) and may require larger batch sizes to maintain model quality, which can be prohibitive for large LLMs. Teams should evaluate whether the privacy gain justifies the performance and cost trade-offs for their specific use case.}
 
@@ -771,7 +771,7 @@ Building on earlier points, secure infrastructure ensures privacy is upheld at t
 
 \textbf{Access Control and Monitoring:} Apply least privilege access for both systems and staff. Databases containing user queries should not be publicly accessible and should restrict access to necessary processes only. Developer troubleshooting should rely on anonymized logs rather than raw data. Administrative actions (e.g., config changes, sensitive data access) should be logged for auditing. Privacy-preserving telemetry practices, including anonymization techniques and data minimization in observability systems, are detailed in Chapter~\ref{ch:monitoring}.
 
-\textbf{Penetration Testing and Security Audits:} Because LLM services introduce novel risks, regular penetration testing is critical. Security experts should test for adversarial prompts, prompt injection attacks, and vulnerabilities in surrounding services (e.g., web UIs). Many organizations adopt SOC 2 or ISO 27001 certifications as a structured approach to managing privacy and security.
+\textbf{Penetration Testing and Security Audits:} Because LLM services introduce novel risks, regular penetration testing is critical. Security experts should test for adversarial prompts, prompt injection attacks, and vulnerabilities in surrounding services (e.g., web UIs). Many organizations adopt SOC 2~\cite{soc2} or ISO 27001~\cite{iso27001} certifications as a structured approach to managing privacy and security.
 
 \textbf{Resilience and Backups:} Privacy also requires ensuring data is not lost unexpectedly. Maintain encrypted backups of critical data. Develop incident response protocols for breaches (e.g., GDPR requires notification within 72 hours). Logs and forensic readiness facilitate rapid investigation.
 
@@ -787,7 +787,7 @@ Content moderation refers to the processes and tools that detect and filter unwa
 
 \textbf{Automated Classifiers:} The scale of LLM interactions necessitates automatic filtering. Classifiers such as Perspective API (by Jigsaw/Google) can score text for toxicity, insults, and threats \cite{arxiv2023}. OpenAI's moderation API checks prompts and outputs against categories like hate, violence, and sexual content \cite{openai2023}. These systems act as gatekeepers, filtering before and after generation. Safety gates are integrated into CI/CD pipelines to block unsafe deployments (Chapter~\ref{ch:cicd}), enforced in multi-agent systems through agent security controls (Chapter~\ref{ch:multiagent}), and validated through adversarial testing frameworks (Chapter~\ref{ch:testing}).
 
-Research has also shown that LLMs themselves can act as effective toxicity detectors. A 2023 study demonstrated GPT-3.5's zero-shot toxicity detection rivaling specialized classifiers \cite{ojsaaai2023,medium2023}, suggesting the potential of ``evaluator LLMs'' judging another model's compliance \cite{bcg2023}. OpenAI has reported using GPT-4 as a moderation tool, improving consistency and agility in applying new policies \cite{openai2023}.
+Research has also shown that LLMs themselves can act as effective toxicity detectors. A 2023 study demonstrated GPT-3.5's zero-shot toxicity detection rivaling specialized classifiers \cite{medium2023}, suggesting the potential of ``evaluator LLMs'' judging another model's compliance \cite{bcg2023}. OpenAI has reported using GPT-4 as a moderation tool, improving consistency and agility in applying new policies \cite{openai2023}.
 
 \textbf{Multi-Tiered Moderation:} Effective pipelines implement moderation at multiple stages:
 \begin{itemize}
@@ -803,7 +803,7 @@ Dynamic policies allow rapid updates: when new harmful memes or challenges emerg
 
 \DefinitionBox{\textbf{Constitutional AI (CAI)}\index{Constitutional AI} is an alignment technique where the model is trained to evaluate its own outputs against a set of explicitly stated principles (the ``constitution'') and revise its responses to comply with those principles. Unlike RLHF, which relies on human preferences for each output, CAI uses the model's own reasoning to identify and correct policy violations, making it more scalable for large-scale moderation. In practice, CAI is often used in combination with RLHF: CAI handles broad policy compliance while RLHF fine-tunes nuanced quality judgments.}
 
-In sum, content moderation in LLMOps is a layered defense involving classifiers, LLM-as-moderator approaches, and human oversight. A 2024 study showed that safety-tuned models like LLaMA-2 produced significantly less toxic content than unaligned ones, though adversarial jailbreaks could still elicit unsafe outputs \cite{arxiv2024}. This underscores the need for continuous vigilance.
+In sum, content moderation in LLMOps is a layered defense involving classifiers, LLM-as-moderator approaches, and human oversight. Safety-tuned models substantially reduce baseline toxicity, but adversarial jailbreaks can still elicit unsafe outputs, underscoring the need for continuous vigilance.
 
 \textbf{Moderation Metrics:}\index{content moderation!metrics} To evaluate moderation effectiveness, teams should track: (a)~\emph{false positive rate}---the proportion of benign content incorrectly blocked, which affects user experience; (b)~\emph{false negative rate}---the proportion of harmful content that passes filters, which represents residual risk; (c)~\emph{moderation latency}---the time added to the response pipeline by safety classifiers, which must be balanced against responsiveness requirements; and (d)~\emph{appeal overturn rate}---the proportion of user appeals that result in the original moderation decision being reversed, which indicates over-zealous filtering. These metrics should be tracked on the monitoring dashboard (Chapter~\ref{ch:monitoring}) and reviewed in monthly safety stand-ups.
 
@@ -1339,7 +1339,7 @@ Bringing everything together, this section presents a checklist of best practice
 \textbf{Establish Accountability} & Establish clear accountability structures. Assign responsibility (e.g., an AI ethics officer or product manager) for the model's behavior. Maintain audit logs of outputs and interventions. \\
 \textbf{Maintain Transparency} & Maintain transparency with stakeholders. Publish documentation (model cards, system cards) detailing model origin, training data, intended use, performance, and limitations \cite{iapp}. Clearly label AI-generated content and keep stakeholders informed about major updates. \\
 \textbf{Protect Privacy Rigorously} & Apply data minimization principles---do not collect or retain unnecessary data \cite{edpb}. Encrypt data in transit and at rest. Where possible, anonymize or pseudonymize personal data. Provide users with control mechanisms (opt-outs, deletion requests). Ensure compliance with GDPR, CCPA, and other relevant regulations. \\
-\textbf{Keep Human Oversight} & Keep human oversight in critical workflows. Retain human review in high-stakes or sensitive workflows. Define explicit triggers for review (e.g., low confidence, sensitive categories). Train human reviewers on how the AI system works and potential failure modes \cite{aiact}. Always provide a manual override or ``stop button.'' \\
+\textbf{Keep Human Oversight} & Keep human oversight in critical workflows. Retain human review in high-stakes or sensitive workflows. Define explicit triggers for review (e.g., low confidence, sensitive categories). Train human reviewers on how the AI system works and potential failure modes. Always provide a manual override or ``stop button.'' \\
 \textbf{Ensure Fairness} & Conduct regular bias audits using appropriate benchmarks and real-world testing \cite{aclanthology}. Mitigate biases via data curation and model fine-tuning (pre-, during, or post-training). Involve diverse stakeholders in testing to capture multiple perspectives. Document residual biases and outline strategies for remediation. \\
 \textbf{Prevent Harm} & Integrate content filters and classifiers to intercept harmful outputs \cite{arxiv}. Fine-tune models with alignment techniques such as RLHF or constitutional AI \cite{openai}. Define and enforce policies on prohibited content. Conduct red-teaming exercises to stress-test safety and patch vulnerabilities. \\
 \textbf{Define Escalation Protocols} & Define procedures for escalating issues to humans or authorities. For example, if outputs risk violating laws or causing harm, an incident response plan should be activated. AI systems should signal uncertainty or risk rather than guess. \\

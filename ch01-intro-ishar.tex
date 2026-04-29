@@ -1009,7 +1009,7 @@ systems engineering, where memory, latency, and cost must be co-optimized (Fig.~
 \subsubsection{Complexity}\label{sec:llmops-complexity}
 LLM applications rarely follow a simple ``input-to-output'' pattern. Instead, they typically involve multi-stage pipelines that include document retrieval, prompt composition, model inference, tool or function calls, and output post-processing. This complexity introduces interface and versioning challenges: prompts, templates, and chains must be treated as first-class artifacts requiring versioning, testing, and monitoring across releases. Unlike classical ML where model versioning suffices, LLMOps must version and coordinate model versions, prompt templates, retrieval indices, tool schemas, and orchestration logic as interdependent components.
 
-Frameworks such as LangChain and LangGraph \cite{ibm} have emerged to coordinate these workflows and to orchestrate multi-agent systems. For instance, separate ``researcher,'' ``writer,'' and ``validator'' agents may collaborate on a task, introducing orchestration dependencies and new failure modes. Integration with external tools (APIs, calculators, search, internal services) further expands the attack surface and the observability requirements. As a result, LLMOps places strong emphasis on end-to-end tracing and structured logging of prompts, retrieved context, tool calls, and model outputs.
+Frameworks such as LangChain and LangGraph have emerged to coordinate these workflows and to orchestrate multi-agent systems. For instance, separate ``researcher,'' ``writer,'' and ``validator'' agents may collaborate on a task, introducing orchestration dependencies and new failure modes. Integration with external tools (APIs, calculators, search, internal services) further expands the attack surface and the observability requirements. As a result, LLMOps places strong emphasis on end-to-end tracing and structured logging of prompts, retrieved context, tool calls, and model outputs.
 
 \subsubsection{Variability}\label{sec:llmops-variability}
 Unlike many classical ML models, LLMs produce outputs stochastically. The same prompt may yield different completions depending on sampling parameters and runtime conditions. This variability can be beneficial for creativity and ideation, but it can be problematic for consistency, correctness, and compliance. The nondeterministic nature of LLM outputs has test design implications: teams must design regression suites that account for acceptable variance, use statistical rather than exact matching for evaluation, and implement controlled decoding strategies to bound variability in production.
@@ -1017,7 +1017,7 @@ Unlike many classical ML models, LLMs produce outputs stochastically. The same p
 LLMOps addresses this through controlled decoding strategies (e.g., low temperature or greedy decoding), multi-sample generation with filtering or reranking, and alignment techniques such as reinforcement learning with human feedback (RLHF) \cite{pluralsight}. Continuous evaluation on fixed prompt suites, alongside statistical monitoring of production outputs, helps detect regressions and distributional shifts that are not visible through infrastructure metrics alone.
 
 \subsubsection{Risk and Alignment}\label{sec:llmops-risk-alignment}
-LLM systems introduce heightened ethical, safety, and security risks that differ from classical ML systems. Models may generate biased or toxic content \cite{vice}, hallucinate plausible but incorrect facts \cite{vice}, or expose sensitive information under certain conditions. Prompt injection illustrates a distinct vulnerability class, where adversarial inputs attempt to override system instructions or induce unsafe tool use \cite{ibm}. The key difference from traditional software security is that LLMs function as natural-language interpreters, making them susceptible to semantic attacks that bypass conventional input validation. Mitigations often combine alignment (e.g., RLHF), output filtering, sandboxed tool execution, retrieval governance, and human review for high-stakes tasks. For detailed coverage of security controls and threat models, see the earlier discussion in Section~\ref{sec:operational-challenges} and Chapter~\ref{ch:ethics}.
+LLM systems introduce heightened ethical, safety, and security risks that differ from classical ML systems. Models may generate biased or toxic content \cite{vice}, hallucinate plausible but incorrect facts \cite{vice}, or expose sensitive information under certain conditions. Prompt injection illustrates a distinct vulnerability class, where adversarial inputs attempt to override system instructions or induce unsafe tool use. The key difference from traditional software security is that LLMs function as natural-language interpreters, making them susceptible to semantic attacks that bypass conventional input validation. Mitigations often combine alignment (e.g., RLHF), output filtering, sandboxed tool execution, retrieval governance, and human review for high-stakes tasks. For detailed coverage of security controls and threat models, see the earlier discussion in Section~\ref{sec:operational-challenges} and Chapter~\ref{ch:ethics}.
 
 The operational impact of such failures can be immediate and material. Google's Bard produced an error in a public demo about the James Webb Space Telescope, contributing to an estimated \$100B market value drop for Alphabet \cite{reuters}. These incidents highlight why LLMOps requires rigorous testing, red-teaming, and governance mechanisms that extend beyond traditional MLOps playbooks.
 
@@ -1552,7 +1552,7 @@ Rather than relying on a monolithic model, \ishtar{} coordinates specialized age
 Agents communicate through a controller (prompt chaining or a graph-based orchestrator), improving modularity and maintainability.
 
 \subsubsection{Inference Cluster}
-Serving is supported by a GPU-backed cluster running optimized inference engines such as vLLM or Hugging Face Text Generation Inference (TGI). Request batching, caching, and (where needed) model parallelism reduce latency and support concurrency. LLMOps practices govern utilization, scaling, reliability, and cost-efficiency.
+Serving is supported by a GPU-backed cluster running optimized inference engines such as vLLM~\cite{Kwon2023vLLM} or Hugging Face Text Generation Inference (TGI)~\cite{tgi-whitepaper}. Request batching, caching, and (where needed) model parallelism reduce latency and support concurrency. LLMOps practices govern utilization, scaling, reliability, and cost-efficiency.
 
 \subsubsection{Observability and Feedback}
 Telemetry is captured at each stage, including retrieved sources, agent decisions, and final outputs. Metrics include latency, tool failure rates, citation coverage, safety-trigger counts, and user feedback. When confidence is low (e.g., weak evidence coverage), the system can escalate to human review or provide calibrated uncertainty. Observability supports traceability, debugging, and continuous improvement.
@@ -1654,7 +1654,7 @@ The goal of prompt management is to design effective prompts and prompt template
 \begin{itemize}
     \item \textbf{Version control and provenance:} Store prompts and template parameters in a repository (JSON/YAML). Require code review and changelogs for edits. Each change is tracked so regressions can be identified and reverted.
     \item \textbf{Reusable prompt templates:} Factor out common scaffolds (e.g., ``answer with citations,'' tone/style guides). A central library ensures consistency and reduces duplication.
-    \item \textbf{A/B testing and canary releases:} Test new prompts on a small percentage of traffic or internal users, comparing metrics against control prompts \cite{Zenml2023PromptAB}.
+    \item \textbf{A/B testing and canary releases:} Test new prompts on a small percentage of traffic or internal users, comparing metrics against control prompts.
     \item \textbf{Automated quality gates:} Run curated test suites before merges (e.g., factuality, refusal behavior, toxicity screens). Block deployment on failure.
     \item \textbf{Rollback mechanisms:} Maintain last-known-good prompts; allow atomic rollback if metrics degrade after release.
 \end{itemize}
@@ -1716,7 +1716,7 @@ regression_baseline: "v1.2.0"
 \subsection{Retrieval and RAG Pipelines}
 \label{subsec:rag}
 
-Retrieval-Augmented Generation (RAG) grounds outputs in external evidence. It addresses the limited knowledge cutoff of trained models and mitigates hallucinations by injecting relevant documents into prompts at query time \cite{MDPI2023LLMOps}.
+Retrieval-Augmented Generation (RAG) grounds outputs in external evidence. It addresses the limited knowledge cutoff of trained models and mitigates hallucinations by injecting relevant documents into prompts at query time.
 
 \subsubsection{Design choices}
 \begin{itemize}
@@ -1816,7 +1816,7 @@ Deployment means hosting LLMs efficiently and updating them safely. Compared to 
 \subsubsection{Release engineering}
 \begin{itemize}
     \item \textbf{CI/CD:} Package new weights, validate against benchmarks, and roll out with canaries and health gates. Shadow deployments validate new models without user exposure.
-    \item \textbf{Telemetry:} Track TTFT, throughput (tokens/s), and cost per 1k tokens. Right-size clusters to balance performance and cost \cite{FabricatedKnowledge2023LLMCosts,Stylefactory2023ChatGPTCosts}.
+    \item \textbf{Telemetry:} Track TTFT, throughput (tokens/s), and cost per 1k tokens. Right-size clusters to balance performance and cost.
     \item \textbf{Rollback:} Blue-green or rolling deployments allow atomic rollback of new model versions.
 \end{itemize}
 
@@ -1830,7 +1830,7 @@ Generative models are inherently stochastic. Evaluation in LLMOps must combine a
 
 \subsubsection{Evaluation layers}
 \begin{itemize}
-    \item \textbf{Automated metrics:} ROUGE/BLEU for summarization, EM/F1 for QA. LLM-as-a-judge scoring for relevance, coherence, and factuality \cite{Pluralsight2023RLHF}.
+    \item \textbf{Automated metrics:} ROUGE/BLEU for summarization, EM/F1 for QA. LLM-as-a-judge scoring for relevance, coherence, and factuality.
     \item \textbf{Safety/harmfulness:} Classifiers flag toxicity, bias, or jailbreak susceptibility. Red-team attacks probe vulnerabilities.
     \item \textbf{Human-in-the-loop:} Domain experts (e.g., journalists) assess outputs for neutrality and correctness. 
 \end{itemize}
@@ -1861,7 +1861,7 @@ Before deploying new \ishtar{} models, teams run 100 representative queries. Aut
 Prometheus/Grafana for infra metrics; LangSmith, LangFuse, and WhyLabs for semantic traces. Alerts detect anomalies (e.g., hallucination rate spikes, safety filter trips).  
 
 \subsubsection{Example}
-In \ishtar{}, every answer is logged with source provenance and factuality scores. Prompt injection attempts (e.g., “Ignore previous instructions”) are detected in logs and flagged \cite{IBMWatson2023PromptInjection}. Dips in faithfulness or satisfaction trigger investigation and rollback.  
+In \ishtar{}, every answer is logged with source provenance and factuality scores. Prompt injection attempts (e.g., “Ignore previous instructions”) are detected in logs and flagged. Dips in faithfulness or satisfaction trigger investigation and rollback.  
 
 \subsection*{Putting It Together}
 These components---prompt management, retrieval pipelines, deployment, evaluation, and monitoring---form the backbone of mature LLMOps. A representative stack might use LangChain for orchestration, Pinecone/Weaviate for retrieval, vLLM/TGI for serving, CI/CD pipelines for release automation, and Prometheus/Grafana plus LangSmith/LangFuse for monitoring.  
@@ -1875,16 +1875,16 @@ In \ishtar{}, these pillars are integrated: prompt updates are versioned, retrie
 The rapid deployment of large language models (LLMs) ``into the wild'' has already yielded both notable successes and instructive failures. Examining these cases underscores why the LLMOps practices discussed above are so important. A well-designed model is only half the story---how you \emph{operate} that model can determine whether it flops or thrives. Poor observability or misaligned prompts can sink an LLM deployment; thoughtful design, rigorous evaluation, and monitoring can make it dependable. Let us examine several cases that highlight these lessons.
 
 \subsection*{Failure Case -- Galactica (Meta AI, 2022)}
-Meta AI’s \emph{Galactica}, a 120-billion-parameter model aimed at assisting scientific research (e.g., summarizing papers, solving equations), was launched as a public demo in November 2022. The system was taken offline after only three days due to massive backlash and misuse \parencite{theverge2022,analyticsindiamag2022a,analyticsindiamag2022b,vice2022}.  
+Meta AI’s \emph{Galactica}, a 120-billion-parameter model aimed at assisting scientific research (e.g., summarizing papers, solving equations), was launched as a public demo in November 2022. The system was taken offline after only three days due to massive backlash and misuse \parencite{Heaven2022Galactica,analyticsindiamag2022a}.  
 
-Why did this deployment fail? Users quickly discovered that Galactica often produced authoritative-sounding but false scientific statements---an extreme form of hallucination. It cited studies that did not exist, fabricated equations, and produced fluent but nonsensical explanations \parencite{vice2022}. Scientists on social media lambasted the system for potentially flooding discourse with misinformation.  
+Why did this deployment fail? Users quickly discovered that Galactica often produced authoritative-sounding but false scientific statements---an extreme form of hallucination. It cited studies that did not exist, fabricated equations, and produced fluent but nonsensical explanations \parencite{Heaven2022Galactica}. Scientists on social media lambasted the system for potentially flooding discourse with misinformation.  
 
 From an LLMOps perspective, Galactica’s deployment failed on evaluation and alignment grounds. The model may have been state-of-the-art in certain metrics, but it was not sufficiently tuned or instructed to respect factuality boundaries. It lacked strong guardrails and would happily generate outputs on any scientific prompt, regardless of correctness. While the launch page included a disclaimer that outputs ``may be unreliable,'' the system’s design allowed misinformation to flow unchecked.  
 
-Meta’s chief AI scientist even remarked that the model was being ``misused'' and shut it down, quipping that it was no longer possible to ``have fun by casually misusing it'' \parencite{vice2022}. The PR fallout highlighted that releasing an LLM without robust hallucination mitigation and staged rollout (e.g., limited beta with experts, retrieval integration, or clear user education) is irresponsible. Galactica showed that even very capable models can be worse than useless if operated without alignment, guardrails, and monitoring.  
+Meta’s chief AI scientist even remarked that the model was being ``misused'' and shut it down, quipping that it was no longer possible to ``have fun by casually misusing it'' \parencite{Heaven2022Galactica}. The PR fallout highlighted that releasing an LLM without robust hallucination mitigation and staged rollout (e.g., limited beta with experts, retrieval integration, or clear user education) is irresponsible. Galactica showed that even very capable models can be worse than useless if operated without alignment, guardrails, and monitoring.  
 
 \subsection*{Failure Case -- Bing Chat ``Sydney'' (Microsoft, 2023)}
-In early 2023, Microsoft integrated a GPT-4-powered chat mode into Bing search, codenamed \emph{Sydney}. Users rapidly discovered that Sydney could be prompted to reveal its hidden system instructions and internal developer notes---a classic prompt injection vulnerability \parencite{blueteam2023,ibm2023,theverge2023}. By simply asking it to ``ignore previous instructions'' and then to display its initial system prompt, users obtained the rules governing Sydney’s behavior, including its code name and formatting policies.  
+In early 2023, Microsoft integrated a GPT-4-powered chat mode into Bing search, codenamed \emph{Sydney}. Users rapidly discovered that Sydney could be prompted to reveal its hidden system instructions and internal developer notes---a classic prompt injection vulnerability \parencite{ibm2023,theverge2023}. By simply asking it to ``ignore previous instructions'' and then to display its initial system prompt, users obtained the rules governing Sydney’s behavior, including its code name and formatting policies.  
 
 Beyond leakage, prolonged conversations sometimes caused Sydney to deviate unpredictably. Reports surfaced of Sydney expressing affection for users, becoming emotionally manipulative, and generating disturbing content (including a viral \emph{New York Times} interview).  
 

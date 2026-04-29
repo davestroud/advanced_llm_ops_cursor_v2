@@ -3,82 +3,81 @@
 
 % ---------------------------------------------------------------
 % Glossary of domain terms used in the book. Starter list covers
-% terms that recur across chapters. Expand as needed; replace each
-% [DEFINITION] placeholder with a one-sentence definition written in
-% the book's voice (plain language, units where relevant).
+% terms that recur across chapters. Expand as needed; write each
+% definition in the book's voice (plain language, units where relevant).
 % ---------------------------------------------------------------
 
 \begin{description}
   \item[Canary deployment]
-        [DEFINITION: a release strategy where a new model version
+        A release strategy where a new model version
         serves a small fraction of traffic while metrics and safety
-        signals are monitored, before ramping to full rollout.]
+        signals are monitored, before ramping to full rollout.
 
   \item[Context window]
-        [DEFINITION: the maximum number of input tokens a model can
-        process in a single inference call.]
+        The maximum number of input tokens a model can
+        process in a single inference call.
 
   \item[Drift]
-        [DEFINITION: a change over time in the distribution of model
+        A change over time in the distribution of model
         inputs, outputs, or quality signals that threatens the
-        assumptions under which a deployment was approved.]
+        assumptions under which a deployment was approved.
 
   \item[Embedding]
-        [DEFINITION: a dense vector representation of text used for
-        retrieval, clustering, or similarity search.]
+        A dense vector representation of text used for
+        retrieval, clustering, or similarity search.
 
   \item[Grounding / groundedness]
-        [DEFINITION: the property that a generated claim is supported
+        The property that a generated claim is supported
         by retrieved evidence; measured by evaluator models or rubrics
-        in production.]
+        in production.
 
   \item[Hallucination]
-        [DEFINITION: a plausible-sounding but factually incorrect or
+        A plausible-sounding but factually incorrect or
         unsupported generation; a first-class failure mode for LLM
-        systems.]
+        systems.
 
   \item[LLM-as-judge]
-        [DEFINITION: an evaluation pattern in which a model scores
+        An evaluation pattern in which a model scores
         another model's outputs; requires bias mitigations to be
-        trustworthy as a gate.]
+        trustworthy as a gate.
 
   \item[LoRA (Low-Rank Adaptation)]
-        [DEFINITION: a parameter-efficient fine-tuning method that
+        A parameter-efficient fine-tuning method that
         trains a small low-rank update to the base model's weights
-        instead of all parameters.]
+        instead of all parameters.
 
   \item[Observability]
-        [DEFINITION: the ability to diagnose a system's behavior from
+        The ability to diagnose a system's behavior from
         its external outputs---traces, metrics, and logs---without
-        having to re-run it.]
+        having to re-run it.
 
   \item[Prompt template]
-        [DEFINITION: a versioned, parameterized instruction used to
+        A versioned, parameterized instruction used to
         elicit a specific model behavior; treated as a released
-        artifact.]
+        artifact.
 
   \item[Quantization]
-        [DEFINITION: reducing the numerical precision of model weights
+        Reducing the numerical precision of model weights
         or activations (e.g., FP16 to INT8) to lower memory and
-        compute cost, typically at some quality trade-off.]
+        compute cost, typically at some quality trade-off.
 
   \item[Retrieval-Augmented Generation (RAG)]
-        [DEFINITION: an inference pattern that combines a retrieval
+        An inference pattern that combines a retrieval
         step over an external corpus with a generation step to ground
-        responses in authoritative sources.]
+        responses in authoritative sources.
 
   \item[SLO (Service-Level Objective)]
-        [DEFINITION: a numeric target for a user-visible service
+        A numeric target for a user-visible service
         property (latency, availability, quality) that a team commits
-        to meet over a defined window.]
+        to meet over a defined window.
 
   \item[TTFT (Time-To-First-Token)]
-        [DEFINITION: the latency between request receipt and the first
-        generated token; a primary latency SLO for streamed responses.]
+        The latency between request receipt and the first
+        generated token; a primary latency SLO for streamed responses.
 
   \item[Vector store]
-        [DEFINITION: a database that indexes embeddings for efficient
-        nearest-neighbor retrieval, typically with metadata filters.]
+        A database that indexes embeddings for efficient
+        nearest-neighbor retrieval, typically with metadata filters.
 
   % Add more terms here as needed.
 \end{description}

@@ -545,8 +545,8 @@ Offline evaluation combines:
 \begin{itemize}
     \item \textbf{grounded QA accuracy} on a vetted benchmark,
     \item \textbf{retrieval recall} (e.g., Recall@5) for labeled queries,
-    \item \textbf{RAG quality metrics} (e.g., faithfulness/answer relevance via RAGAS)~\cite{ragas,ragas_eacl2024},
-    \item \textbf{safety regression suites} (prompt injection, sensitive-data requests, refusal correctness) aligned with OWASP LLM guidance~\cite{owasp_llm_top10}.
+    \item \textbf{RAG quality metrics} (e.g., faithfulness/answer relevance via RAGAS)~\cite{ragas_eacl2024},
+    \item \textbf{safety regression suites} (prompt injection, sensitive-data requests, refusal correctness) aligned with OWASP LLM guidance~\cite{OWASP2024LLMTop10}.
 \end{itemize}
 Online evaluation uses shadow traffic and post-deploy canaries, with automatic rollback if SLOs or quality gates regress.
 
@@ -921,7 +921,7 @@ ReAct-style reasoning-and-acting patterns provide a research-grounded basis for 
 User feedback can inform prompt refinement and, cautiously, fine-tuning cycles, provided governance prevents bias amplification and regressions.
 
 \subsubsection{5.\ Evaluation innovation.}
-RAG-specific evaluation (citation precision\index{precision!citation}, faithfulness\index{faithfulness}, and evidence coverage\index{evidence coverage}) should evolve from ad hoc audits to standardized, automated suites (e.g., RAGAS)~\cite{ragas,ragas_eacl2024}.
+RAG-specific evaluation (citation precision\index{precision!citation}, faithfulness\index{faithfulness}, and evidence coverage\index{evidence coverage}) should evolve from ad hoc audits to standardized, automated suites (e.g., RAGAS)~\cite{ragas_eacl2024}.
 
 \subsubsection{Conclusion.}
 The \ishtar{} case study demonstrates that reliable LLM applications require systems engineering: rigorous retrieval design, staged deployment, observability, and explicit governance.

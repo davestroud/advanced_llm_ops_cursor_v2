@@ -9,8 +9,10 @@ mkdir -p docs/audit_reports
   echo "# Citation Audit — $TIMESTAMP"
   echo ""
 
-  used_keys=$(grep -rhoE "\\\\cite[a-z]*\{[^}]+\}" ch*.tex 2>/dev/null \
-              | sed 's/\\cite[a-z]*{//;s/}$//' \
+  # Catches \cite, \citep, \citet, \citeauthor, \citeyear, \citetitle, \citenum,
+  # \parencite, \textcite, \autocite, \smartcite, \footcite, \fullcite.
+  used_keys=$(grep -rhoE "\\\\(cite[a-z]*|parencite|textcite|autocite|smartcite|footcite|fullcite)\{[^}]+\}" ch*.tex 2>/dev/null \
+              | sed -E 's/^\\(cite[a-z]*|parencite|textcite|autocite|smartcite|footcite|fullcite)\{//;s/\}$//' \
               | tr ',' '\n' | tr -d ' ' | sort -u)
 
   defined_keys=$(grep -E "^@" references.bib 2>/dev/null \
@@ -42,7 +44,7 @@ mkdir -p docs/audit_reports
 
   echo "## \\\\cite commands with spaces after commas"
   echo ""
-  hits=$(grep -rnE "\\\\cite[a-z]*\{[^}]*, [^}]*\}" ch*.tex 2>/dev/null || true)
+  hits=$(grep -rnE "\\\\(cite[a-z]*|parencite|textcite|autocite|smartcite|footcite|fullcite)\{[^}]*, [^}]*\}" ch*.tex 2>/dev/null || true)
   if [ -z "$hits" ]; then
     echo "PASS — none found"
   else

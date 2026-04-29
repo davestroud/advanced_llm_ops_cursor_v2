@@ -52,7 +52,7 @@ Large Language Models (LLMs) are powerful, but inherently limited by their train
 
 Retrieval-Augmented Generation (RAG) bridges this gap by coupling an LLM with an external knowledge retrieval system, enabling real-time access to up-to-date and authoritative information. Instead of relying solely on static parameters, the LLM can dynamically pull in relevant context from external sources at query time, making responses more accurate, context-aware, and grounded in evidence \cite{Guu2020REALM,Izacard2020Fusion}. 
 
-This chapter provides a comprehensive guide to RAG in LLMOps, exploring architectural patterns, tooling, performance considerations, and real-world examples using \ishtar{}. RAG has rapidly become the go-to technique for integrating external knowledge into LLM pipelines, consistently outperforming approaches such as unsupervised fine-tuning for tasks requiring freshness, specialization, or private data integration \cite{Borgeaud2022RETRO,Thakur2021BEIR,RAGAS2023}.
+This chapter provides a comprehensive guide to RAG in LLMOps, exploring architectural patterns, tooling, performance considerations, and real-world examples using \ishtar{}. RAG has rapidly become the go-to technique for integrating external knowledge into LLM pipelines, consistently outperforming approaches such as unsupervised fine-tuning for tasks requiring freshness, specialization, or private data integration \cite{Borgeaud2022RETRO,Thakur2021BEIR,ragas_eacl2024}.
 
 
 \section{Why RAG is Essential for LLMOps}
@@ -78,7 +78,7 @@ For \ishtar{}, where crisis reporting depends on freshness and traceability, RAG
 LLMs have a knowledge cutoff: once trained, they do not automatically incorporate events after the training window. When asked about recent incidents or rapidly evolving situations, a base model may respond confidently with outdated or incorrect information \cite{Lewis2020RAG,Pinecone2023RAG}. RAG mitigates staleness by retrieving from a continuously updated corpus—news feeds, internal reports, or curated databases—so the model conditions its answer on current sources rather than static parameters.
 
 \subsection{Hallucinations and Accuracy}
-Hallucinations are often a byproduct of the model optimizing for plausibility rather than truth when evidence is missing. RAG shifts the task from open-book recall to \emph{grounded synthesis}: the model is given retrieved passages and instructed to answer using that evidence \cite{Lewis2020RAG,Izacard2020Fusion}. This does not eliminate hallucinations outright, but it makes them easier to detect (via attribution) and easier to reduce (via retrieval and prompt improvements). In practice, RAG evaluation frameworks explicitly measure \emph{faithfulness}—the degree to which an answer is supported by the retrieved context—alongside answer relevance \cite{RAGAS2023}.
+Hallucinations are often a byproduct of the model optimizing for plausibility rather than truth when evidence is missing. RAG shifts the task from open-book recall to \emph{grounded synthesis}: the model is given retrieved passages and instructed to answer using that evidence \cite{Lewis2020RAG,Izacard2020Fusion}. This does not eliminate hallucinations outright, but it makes them easier to detect (via attribution) and easier to reduce (via retrieval and prompt improvements). In practice, RAG evaluation frameworks explicitly measure \emph{faithfulness}—the degree to which an answer is supported by the retrieved context—alongside answer relevance \cite{ragas_eacl2024}.
 
 \subsection{Adapting to Emerging Events}
 In fast-changing domains such as crisis response, a system must incorporate new information minutes after publication. RAG supports this by allowing ingestion and indexing to run continuously, so newly arrived updates become retrievable without re-training \cite{Nakano2021WebGPT,Asai2020MultiHop}. For \ishtar{}, this property matters operationally: the system can ingest an official bulletin, index it, and begin citing it in downstream answers as soon as it is available.
@@ -130,7 +130,7 @@ RAG is essential to LLMOps because it makes knowledge \emph{updatable}, answers 
 
 \section{Core Components of a RAG System}
 \label{sec:rag-core-components-of-a-rag-system}
-A production RAG system\index{RAG!system} consists of \emph{offline} components (ingestion\index{ingestion}, cleaning\index{cleaning}, chunking\index{chunking}, embedding\index{embedding}, indexing\index{indexing}) and \emph{online} components (query processing\index{query processing}, retrieval\index{retrieval}, reranking\index{reranking}, context construction\index{context!construction}, and generation\index{generation}). As shown in Figure~\ref{fig:ch08_rag_querytime}, the online query-time loop orchestrates these components to produce grounded, verifiable answers.
+A production RAG system\index{RAG!system} consists of \emph{offline} components (ingestion\index{ingestion}, cleaning\index{cleaning}, chunking\index{chunking}, embedding\index{embedding}, indexing\index{indexing}) and \emph{online} components (query processing\index{query processing}, retrieval\index{retrieval}, reranking\index{reranking}, context construction\index{context!construction}, and generation\index{generation})~\cite{Pinecone2023RAG}. As shown in Figure~\ref{fig:ch08_rag_querytime}, the online query-time loop orchestrates these components to produce grounded, verifiable answers.
 
 \begin{figure}[tb]
 \centering
@@ -375,7 +375,7 @@ Each retrieval hop adds 50--200\,ms of latency (embedding + ANN search + reranki
 \PitfallBox{Multi-hop retrieval can amplify errors: if the first retrieval step returns irrelevant context, subsequent hops may ``drift'' further from the correct evidence. Always validate intermediate retrieval quality and implement early termination when retrieval confidence drops below a threshold.}
 
 \subsection{Agent-Enhanced RAG}
-Agent-enhanced RAG treats retrieval as one tool among many. An agent decides when to retrieve, how to reformulate queries, and whether additional tools (web search, calculators, structured DB queries) are needed. This can improve flexibility, but increases the risk surface (prompt injection, tool misuse) and requires stronger guardrails and observability.
+Agent-enhanced RAG treats retrieval as one tool among many. An agent decides when to retrieve, how to reformulate queries, and whether additional tools (web search, calculators, structured DB queries) are needed~\cite{Yao2022ReAct,Schick2023Toolformer}. This can improve flexibility, but increases the risk surface (prompt injection, tool misuse) and requires stronger guardrails and observability.
 
 \subsubsection*{Summary}
 Architectural choice is an LLMOps decision: single-stage RAG is the baseline, multi-stage RAG improves multi-hop coverage, and agentic patterns provide flexibility at the cost of complexity and stricter governance.
@@ -810,7 +810,7 @@ Sparse retrieval methods such as BM25 represent text with sparse term weights an
     \item Requires careful tokenization and normalization for noisy corpora.
 \end{itemize}
 
-Neural sparse methods (e.g., SPLADE) blend lexical interpretability with learned term expansion, often improving recall while retaining sparse indexing \cite{Lin2021SPLADE}.
+Neural sparse methods (e.g., SPLADE) blend lexical interpretability with learned term expansion, often improving recall while retaining sparse indexing \cite{Lin2021SPLADE,AWS2023NeuralSparse}.
 
 \subsection{Hybrid Retrieval}
 Hybrid retrieval combines dense and sparse signals. Common implementations include:
@@ -918,7 +918,7 @@ These techniques are particularly valuable when user queries are underspecified 
 Not every query benefits from retrieval. Adaptive retrieval systems decide \emph{when} to retrieve rather than retrieving on every request, optimizing both latency and cost.
 
 \paragraph{Self-RAG: model-driven retrieval decisions.}
-Self-RAG trains the model to generate special tokens indicating whether retrieval is needed for a given query. When the model is confident in its parametric knowledge (e.g., well-known facts, common definitions), it generates directly; when uncertainty is detected, it triggers retrieval. This approach reduces unnecessary retrieval calls by 30--50\% on typical workloads while maintaining answer quality on knowledge-intensive queries.
+Self-RAG trains the model to generate special tokens indicating whether retrieval is needed for a given query. When the model is confident in its parametric knowledge (e.g., well-known facts, common definitions), it generates directly; when uncertainty is detected, it triggers retrieval. This approach can reduce unnecessary retrieval calls substantially while maintaining answer quality on knowledge-intensive queries.
 
 \paragraph{Confidence-based retrieval.}
 A simpler production pattern uses the model's output probability distribution as a confidence signal. When the maximum token probability falls below a threshold during generation, the system pauses, retrieves relevant context, and restarts generation with the augmented prompt. This approach requires no special training---it works with any autoregressive model---but adds engineering complexity for mid-generation interruption and restart.
@@ -1015,7 +1015,7 @@ There are two common citation strategies:
     \item \textbf{Inline citations by prompting}: label passages (e.g., [1], [2]) and instruct the model to cite them.
     \item \textbf{Post-hoc attribution}: align answer spans to passages after generation to produce citations deterministically.
 \end{enumerate}
-Prompted citations are easy to implement but can be misattributed; post-hoc approaches are more reliable but require additional engineering. Regardless of strategy, evaluate citation precision and answer faithfulness (Section~\ref{sec:rag-metrics}) \cite{RAGAS2023}.
+Prompted citations are easy to implement but can be misattributed; post-hoc approaches are more reliable but require additional engineering. Regardless of strategy, evaluate citation precision and answer faithfulness (Section~\ref{sec:rag-metrics}) \cite{ragas_eacl2024}.
 
 \subsection{Multi-Turn Conversations}
 Conversational RAG must decide how to combine conversation history with retrieval:
@@ -1079,7 +1079,7 @@ Generation quality must capture both usefulness and grounding. Common criteria i
 
 In practice, teams should define an explicit rubric that separates \emph{factuality} (truth in the world) from \emph{faithfulness} (support by the retrieved evidence). Faithfulness is the controllable property of a RAG pipeline: even if sources are wrong, the system can remain faithful to them and expose citations for review. For \ishtar{}, this mirrors editorial process: the system should not invent facts, and it should allow journalists to verify claims against primary sources.
 
-Automated frameworks such as RAGAS provide practical signals for faithfulness and relevance using the retrieved passages and the generated answer \cite{RAGAS2023}. However, automated metrics should be complemented with periodic human evaluation, especially for high-impact domains, because models can be persuasive even when subtly unsupported. A pragmatic best practice is to maintain a small, continuously refreshed ``golden set'' of queries with human-validated evidence and expected citation behavior; run it on every change that touches retrieval, prompting, or generation.
+Automated frameworks such as RAGAS provide practical signals for faithfulness and relevance using the retrieved passages and the generated answer \cite{ragas_eacl2024}. However, automated metrics should be complemented with periodic human evaluation, especially for high-impact domains, because models can be persuasive even when subtly unsupported. A pragmatic best practice is to maintain a small, continuously refreshed ``golden set'' of queries with human-validated evidence and expected citation behavior; run it on every change that touches retrieval, prompting, or generation.
 
 \subsection{Citation Accuracy and Attribution}
 If the system provides citations, evaluate them explicitly; citation failures can be worse than missing citations because they create a false sense of verification. At minimum, measure:
@@ -1172,7 +1172,7 @@ If the corpus contains confidential content, enforce access control at retrieval
 Use encryption in transit and at rest, and define retention policies for both raw documents and embeddings. If documents must be deleted (e.g., policy updates, user deletion requests), ensure you can delete both the raw text and all derived vectors and caches. Design ingestion with "un-ingestion" as a first-class capability.
 
 \subsection{Prompt Injection and Untrusted Content}
-RAG corpora frequently include untrusted text (web pages, emails, social media). Retrieved passages may contain instructions that conflict with your system prompt. Mitigations include:
+RAG corpora frequently include untrusted text (web pages, emails, social media). Retrieved passages may contain instructions that conflict with your system prompt~\cite{OWASP2024LLMTop10}. Mitigations include:
 \begin{itemize}
     \item strict system instructions that treat retrieved text as \emph{data}, not instructions,
     \item sanitization and normalization during ingestion,
@@ -1205,7 +1205,7 @@ Security in RAG is the combination of standard data-system controls (access cont
 \addlinespace[1pt]
 \textbf{Data Retention \& Deletion} & Retention policies for raw documents and embeddings; ``un-ingestion'' capability for deletion requests & Automated retention enforcement; delete both raw text and derived vectors; version tracking for audit trails & GDPR (right to erasure); CCPA (deletion requests); data minimization principles \\
 \addlinespace[1pt]
-\textbf{Prompt Injection Defense} & Strict system instructions treating retrieved text as data; sanitization during ingestion; low-trust source filtering; DLP scanning & System prompt hierarchy; content sanitization pipelines; source trust scoring; output pattern detection & OWASP LLM Top 10 \cite{owasp_llm_top10}; security best practices for AI systems \\
+\textbf{Prompt Injection Defense} & Strict system instructions treating retrieved text as data; sanitization during ingestion; low-trust source filtering; DLP scanning & System prompt hierarchy; content sanitization pipelines; source trust scoring; output pattern detection & OWASP LLM Top 10 \cite{OWASP2024LLMTop10}; security best practices for AI systems \\
 \addlinespace[1pt]
 \textbf{Auditability \& Monitoring} & Log query inputs, retrieved document IDs, model outputs (with redaction); trace claims to sources & Structured logging with PII redaction; correlation IDs; audit trail retention; query access logging & GDPR (audit requirements); SOC 2 (monitoring); compliance audit support \\
 \addlinespace[1pt]

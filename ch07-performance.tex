@@ -665,7 +665,7 @@ That said, batching has trade-offs: it increases the latency for each individual
 
 
 
-From a production standpoint, dynamic batching is a low-hanging fruit for optimization: frameworks like TGI and DeepSpeed-Inference provide it out-of-the-box. Continuous batching (token-level interleaving) is more complex but very powerful for large models under heavy multi-user load. \ishtar{} initially implemented simple request grouping, then moved to vLLM’s dynamic token batching to handle surges of simultaneous queries without exploding latency.
+From a production standpoint, dynamic batching is a low-hanging fruit for optimization: frameworks like TGI~\cite{tgi-whitepaper} and DeepSpeed-Inference provide it out-of-the-box. Continuous batching (token-level interleaving) is more complex but very powerful for large models under heavy multi-user load. \ishtar{} initially implemented simple request grouping, then moved to vLLM’s dynamic token batching to handle surges of simultaneous queries without exploding latency.
 
 \subsection{Asynchronous Processing}
 \label{sec:perf-async}
@@ -1235,24 +1235,6 @@ Baseline (no optimization) & 1200\,ms\,/\,3000\,ms & 45 & 0.032 & 4500 \\
 
 Overall, this case study underscores that combining model, system, and prompt optimizations yields a performant, cost-effective LLM service suitable for real-time journalism.
 
-\section{Best Practices Checklist (Quick)}
-\label{sec:perf-checklist-quick}
-
-\ChecklistBox[Best Practices Checklist (Quick)]{
-\small
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.4}
-\begin{tabularx}{\linewidth}{@{}p{3.2cm}X@{}}
-\textbf{Checklist Item} & \textbf{Description} \\
-\midrule
-\textbf{Profile Before Optimizing} & Know your bottlenecks. Use profilers to identify whether compute, memory, or data transfer is limiting throughput. \\
-\textbf{Start with Easy Wins} & Apply simple, high-impact optimizations first: batching, caching, and prompt optimization before more involved changes. \\
-\textbf{Use Specialized Runtimes} & Leverage high-performance inference engines (vLLM, TGI, DeepSpeed-Inference, TensorRT, etc.) for inference. \\
-\textbf{Quantize and Prune Cautiously} & Reduce precision of weights and activations to cut memory and increase speed, but always test the impact on task quality. \\
-\textbf{Automate Performance Regression Tests} & Integrate performance benchmarks into CI/CD to catch degradations whenever you change the model, code, or infrastructure. \\
-\end{tabularx}
-}
-
 \subsection{Optimization Priority Framework}\index{optimization!priority framework}
 \label{sec:perf-priority-framework}
 When time and engineering resources are limited, practitioners need a principled way to decide which optimization to tackle first.
@@ -1367,17 +1349,17 @@ Encoder-only models (like BERT and its variants) process the input in a single f
 
 \textbf{Memory:} Memory is dominated by activations and attention keys/values for the full input during the forward pass. There is no incremental cache growth across tokens, and no concept of step-by-step decoding. Thus, memory scales with input length $T$ and batch size $B$, but not output length \cite{bert-original}. A BERT-large run with $T=512$ incurs a fixed memory cost proportional to activations for that sequence, regardless of whether the output is a classification label or a dense vector.
 
-\textbf{Cloud Implications:} Encoder-only models are cost-effective on CPU or modest GPU instances for large-batch embedding workloads such as RAG indexing. Horizontal scaling is straightforward since requests are stateless, making load balancing trivial. Aggressive batching and $\mathrm{INT8}/\mathrm{FP8}$ quantization further reduce costs, enabling deployment even on commodity hardware \cite{int8-quantization,fp8-training}. In \ishtar{}, embedding jobs could run efficiently on T4 or L4 GPUs with batching, or even across CPU clusters using AVX-512 acceleration.
+\textbf{Cloud Implications:} Encoder-only models are cost-effective on CPU or modest GPU instances for large-batch embedding workloads such as RAG indexing. Horizontal scaling is straightforward since requests are stateless, making load balancing trivial. Aggressive batching and $\mathrm{INT8}/\mathrm{FP8}$ quantization further reduce costs, enabling deployment even on commodity hardware \cite{Dettmers2022LLMint8}. In \ishtar{}, embedding jobs could run efficiently on T4 or L4 GPUs with batching, or even across CPU clusters using AVX-512 acceleration.
 
 \subsection{Decoder-Only (Autoregressive LM)}
 Decoder-only models generate tokens sequentially, conditioning on prior tokens. They dominate open-ended generation, assistants, and RAG answer synthesis.
 
-\textbf{Latency/Throughput:} Time-to-first-token (TTFT) depends on prompt length $T_0$ since the model must encode the entire prompt before producing output. Subsequent tokens are generated step by step, each attending to all prior tokens. Naive complexity per step is $O(T^2)$, but optimizations like caching and FlashAttention significantly reduce runtime \cite{gpt-inference,flashattention-v2}. In steady state, throughput is measured in tokens/s:
+\textbf{Latency/Throughput:} Time-to-first-token (TTFT) depends on prompt length $T_0$ since the model must encode the entire prompt before producing output. Subsequent tokens are generated step by step, each attending to all prior tokens. Naive complexity per step is $O(T^2)$, but optimizations like caching and FlashAttention significantly reduce runtime \cite{Dao2023FlashAttention2}. In steady state, throughput is measured in tokens/s:
 \begin{equation}
   \Theta \;\approx\; \frac{B \cdot \Delta}{\tau_{\text{step}}(B, T_0, \Delta)} \cdot \eta
 \end{equation}
 
-where $B$ is batch size, $\Delta$ the generated length, $\tau_{\text{step}}$ the per-step time, and $\eta$ an efficiency factor accounting for utilization \cite{Kwon2023vLLM,fused-kernels}. Larger $B$ boosts throughput, but queueing delays increase latency.
+where $B$ is batch size, $\Delta$ the generated length, $\tau_{\text{step}}$ the per-step time, and $\eta$ an efficiency factor accounting for utilization \cite{Kwon2023vLLM,Dao2022FlashAttention}. Larger $B$ boosts throughput, but queueing delays increase latency.
 
 \textbf{Memory:} Memory pressure arises from the key/value (KV) cache, which grows linearly with batch size $B$ and sequence length $T$. For a single layer:
 \[
@@ -1387,7 +1369,7 @@ where $H$ is number of heads, $d_h$ head dimension, and $b$ bytes per scalar. Fo
 \[
   M_{\text{KV}} \;=\; L \cdot M_{\text{KV, layer}} \;\propto\; B\,T\,L\,H\,d_h\,b.
 \]
-Thus long contexts and larger batches quickly dominate GPU memory, often equaling or exceeding model weights \cite{attention-kv-cache,kv-quant}. Paging and quantizing KV (\S\ref{sec:inference-engines}) expand feasible deployment ranges \cite{paged-attention}.
+Thus long contexts and larger batches quickly dominate GPU memory, often equaling or exceeding model weights. Paging and quantizing KV (\S\ref{sec:inference-engines}) expand feasible deployment ranges \cite{Kwon2023vLLM}.
 
 \textbf{Cloud Implications:} Serving decoder-only models efficiently requires optimized runtimes (e.g., vLLM, TGI, TensorRT-LLM) with continuous batching to maintain utilization \cite{Kwon2023vLLM,tgi_docs,tensorrt_llm_docs}. Scaling options include vertical scaling (larger GPUs for longer contexts) and horizontal scaling (more replicas behind a load balancer). Trade-offs include: 
 \begin{itemize}
@@ -1398,11 +1380,11 @@ Thus long contexts and larger batches quickly dominate GPU memory, often equalin
 In \ishtar{}, decoder components (e.g., summarization) showed significantly higher compute demand than embedding pipelines, forcing replication beyond a certain concurrency threshold.
 
 \subsection{Mixture-of-Experts (MoE)}
-MoE models activate a sparse subset of experts per token, reducing effective FLOPs while maintaining high capacity \cite{switch-transformers,moe-inference}.
+MoE models activate a sparse subset of experts per token, reducing effective FLOPs while maintaining high capacity.
 
 \textbf{Latency/Throughput:} Ideally, sparsity reduces per-token FLOPs, but routing overhead and load imbalance can increase tail latency. Performance depends on effective expert load balancing. When balanced, MoEs deliver favorable quality–cost trade-offs.
 
-\textbf{Memory:} Model state is distributed across experts, often placed on separate devices. Only a fraction of experts are active per token, reducing per-token memory, while total parameter count can scale far beyond dense alternatives. However, inter-device communication overhead is substantial, requiring high-bandwidth interconnects \cite{expert-parallel}.
+\textbf{Memory:} Model state is distributed across experts, often placed on separate devices. Only a fraction of experts are active per token, reducing per-token memory, while total parameter count can scale far beyond dense alternatives. However, inter-device communication overhead is substantial, requiring high-bandwidth interconnects.
 
 \textbf{Cloud Implications:} MoEs benefit from expert parallelism in multi-GPU clusters but impose non-trivial scheduling and networking demands:
 \begin{itemize}
@@ -1423,7 +1405,7 @@ To guide capacity planning and autoscaling, we formalize inference cost across a
 
 \subsection{Attention and KV Cache}
 \label{sec:perf-attention-kv-cache}
-Self-attention time complexity per layer with naive kernels is $O(B\,T^2\,H\,d_h)$. For generation, time-to-first-token (TTFT) scales with $T_0^2$; steady-state token latency scales linearly in $\Delta$ with optimized kernels such as FlashAttention \cite{flashattention-v2}.
+Self-attention time complexity per layer with naive kernels is $O(B\,T^2\,H\,d_h)$. For generation, time-to-first-token (TTFT) scales with $T_0^2$; steady-state token latency scales linearly in $\Delta$ with optimized kernels such as FlashAttention \cite{Dao2023FlashAttention2}.
 
 We now formalize the memory requirements of the key-value (KV) cache, which often dominates memory usage for decoder models with long contexts. Let $B$ denote batch size (number of sequences processed concurrently), $N$ input (or current sequence) length, $H$ number of attention heads, $d_h$ head dimension, and $\rho$ bytes per scalar (e.g., 2 for FP16, 1 for INT8). The per-layer KV cache memory is approximately:
 \begin{equation}
@@ -1436,7 +1418,7 @@ M_{\text{KV}} \;=\; L \cdot M_{\text{KV,layer}} \;\propto\; B\,N\,L\,H\,d_h\,\rh
 \label{eq:kv-total}
 \end{equation}
 
-This linear growth in $B$ and $N$ is often the operational bottleneck for long contexts and high concurrency. It implies that doubling the batch or doubling the context length will double memory usage for KV (holding other factors constant). Thus, reducing precision ($\rho$), compressing or sparsifying the KV, or paging KV out of GPU memory (cf.~\S\ref{sec:inference-engines}) directly increases the feasible $B$ and $N$ \cite{kv-quant,paged-attention}.
+This linear growth in $B$ and $N$ is often the operational bottleneck for long contexts and high concurrency. It implies that doubling the batch or doubling the context length will double memory usage for KV (holding other factors constant). Thus, reducing precision ($\rho$), compressing or sparsifying the KV, or paging KV out of GPU memory (cf.~\S\ref{sec:inference-engines}) directly increases the feasible $B$ and $N$ \cite{Kwon2023vLLM}.
 
 \subsubsection{Worked Example.}  
 Consider a model with $L=40$ layers, $H=40$ heads, $d_h=128$, serving $B=16$ sequences of length $N=2048$ in FP16 ($\rho=2$). Plugging into Eq.~\eqref{eq:kv-total}:
@@ -1445,7 +1427,7 @@ M_{\text{KV}} \approx 40 \times 2 \times 16 \times 2048 \times 40 \times 128 \ti
 \]
 which is roughly 25~GB. Quantizing the KV to INT8 (reducing $\rho$ from 2 to 1) halves that to 12.5~GB, potentially fitting in a 16~GB GPU along with weights. Such calculations informed deployment decisions in \ishtar{}, e.g., whether to chunk contexts or resize batch.
 
-In terms of compute complexity, a naive self-attention layer is $O(N^2 d_{\text{model}})$ where $d_{\text{model}} = H \cdot d_h$. For generation, TTFT scales as $O(N_0^2)$, while subsequent tokens scale closer to $O(N_0^2 + N_0 \Delta)$ with optimized kernels. FlashAttention and similar implementations reduce memory traffic and constants, so generating $\Delta$ tokens is much faster than a naive quadratic analysis suggests.
+In terms of compute complexity, a naive self-attention layer is $O(N^2 d_{\text{model}})$ where $d_{\text{model}} = H \cdot d_h$. For generation, TTFT scales as $O(N_0^2)$, while subsequent tokens scale closer to $O(N_0^2 + N_0 \Delta)$ with optimized kernels. FlashAttention~\cite{Dao2022FlashAttention} and similar implementations reduce memory traffic and constants, so generating $\Delta$ tokens is much faster than a naive quadratic analysis suggests.
 
 \subsection{Throughput and Utilization}
 Throughput for generation can be modeled in terms of how many tokens per second a single GPU sustains. Define per-GPU effective throughput $\Theta$ (tokens/s) as:
@@ -1456,7 +1438,7 @@ Throughput for generation can be modeled in terms of how many tokens per second 
 where $t_{\text{step}}(B, N_0, \Delta)$ is the average wall-clock time per generation step, and $\eta \in (0,1]$ aggregates utilization (kernel fusion, scheduling, and I/O overlap). This states that throughput is proportional to tokens produced per step ($B$) divided by per-step runtime, scaled by utilization.
 
 \subsubsection{Interpretation.}  
-Increasing $B$ raises tokens/step linearly but can also increase $t_{\text{step}}$ due to memory contention. Thus, throughput gains saturate. Continuous batching and operator fusion reduce $t_{\text{step}}$ and increase $\eta$ \cite{Kwon2023vLLM,fused-kernels}. In \ishtar{}, GPU utilization was initially ~60\%; introducing dynamic batching and stream overlap raised $\eta$ toward 0.9, nearly doubling throughput as Eq.~\eqref{eq:throughput-main} predicts.
+Increasing $B$ raises tokens/step linearly but can also increase $t_{\text{step}}$ due to memory contention. Thus, throughput gains saturate. Continuous batching and operator fusion reduce $t_{\text{step}}$ and increase $\eta$ \cite{Kwon2023vLLM,Dao2022FlashAttention}. In \ishtar{}, GPU utilization was initially ~60\%; introducing dynamic batching and stream overlap raised $\eta$ toward 0.9, nearly doubling throughput as Eq.~\eqref{eq:throughput-main} predicts.
 
 \subsection{Cost per 1{,}000 Tokens}
 \label{sec:perf-cost-per-token}
@@ -1510,7 +1492,7 @@ These formulas link low-level engineering decisions (e.g., quantization, batchin
 \subsection{Inference Engines and Serving Runtimes}
 \label{sec:inference-engines}
 
-A number of specialized inference engines have been developed to serve LLMs efficiently. Here we compare three widely used runtimes for decoder-based LLM inference in the cloud: vLLM, Hugging Face Text Generation Inference (TGI), and NVIDIA TensorRT-LLM. Each runtime embodies a distinct approach to batching, memory management, and kernel optimization. Table~\ref{tab:ch07_runtimes} provides a qualitative comparison drawn from public documentation and reported benchmarks, focused on decoder-only use cases since they remain the most challenging to serve at scale; validate with your own workloads.
+A number of specialized inference engines have been developed to serve LLMs efficiently. Here we compare three widely used runtimes for decoder-based LLM inference in the cloud: vLLM~\cite{Kwon2023vLLM}, Hugging Face Text Generation Inference (TGI)~\cite{tgi-whitepaper}, and NVIDIA TensorRT-LLM~\cite{tensorrt-llm}. Each runtime embodies a distinct approach to batching, memory management, and kernel optimization. Table~\ref{tab:ch07_runtimes} provides a qualitative comparison drawn from public documentation and reported benchmarks, focused on decoder-only use cases since they remain the most challenging to serve at scale; validate with your own workloads.
 
 Figure~\ref{fig:ch07_inference_engine_callout} summarizes a production vLLM deployment as five tunable surfaces. Each surface owns a small number of knobs whose defaults you should understand before promoting the engine into the request path.
 
@@ -1624,10 +1606,10 @@ Place model weights on local NVMe; prefetch on scale-out; use image layers with 
 
 \subsection{LangChain-Centric Performance Engineering}
 \label{sec:perf-langchain}
-LangChain provides orchestration that, if instrumented carefully, improves both performance and reliability for complex LLM workflows.
+LangChain~\cite{LangChain2023Framework} provides orchestration that, if instrumented carefully, improves both performance and reliability for complex LLM workflows.
 
 \subsection{Tracing, Telemetry, and Token Accounting}
-Use LangSmith (or OpenTelemetry export) to trace chains/graphs: per-node latency, prompt token counts, output lengths, and error rates. Maintain per-route KPIs (e.g., RAG retrieval latency, generation TTFT, tokens/s) and alert on drifts \cite{langsmith}.
+Use LangSmith (or OpenTelemetry export) to trace chains/graphs: per-node latency, prompt token counts, output lengths, and error rates. Maintain per-route KPIs (e.g., RAG retrieval latency, generation TTFT, tokens/s) and alert on drifts.
 
 \subsection{Caching and Deterministic Subchains}
 Enable LLM cache (e.g., Redis-backed) for deterministic subchains (prompt $\rightarrow$ answer) and for embeddings. For \ishtar{}, caching per-source summaries cut input tokens by $5$--$10\times$ on repeat queries while improving tail latency \cite{langchain-cache}.
